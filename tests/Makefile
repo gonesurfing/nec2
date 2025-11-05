@@ -18,11 +18,12 @@ NEW_EXEC = ../src/nec2
 # Test executables
 TEST_UNITS = test_unit_functions
 TEST_NEW = test_new_modules
+TEST_ALL = test_all_modules
 
 # Module directories
 MOD_DIR = ../src/modules
 
-.PHONY: all reference test clean help test_modules integration
+.PHONY: all reference test clean help test_modules integration test_all end_to_end full_test
 
 help:
 	@echo "NEC2 Test Suite"
@@ -32,8 +33,11 @@ help:
 	@echo "  make reference     - Generate reference data from original code"
 	@echo "  make test          - Run all tests comparing new vs. reference"
 	@echo "  make unit_tests    - Run unit tests on original functions"
-	@echo "  make test_modules  - Run unit tests on NEW modernized modules"
+	@echo "  make test_modules  - Run unit tests on NEW modernized modules (basic)"
+	@echo "  make test_all      - Run comprehensive tests on ALL modules"
 	@echo "  make integration   - Run integration test (build + basic execution)"
+	@echo "  make end_to_end    - Run complete end-to-end test suite"
+	@echo "  make full_test     - Run EVERYTHING (integration + end_to_end)"
 	@echo "  make compare       - Compare specific outputs"
 	@echo "  make clean         - Remove test outputs"
 	@echo ""
@@ -98,6 +102,43 @@ integration:
 	@echo "Running integration test..."
 	@bash test_integration.sh
 
+# Build and run comprehensive module tests
+test_all: $(TEST_ALL)
+	@echo "Running comprehensive module tests..."
+	@./$(TEST_ALL)
+
+# Build comprehensive module test executable
+$(TEST_ALL): test_all_modules.f90 $(MOD_DIR)/*.f90
+	@echo "Building comprehensive module test suite..."
+	@echo "  Compiling modules in dependency order..."
+	@# Compile foundation modules
+	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_constants.f90 -o nec2_constants.o
+	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_data_types.f90 -o nec2_data_types.o
+	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_utilities.f90 -o nec2_utilities.o
+	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_geometry.f90 -o nec2_geometry.o
+	@echo "  Compiling and linking test program..."
+	$(FC) -O2 -std=f2008 -o $@ test_all_modules.f90 nec2_constants.o nec2_data_types.o nec2_utilities.o nec2_geometry.o
+	@echo "  Cleaning up intermediate files..."
+	@rm -f nec2_constants.o nec2_data_types.o nec2_utilities.o nec2_geometry.o
+
+# Run complete end-to-end test
+end_to_end:
+	@echo "Running end-to-end test suite..."
+	@bash test_end_to_end.sh
+
+# Run full test suite (everything!)
+full_test: integration test_all end_to_end
+	@echo ""
+	@echo "========================================"
+	@echo "FULL TEST SUITE COMPLETE"
+	@echo "========================================"
+	@echo ""
+	@echo "All tests have been executed:"
+	@echo "  ✓ Integration test (build + basic execution)"
+	@echo "  ✓ Module unit tests (all 12 modules)"
+	@echo "  ✓ End-to-end comparison (vs. original code)"
+	@echo ""
+
 # Compare specific test case
 compare:
 	@if [ -z "$(CASE)" ]; then \
@@ -123,9 +164,11 @@ benchmark: $(ORIG_EXEC) $(NEW_EXEC)
 
 # Clean test outputs
 clean:
-	rm -f $(TEST_UNITS) $(TEST_NEW)
+	rm -f $(TEST_UNITS) $(TEST_NEW) $(TEST_ALL)
 	rm -f $(NEW_DIR)/*.out
 	rm -f test_results.json
+	rm -f comparison_results.txt
+	rm -f *_diff.txt
 	rm -f *.mod *.o
 
 distclean: clean

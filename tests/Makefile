@@ -13,7 +13,7 @@ CASES_DIR = reference_cases
 
 # Original executable
 ORIG_EXEC = ../nec2dxs
-NEW_EXEC = ../nec2dxs_new
+NEW_EXEC = ../src/nec2
 
 # Test executables
 TEST_UNITS = test_unit_functions
@@ -22,7 +22,7 @@ TEST_NEW = test_new_modules
 # Module directories
 MOD_DIR = ../src/modules
 
-.PHONY: all reference test clean help test_modules
+.PHONY: all reference test clean help test_modules integration
 
 help:
 	@echo "NEC2 Test Suite"
@@ -33,6 +33,7 @@ help:
 	@echo "  make test          - Run all tests comparing new vs. reference"
 	@echo "  make unit_tests    - Run unit tests on original functions"
 	@echo "  make test_modules  - Run unit tests on NEW modernized modules"
+	@echo "  make integration   - Run integration test (build + basic execution)"
 	@echo "  make compare       - Compare specific outputs"
 	@echo "  make clean         - Remove test outputs"
 	@echo ""
@@ -91,6 +92,11 @@ $(TEST_NEW): test_new_modules.f90 $(MOD_DIR)/*.f90
 	$(FC) $(FFLAGS) -o $@ test_new_modules.f90 nec2_constants.o nec2_data_types.o nec2_utilities.o
 	@echo "  Cleaning up intermediate files..."
 	@rm -f nec2_constants.o nec2_data_types.o nec2_utilities.o
+
+# Run integration test
+integration:
+	@echo "Running integration test..."
+	@bash test_integration.sh
 
 # Compare specific test case
 compare:

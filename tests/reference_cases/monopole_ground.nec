@@ -1,0 +1,9 @@
+CM Quarter-wave monopole over perfect ground
+CE
+GW 1 11 0. 0. 0. 0. 0. .25 .001
+GE 1
+GN 1
+FR 0 1 0 0 299.8 0
+EX 0 1 1 0 1. 0.
+RP 0 1 361 1000 90. 0. 0. 1.
+EN

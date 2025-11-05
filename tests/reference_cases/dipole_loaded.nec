@@ -1,0 +1,9 @@
+CM Dipole with center loading
+CE
+GW 1 11 0. 0. -.25 0. 0. .25 .001
+GE 0
+LD 0 1 6 6 50. 0. 0.
+FR 0 1 0 0 299.8 0
+EX 0 1 6 0 1. 0.
+RP 0 1 361 1000 90. 0. 0. 1.
+EN

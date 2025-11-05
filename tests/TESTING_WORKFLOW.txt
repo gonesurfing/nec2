@@ -1,0 +1,192 @@
+NEC2 Modernization Testing Workflow
+====================================
+
+Phase 1: Initial Setup
+----------------------
+1. Compile original code:
+   $ cd /home/user/nec2
+   $ gfortran -O2 -o nec2dxs nec2dxs.f
+
+2. Generate reference data:
+   $ cd tests
+   $ ./generate_reference_data.sh
+
+   This creates reference_outputs/ with known-good results
+
+Phase 2: During Modernization
+------------------------------
+For each module you modernize:
+
+1. Create the new module (e.g., nec2_geometry.f90)
+
+2. Write unit tests for that module:
+   - Copy test_module_template.f90
+   - Adapt for your specific module
+   - Test each subroutine individually
+
+3. Compile with both old and new code:
+   $ gfortran -c nec2dxs.f          # Original
+   $ gfortran -c nec2_geometry.f90  # New module
+   $ gfortran -o test_geometry test_geometry_module.f90 \
+       nec2_geometry.o legacy_stubs.o
+
+4. Run unit tests:
+   $ ./test_geometry
+
+5. If tests pass, integrate into main code
+
+Phase 3: Integration Testing
+-----------------------------
+After modernizing several modules:
+
+1. Compile complete new version:
+   $ gfortran -O2 -o nec2dxs_new \
+       nec2_main.f90 \
+       nec2_data_types.f90 \
+       nec2_geometry.f90 \
+       nec2_solver.f90 \
+       ...
+
+2. Run full regression tests:
+   $ cd tests
+   $ make test
+
+3. Review test results:
+   $ cat test_results.json
+   $ less new_outputs/*.out
+
+Phase 4: Validation
+-------------------
+Before considering modernization complete:
+
+1. Run all test cases:
+   $ ./run_test_workflow.sh
+
+2. Check numerical accuracy:
+   - All current distributions within 1e-9
+   - All impedances within 0.01%
+   - All patterns within 0.1%
+
+3. Performance verification:
+   $ make benchmark
+   
+   Ensure performance hasn't degraded significantly
+
+4. Add new edge case tests if needed
+
+Phase 5: Continuous Testing
+----------------------------
+As you make further changes:
+
+1. Always run tests before committing:
+   $ make test
+
+2. Add tests for any bugs you find
+
+3. Update reference data if input format changes
+
+Testing Decision Tree
+---------------------
+                    [Make Change]
+                         |
+                         v
+              +----------+----------+
+              |                     |
+         [New Module]          [Modify Module]
+              |                     |
+              v                     v
+      [Write Unit Tests]    [Run Existing Tests]
+              |                     |
+              +----------+----------+
+                         |
+                         v
+                  [Tests Pass?]
+                         |
+              +----------+----------+
+              |                     |
+            [YES]                 [NO]
+              |                     |
+              v                     v
+    [Run Integration Tests]   [Debug & Fix]
+              |                     |
+              v                     |
+      [Integration Pass?]           |
+              |                     |
+          +---+---+                 |
+          |       |                 |
+        [YES]   [NO]---------------+
+          |
+          v
+    [Ready to Commit]
+
+Key Metrics to Watch
+--------------------
+✓ Current magnitude error < 1e-9
+✓ Current phase error < 1e-8 degrees  
+✓ Impedance error < 0.01%
+✓ Gain error < 0.01 dB
+✓ Execution time within ±20%
+✓ Memory usage reasonable
+
+Common Issues
+-------------
+Issue: Tests failing with large errors
+Fix: Check COMMON block equivalencies are preserved
+
+Issue: Some segments match, others don't
+Fix: Check array indexing (1-based vs 0-based)
+
+Issue: Phase angles wrong
+Fix: Check complex arithmetic, especially DCMPLX calls
+
+Issue: Ground wave calculations off
+Fix: Sommerfeld integrals are sensitive, check tolerances
+
+Issue: Performance degraded
+Fix: Check for unnecessary allocations, use compiler optimization
+
+Tips for Success
+----------------
+1. Modernize incrementally - one module at a time
+2. Always maintain a working version
+3. Test early and often
+4. Use version control - commit after each passing test
+5. Document any numerical tolerance changes
+6. Keep reference data up to date
+7. Run full test suite before final merge
+
+Example Session
+---------------
+$ cd /home/user/nec2/tests
+$ ./run_test_workflow.sh
+
+[1/5] Checking for original binary...
+✓ Original binary found
+
+[2/5] Checking for reference data...
+✓ Reference data exists
+
+[3/5] Checking for modernized binary...
+✓ Modernized binary found
+
+[4/5] Running unit tests...
+Testing DB10 (dB conversion)...
+PASS: db10(1.0) = 0 dB
+PASS: db10(10.0) = 10 dB
+...
+✓ Unit tests passed
+
+[5/5] Running output comparison tests...
+Comparing: dipole_halfwave
+  Currents: PASS (max_rel_err=2.456e-11)
+  Impedance: PASS (max_rel_err=5.123e-12)
+  Pattern: PASS (max_rel_err=1.234e-10)
+
+Comparing: monopole_ground
+  Currents: PASS (max_rel_err=8.901e-11)
+  Impedance: PASS (max_rel_err=3.456e-11)
+  Pattern: PASS (max_rel_err=4.567e-10)
+
+======================================
+✓ ALL TESTS PASSED
+======================================

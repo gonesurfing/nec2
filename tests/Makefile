@@ -17,19 +17,24 @@ NEW_EXEC = ../nec2dxs_new
 
 # Test executables
 TEST_UNITS = test_unit_functions
+TEST_NEW = test_new_modules
 
-.PHONY: all reference test clean help
+# Module directories
+MOD_DIR = ../src/modules
+
+.PHONY: all reference test clean help test_modules
 
 help:
 	@echo "NEC2 Test Suite"
 	@echo "==============="
 	@echo ""
 	@echo "Targets:"
-	@echo "  make reference    - Generate reference data from original code"
-	@echo "  make test         - Run all tests comparing new vs. reference"
-	@echo "  make unit_tests   - Run unit tests on individual functions"
-	@echo "  make compare      - Compare specific outputs"
-	@echo "  make clean        - Remove test outputs"
+	@echo "  make reference     - Generate reference data from original code"
+	@echo "  make test          - Run all tests comparing new vs. reference"
+	@echo "  make unit_tests    - Run unit tests on original functions"
+	@echo "  make test_modules  - Run unit tests on NEW modernized modules"
+	@echo "  make compare       - Compare specific outputs"
+	@echo "  make clean         - Remove test outputs"
 	@echo ""
 	@echo "Usage:"
 	@echo "  1. First compile original: cd .. && make"
@@ -63,10 +68,22 @@ unit_tests: $(TEST_UNITS)
 	@echo "Running unit tests..."
 	@./$(TEST_UNITS)
 
-# Build unit tests using extracted utility functions (no main program conflict)
+# Build unit tests using extracted utility functions
+# This tests the ORIGINAL functions from nec2dxs.f
 $(TEST_UNITS): test_unit_functions.f90 nec2_test_utils.f
-	@echo "Building unit tests..."
+	@echo "Building unit tests for original functions..."
 	$(FC) $(FFLAGS) -o $@ test_unit_functions.f90 nec2_test_utils.f
+
+# Build tests for NEW modernized modules
+test_modules: $(TEST_NEW)
+	@echo "Running unit tests on modernized modules..."
+	@./$(TEST_NEW)
+
+$(TEST_NEW): test_new_modules.f90 $(MOD_DIR)/*.f90
+	@echo "Building tests for modernized modules..."
+	$(FC) $(FFLAGS) -J$(MOD_DIR) -I$(MOD_DIR) -o $@ test_new_modules.f90 \
+		$(MOD_DIR)/nec2_constants.f90 \
+		$(MOD_DIR)/nec2_utilities.f90
 
 # Compare specific test case
 compare:
@@ -93,7 +110,7 @@ benchmark: $(ORIG_EXEC) $(NEW_EXEC)
 
 # Clean test outputs
 clean:
-	rm -f $(TEST_UNITS)
+	rm -f $(TEST_UNITS) $(TEST_NEW)
 	rm -f $(NEW_DIR)/*.out
 	rm -f test_results.json
 	rm -f *.mod *.o

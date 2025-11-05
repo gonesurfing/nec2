@@ -79,11 +79,18 @@ test_modules: $(TEST_NEW)
 	@echo "Running unit tests on modernized modules..."
 	@./$(TEST_NEW)
 
+# Compile modules in dependency order, then link test
 $(TEST_NEW): test_new_modules.f90 $(MOD_DIR)/*.f90
 	@echo "Building tests for modernized modules..."
-	$(FC) $(FFLAGS) -J$(MOD_DIR) -I$(MOD_DIR) -o $@ test_new_modules.f90 \
-		$(MOD_DIR)/nec2_constants.f90 \
-		$(MOD_DIR)/nec2_utilities.f90
+	@echo "  Compiling modules in dependency order..."
+	@# Compile in order: constants -> data_types -> utilities
+	$(FC) $(FFLAGS) -c $(MOD_DIR)/nec2_constants.f90 -o nec2_constants.o
+	$(FC) $(FFLAGS) -c $(MOD_DIR)/nec2_data_types.f90 -o nec2_data_types.o
+	$(FC) $(FFLAGS) -c $(MOD_DIR)/nec2_utilities.f90 -o nec2_utilities.o
+	@echo "  Compiling and linking test program..."
+	$(FC) $(FFLAGS) -o $@ test_new_modules.f90 nec2_constants.o nec2_data_types.o nec2_utilities.o
+	@echo "  Cleaning up intermediate files..."
+	@rm -f nec2_constants.o nec2_data_types.o nec2_utilities.o
 
 # Compare specific test case
 compare:

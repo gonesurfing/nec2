@@ -63,8 +63,10 @@ unit_tests: $(TEST_UNITS)
 	@echo "Running unit tests..."
 	@./$(TEST_UNITS)
 
-$(TEST_UNITS): test_unit_functions.f90
-	$(FC) $(FFLAGS) -o $@ $^ $(SRC_DIR)/nec2dxs.f
+# Build unit tests using extracted utility functions (no main program conflict)
+$(TEST_UNITS): test_unit_functions.f90 nec2_test_utils.f
+	@echo "Building unit tests..."
+	$(FC) $(FFLAGS) -o $@ test_unit_functions.f90 nec2_test_utils.f
 
 # Compare specific test case
 compare:
@@ -94,7 +96,7 @@ clean:
 	rm -f $(TEST_UNITS)
 	rm -f $(NEW_DIR)/*.out
 	rm -f test_results.json
-	rm -f *.mod
+	rm -f *.mod *.o
 
 distclean: clean
 	rm -rf $(REF_DIR)

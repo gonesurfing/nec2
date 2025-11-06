@@ -8,9 +8,9 @@ module nec2_sommerfeld
   implicit none
   private
 
-  ! Public subroutines
+  ! Public subroutines and functions
   public :: evlua, saoa, gshank, rom1, rom2, lambda_param
-  public :: bessel_j0, hankel_h0, test_convergence
+  public :: bessel_j0, hankel_h0, test_convergence, fbar
 
   ! Module-level variables replacing COMMON /CNTOUR/ and /EVLCOM/
   complex(8), save :: contour_a, contour_b  ! Integration contour endpoints
@@ -746,5 +746,82 @@ contains
     ti = abs(f2i - f1i) / den
 
   end subroutine test_convergence
+
+  !============================================================================
+  ! FBAR - Sommerfeld attenuation function
+  !============================================================================
+  function fbar(p) result(result_val)
+    ! Sommerfeld attenuation function for numerical distance P
+    ! Uses series expansion for |z| < 3, asymptotic expansion for |z| >= 3
+    !
+    ! Arguments:
+    !   p - complex numerical distance parameter
+    !
+    ! Returns:
+    !   Complex attenuation function value
+    !
+    ! Original: nec2dxs.f lines 4397-4446
+
+    complex(8), intent(in) :: p
+    complex(8) :: result_val
+
+    complex(8) :: z, zs, sum_val, pow_val, term
+    real(8) :: tms, sms
+    integer :: i, minus
+
+    ! Constants
+    complex(8), parameter :: fj = cmplx(0.0d0, 1.0d0, kind=8)
+    real(8), parameter :: tosp = 1.128379167d0      ! 2/sqrt(pi)
+    real(8), parameter :: sp = 1.772453851d0        ! sqrt(pi)
+    real(8), parameter :: accs = 1.0d-12            ! Convergence tolerance
+
+    z = fj * sqrt(p)
+
+    if (abs(z) > 3.0d0) then
+      ! Asymptotic expansion for |z| >= 3
+      if (real(z, kind=8) < 0.0d0) then
+        minus = 1
+        z = -z
+      else
+        minus = 0
+      end if
+
+      zs = 0.5d0 / (z * z)
+      sum_val = cmplx(0.0d0, 0.0d0, kind=8)
+      term = cmplx(1.0d0, 0.0d0, kind=8)
+
+      do i = 1, 6
+        term = -term * real(2*i - 1, kind=8) * zs
+        sum_val = sum_val + term
+      end do
+
+      if (minus == 1) then
+        sum_val = sum_val - 2.0d0 * sp * z * exp(z * z)
+      end if
+
+      result_val = -sum_val
+
+    else
+      ! Series expansion for |z| < 3
+      zs = z * z
+      sum_val = z
+      pow_val = z
+
+      do i = 1, 100
+        pow_val = -pow_val * zs / real(i, kind=8)
+        term = pow_val / real(2*i + 1, kind=8)
+        sum_val = sum_val + term
+
+        ! Check convergence
+        tms = real(term * conjg(term), kind=8)
+        sms = real(sum_val * conjg(sum_val), kind=8)
+
+        if (tms / sms < accs) exit
+      end do
+
+      result_val = 1.0d0 - (1.0d0 - sum_val * tosp) * z * exp(zs) * sp
+    end if
+
+  end function fbar
 
 end module nec2_sommerfeld

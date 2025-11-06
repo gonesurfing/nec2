@@ -463,39 +463,312 @@ contains
   !============================================================================
   ! GFLD - Ground field calculation (placeholder)
   !============================================================================
-  subroutine gfld(ground, rho, phi, rz, eth, epi, erd, ux, ksymp)
-    ! Calculates field from ground using Norton approximation
-    ! Placeholder for full implementation
+  subroutine gfld(geom, current, ground, rho, phi, rz, eth, epi, erd, ux, ksymp)
+    ! Computes the radiated field including ground wave
+    ! Sums contributions from all segments with ground reflection
+    !
+    ! Arguments:
+    !   geom - Geometry data structure
+    !   current - Current distribution data
+    !   ground - Ground parameters (for ffld call)
+    !   rho - Radial distance in cylindrical coordinates
+    !   phi - Azimuthal angle
+    !   rz - Vertical coordinate
+    !   eth, epi, erd - Output field components (theta, phi, radial)
+    !   ux - Ground reflection coefficient
+    !   ksymp - Symmetry flag (1=space wave only)
+    !
+    ! Original: nec2dxs.f lines 5069-5221
 
+    type(geometry_data), intent(in) :: geom
+    type(current_data), intent(in) :: current
     type(ground_data), intent(in) :: ground
     real(8), intent(in) :: rho, phi, rz, ux
     integer, intent(in) :: ksymp
     complex(8), intent(out) :: eth, epi, erd
 
-    ! Placeholder - full implementation would call GWAVE
-    eth = (0.0d0, 0.0d0)
-    epi = (0.0d0, 0.0d0)
-    erd = (0.0d0, 0.0d0)
+    complex(8) :: exa, cix, ciy, ciz, ex, ey
+    complex(8) :: xx1, xx2, u, u2
+    complex(8) :: erv, ezv, erh, ezh, eph_local
+    real(8) :: r, thet, arg, phx, phy, rx, ry
+    real(8) :: dx, dy, dz, rix, riy, riz, rhs, rhp, rhx, rhy
+    real(8) :: calp, cbet, sbet, cph, sph, el, rfl, rxyz
+    real(8) :: rnx, rny, rnz, omega, sill, top, bot, a, too, boo, b, c
+    real(8) :: rr, ri, r1, r2, zmh, zph
+    real(8) :: rnx_obs, rny_obs, rnz_obs, thx, thy, thz
+    integer :: i, k
+
+    real(8), parameter :: ptp = TWO_PI
+
+    ! Calculate distance to observation point
+    r = sqrt(rho*rho + rz*rz)
+
+    ! Check for space wave only conditions
+    if (ksymp == 1 .or. abs(ux) > 0.5d0 .or. r > 1.0d5) then
+      ! Computation of space wave only
+      if (rz < 1.0d-20) then
+        thet = PI * 0.5d0
+      else
+        thet = atan(rho / rz)
+      end if
+
+      call ffld(geom, current, ground, thet, phi, eth, epi)
+
+      arg = -ptp * r
+      exa = cmplx(cos(arg), sin(arg), kind=8) / r
+      eth = eth * exa
+      epi = epi * exa
+      erd = cmplx(0.0d0, 0.0d0, kind=8)
+      return
+    end if
+
+    ! Computation of space and ground waves
+    u = cmplx(ux, 0.0d0, kind=8)
+    u2 = u * u
+    phx = -sin(phi)
+    phy = cos(phi)
+    rx = rho * phy
+    ry = -rho * phx
+    cix = cmplx(0.0d0, 0.0d0, kind=8)
+    ciy = cmplx(0.0d0, 0.0d0, kind=8)
+    ciz = cmplx(0.0d0, 0.0d0, kind=8)
+
+    ! Summation of field from individual segments
+    do i = 1, geom%n
+      dx = geom%cab(i)
+      dy = geom%sab(i)
+      dz = geom%salp(i)
+      rix = rx - geom%x(i)
+      riy = ry - geom%y(i)
+      rhs = rix*rix + riy*riy
+      rhp = sqrt(rhs)
+
+      if (rhp < 1.0d-6) then
+        rhx = 1.0d0
+        rhy = 0.0d0
+      else
+        rhx = rix / rhp
+        rhy = riy / rhp
+      end if
+
+      calp = 1.0d0 - dz*dz
+      if (calp < 1.0d-6) then
+        cph = rhx
+        sph = rhy
+      else
+        calp = sqrt(calp)
+        cbet = dx / calp
+        sbet = dy / calp
+        cph = rhx*cbet + rhy*sbet
+        sph = rhy*cbet - rhx*sbet
+      end if
+
+      el = PI * geom%si(i)
+      rfl = -1.0d0
+
+      ! Integration over segment and image
+      do k = 1, 2
+        rfl = -rfl
+        riz = rz - geom%z(i) * rfl
+        rxyz = sqrt(rix*rix + riy*riy + riz*riz)
+        rnx = rix / rxyz
+        rny = riy / rxyz
+        rnz = riz / rxyz
+        omega = -(rnx*dx + rny*dy + rnz*dz*rfl)
+        sill = omega * el
+        top = el + sill
+        bot = el - sill
+
+        ! Calculate integration coefficients
+        if (abs(omega) < 1.0d-7) then
+          a = (2.0d0 - omega*omega*el*el/3.0d0) * el
+        else
+          a = 2.0d0 * sin(sill) / omega
+        end if
+
+        if (abs(top) < 1.0d-7) then
+          too = 1.0d0 - top*top/6.0d0
+        else
+          too = sin(top) / top
+        end if
+
+        if (abs(bot) < 1.0d-7) then
+          boo = 1.0d0 - bot*bot/6.0d0
+        else
+          boo = sin(bot) / bot
+        end if
+
+        b = el * (boo - too)
+        c = el * (boo + too)
+
+        ! Combine with current coefficients
+        rr = a*current%air(i) + b*current%bii(i) + c*current%cir(i)
+        ri = a*current%aii(i) - b*current%bir(i) + c*current%cii(i)
+
+        arg = ptp * (geom%x(i)*rnx + geom%y(i)*rny + geom%z(i)*rnz*rfl)
+        exa = cmplx(cos(arg), sin(arg), kind=8) * cmplx(rr, ri, kind=8) / ptp
+
+        if (k == 1) then
+          xx1 = exa
+          r1 = rxyz
+          zmh = riz
+        else
+          xx2 = exa
+          r2 = rxyz
+          zph = riz
+        end if
+      end do
+
+      ! Call subroutine to compute field of segment including ground wave
+      call gwave(u, u2, xx1, xx2, r1, r2, zmh, zph, erv, ezv, erh, ezh, eph_local)
+
+      erh = erh * cph * calp + erv * dz
+      eph_local = eph_local * sph * calp
+      ezh = ezh * cph * calp + ezv * dz
+
+      ex = erh * rhx - eph_local * rhy
+      ey = erh * rhy + eph_local * rhx
+
+      cix = cix + ex
+      ciy = ciy + ey
+      ciz = ciz + ezh
+    end do
+
+    ! Apply phase factor for observation point
+    arg = -ptp * r
+    exa = cmplx(cos(arg), sin(arg), kind=8)
+    cix = cix * exa
+    ciy = ciy * exa
+    ciz = ciz * exa
+
+    ! Transform to spherical components
+    rnx_obs = rx / r
+    rny_obs = ry / r
+    rnz_obs = rz / r
+
+    thx = rnz_obs * phy
+    thy = -rnz_obs * phx
+    thz = -rho / r
+
+    eth = cix*thx + ciy*thy + ciz*thz
+    epi = cix*phx + ciy*phy
+    erd = cix*rnx_obs + ciy*rny_obs + ciz*rnz_obs
 
   end subroutine gfld
 
   !============================================================================
   ! GWAVE - Ground wave field (placeholder)
   !============================================================================
-  subroutine gwave(ground, erv, ezv, erh, ezh, eph)
-    ! Computes ground wave fields using Sommerfeld integrals
-    ! Placeholder for full implementation
+  subroutine gwave(u, u2, xx1, xx2, r1, r2, zmh, zph, erv, ezv, erh, ezh, eph)
+    ! Computes electric field (including ground wave) of a current element
+    ! over a ground plane using formulas of K.A. Norton (Proc. IRE, Sept. 1937)
+    !
+    ! Arguments:
+    !   u, u2 - Ground reflection coefficient and its square
+    !   xx1, xx2 - Phase factors for direct and image contributions
+    !   r1, r2 - Distances to direct and image sources
+    !   zmh, zph - Vertical components for direct and image paths
+    !   erv, ezv, erh, ezh, eph - Output field components
+    !
+    ! Original: nec2dxs.f lines 5348-5427
 
-    type(ground_data), intent(in) :: ground
+    use nec2_sommerfeld, only: fbar
+
+    complex(8), intent(in) :: u, u2, xx1, xx2
+    real(8), intent(in) :: r1, r2, zmh, zph
     complex(8), intent(out) :: erv, ezv, erh, ezh, eph
 
-    ! This would call EVLUA from nec2_sommerfeld
-    ! Placeholder for now
-    erv = (0.0d0, 0.0d0)
-    ezv = (0.0d0, 0.0d0)
-    erh = (0.0d0, 0.0d0)
-    ezh = (0.0d0, 0.0d0)
-    eph = (0.0d0, 0.0d0)
+    complex(8) :: rk1, rk2, t1, t2, t3, t4, p1, rv, omr, w, f, q1, rh, v, g
+    complex(8) :: xr1, xr2, x1, x2, x3, x4, x5, x6, x7
+    real(8) :: sppp, sppp2, cppp, cppp2, spp, spp2, cpp, cpp2
+
+    ! Constants
+    complex(8), parameter :: fj = cmplx(0.0d0, 1.0d0, kind=8)
+    complex(8), parameter :: tpj = cmplx(0.0d0, TWO_PI, kind=8)
+    complex(8), parameter :: econ = cmplx(0.0d0, -188.367d0, kind=8)
+
+    ! Compute trigonometric values
+    sppp = zmh / r1
+    sppp2 = sppp * sppp
+    cppp2 = 1.0d0 - sppp2
+    if (cppp2 < 1.0d-20) cppp2 = 1.0d-20
+    cppp = sqrt(cppp2)
+
+    spp = zph / r2
+    spp2 = spp * spp
+    cpp2 = 1.0d0 - spp2
+    if (cpp2 < 1.0d-20) cpp2 = 1.0d-20
+    cpp = sqrt(cpp2)
+
+    ! Complex wave numbers
+    rk1 = -tpj * r1
+    rk2 = -tpj * r2
+
+    ! Intermediate terms
+    t1 = 1.0d0 - u2 * cpp2
+    t2 = sqrt(t1)
+    t3 = (1.0d0 - 1.0d0/rk1) / rk1
+    t4 = (1.0d0 - 1.0d0/rk2) / rk2
+
+    ! Vertical polarization reflection coefficient and attenuation
+    p1 = rk2 * u2 * t1 / (2.0d0 * cpp2)
+    rv = (spp - u*t2) / (spp + u*t2)
+    omr = 1.0d0 - rv
+    w = 1.0d0 / omr
+    w = cmplx(4.0d0, 0.0d0, kind=8) * p1 * w * w
+    f = fbar(w)
+
+    ! Horizontal polarization reflection coefficient and attenuation
+    q1 = rk2 * t1 / (2.0d0 * u2 * cpp2)
+    rh = (t2 - u*spp) / (t2 + u*spp)
+    v = 1.0d0 / (1.0d0 + rh)
+    v = cmplx(4.0d0, 0.0d0, kind=8) * q1 * v * v
+    g = fbar(v)
+
+    ! Normalized distances
+    xr1 = xx1 / r1
+    xr2 = xx2 / r2
+
+    ! EZV - Vertical component for vertical polarization
+    x1 = cppp2 * xr1
+    x2 = rv * cpp2 * xr2
+    x3 = omr * cpp2 * f * xr2
+    x4 = u * t2 * spp * 2.0d0 * xr2 / rk2
+    x5 = xr1 * t3 * (1.0d0 - 3.0d0*sppp2)
+    x6 = xr2 * t4 * (1.0d0 - 3.0d0*spp2)
+    ezv = (x1 + x2 + x3 - x4 - x5 - x6) * econ
+
+    ! ERV - Radial component for vertical polarization
+    x1 = sppp * cppp * xr1
+    x2 = rv * spp * cpp * xr2
+    x3 = cpp * omr * u * t2 * f * xr2
+    x4 = spp * cpp * omr * xr2 / rk2
+    x5 = 3.0d0 * sppp * cppp * t3 * xr1
+    x6 = cpp * u * t2 * omr * xr2 / rk2 * 0.5d0
+    x7 = 3.0d0 * spp * cpp * t4 * xr2
+    erv = -(x1 + x2 - x3 + x4 - x5 + x6 - x7) * econ
+
+    ! EZH - Vertical component for horizontal polarization
+    ezh = -(x1 - x2 + x3 - x4 - x5 - x6 + x7) * econ
+
+    ! ERH - Radial component for horizontal polarization
+    x1 = sppp2 * xr1
+    x2 = rv * spp2 * xr2
+    x4 = u2 * t1 * omr * f * xr2
+    x5 = t3 * (1.0d0 - 3.0d0*cppp2) * xr1
+    x6 = t4 * (1.0d0 - 3.0d0*cpp2) * (1.0d0 - u2*(1.0d0 + rv) - u2*omr*f) * xr2
+    x7 = u2 * cpp2 * omr * (1.0d0 - 1.0d0/rk2) * &
+         (f*(u2*t1 - spp2 - 1.0d0/rk2) + 1.0d0/rk2) * xr2
+    erh = (x1 - x2 - x4 - x5 + x6 + x7) * econ
+
+    ! EPH - Phi component for horizontal polarization
+    x1 = xr1
+    x2 = rh * xr2
+    x3 = (rh + 1.0d0) * g * xr2
+    x4 = t3 * xr1
+    x5 = t4 * (1.0d0 - u2*(1.0d0 + rv) - u2*omr*f) * xr2
+    x6 = 0.5d0 * u2 * omr * (f*(u2*t1 - spp2 - 1.0d0/rk2) + 1.0d0/rk2) * xr2 / rk2
+    eph = -(x1 - x2 + x3 - x4 + x5 + x6) * econ
 
   end subroutine gwave
 

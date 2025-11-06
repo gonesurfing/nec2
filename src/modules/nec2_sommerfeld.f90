@@ -31,13 +31,15 @@ contains
   !============================================================================
   ! EVLUA - Control integration contour for Sommerfeld integrals
   !============================================================================
-  subroutine evlua(ground, erv, ezv, erh, eph)
+  subroutine evlua(evl, erv, ezv, erh, eph)
     ! Evaluates Sommerfeld integrals using appropriate integration contour
     ! in the complex lambda plane
     !
     ! Returns electric field components for ground reflection
+    !
+    ! Note: Caller must set evl%ck1, evl%ck2, evl%zph, evl%rho before calling
 
-    type(ground_data), intent(in) :: ground
+    type(evaluation_data), intent(inout) :: evl
     complex(8), intent(out) :: erv, ezv, erh, eph
 
     complex(8) :: sum_vals(6), ans(6)
@@ -46,22 +48,21 @@ contains
     real(8), parameter :: ptp = TWO_PI
     integer :: i
 
-    ! Set up evaluation parameters from ground data
-    evl_params%ck1 = ground%ck1
-    evl_params%ck1sq = ground%ck1 * ground%ck1
-    evl_params%ck2 = abs(ground%ck2)
-    evl_params%ck2sq = evl_params%ck2 * evl_params%ck2
-    evl_params%zph = ground%zph
-    evl_params%rho = ground%rho
-    evl_params%tkmag = abs(ground%ck1)
-    evl_params%tsmag = evl_params%tkmag * evl_params%tkmag * 1.0d-4
-    evl_params%ck1r = real(ground%ck1, kind=8)
+    ! Set up derived evaluation parameters
+    evl%ck1sq = evl%ck1 * evl%ck1
+    evl%ck2sq = evl%ck2 * evl%ck2
+    evl%tkmag = abs(evl%ck1)
+    evl%tsmag = evl%tkmag * evl%tkmag * 1.0d-4
+    evl%ck1r = real(evl%ck1, kind=8)
 
     ! Compute coefficients for reflection
-    evl_params%cksm = ground%ck1 + ground%ck2
-    evl_params%ct1 = evl_params%cksm / (ground%ck1 * ground%ck2)
-    evl_params%ct2 = evl_params%ck1sq - evl_params%ck2sq
-    evl_params%ct3 = evl_params%ct2 / (evl_params%ck1sq * evl_params%ck2sq)
+    evl%cksm = evl%ck1 + evl%ck2
+    evl%ct1 = evl%cksm / (evl%ck1 * evl%ck2)
+    evl%ct2 = evl%ck1sq - evl%ck2sq
+    evl%ct3 = evl%ct2 / (evl%ck1sq * evl%ck2sq)
+
+    ! Copy to module variable for use by other functions
+    evl_params = evl
 
     del = evl_params%zph
     if (evl_params%rho > del) del = evl_params%rho
@@ -209,11 +210,12 @@ contains
     complex(8), intent(out) :: sum_vals(:)
     integer, intent(in) :: nans, ibk
 
-    complex(8) :: a(6, 20), b(6, 20), as1(6), as2(6), del, aa
+    complex(8) :: a(6, 21), b(6, 21), as1(6), as2(6), del, aa
     complex(8) :: t1, t2, brk_val
     integer :: ibx, i, j, jm, intx, inx, brk_cnt
     real(8) :: den, dena, denb, ratio_r, ratio_i
     logical :: jump
+    integer, parameter :: INT_MAXH = 20  ! Maximum Shanks iterations
 
     do i = 1, nans
       a(i, 1) = seed(i)
@@ -248,7 +250,7 @@ contains
       end if
 
       ! Evaluate integrand at current point
-      call saoa_internal(brk_val, as1)
+      call saoa(brk_val, as1)
 
       ! Save values
       do i = 1, nans
@@ -345,7 +347,7 @@ contains
     ns = nx
     nt = 0
 
-    call saoa_internal(z * contour_b + (1.0d0 - z) * contour_a, g1)
+    call saoa(z * contour_b + (1.0d0 - z) * contour_a, g1)
 
     ! Adaptive integration loop
     do while (z <= zend)
@@ -358,8 +360,8 @@ contains
       dzot = dz * 0.5d0
 
       ! 3-point Romberg
-      call saoa_internal((z + dzot) * contour_b + (1.0d0 - z - dzot) * contour_a, g3)
-      call saoa_internal((z + dz) * contour_b + (1.0d0 - z - dz) * contour_a, g5)
+      call saoa((z + dzot) * contour_b + (1.0d0 - z - dzot) * contour_a, g3)
+      call saoa((z + dz) * contour_b + (1.0d0 - z - dz) * contour_a, g5)
 
       nogo = 0
       do i = 1, n
@@ -380,9 +382,9 @@ contains
         nt = nt + 2
       else
         ! Try 5-point Romberg
-        call saoa_internal((z + dz * 0.25d0) * contour_b + &
+        call saoa((z + dz * 0.25d0) * contour_b + &
                           (1.0d0 - z - dz * 0.25d0) * contour_a, g2)
-        call saoa_internal((z + dz * 0.75d0) * contour_b + &
+        call saoa((z + dz * 0.75d0) * contour_b + &
                           (1.0d0 - z - dz * 0.75d0) * contour_a, g4)
 
         nogo = 0
@@ -586,7 +588,7 @@ contains
   !============================================================================
   ! SAOA - Sommerfeld integrand for source and observer above ground
   !============================================================================
-  subroutine saoa_internal(t_val, ans)
+  subroutine saoa(t_val, ans)
     ! Computes the integrand for each of the 6 Sommerfeld integrals
     ! for source and observer above ground
     !
@@ -685,7 +687,7 @@ contains
     ans(3) = -ans(4) * cgam2 * evl_params%rho
     ans(5) = com * b0
 
-  end subroutine saoa_internal
+  end subroutine saoa
 
   !============================================================================
   ! LAMBDA_PARAM - Compute lambda parameter along contour

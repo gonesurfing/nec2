@@ -264,7 +264,9 @@ module nec2_data_types
     complex(8) :: ck1, ck2              ! CK parameters
     complex(8) :: ck1sq, ck2sq          ! CK squared
     real(8) :: tkmag, tsmag             ! Magnitudes
-    complex(8) :: ct              ! Additional parameter
+    real(8) :: ck1r                     ! Real part of ck1
+    real(8) :: zph, rho                 ! Z phase, rho parameters
+    integer :: jh                       ! Integer flag
   end type evaluation_data
 
   !============================================================================

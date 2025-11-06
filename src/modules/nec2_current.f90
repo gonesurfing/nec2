@@ -36,7 +36,8 @@ contains
     integer, intent(in) :: i, icap
 
     integer :: jcox, jend, iend, jsno, njun1, njun2, jsnop
-    real(8) :: pp, pm, sig, d, sdh, cdh, sd, cd, omcreal(8) :: aj, ap, qp, qm, xxi
+    real(8) :: pp, pm, sig, d, sdh, cdh, sd, cd, omc
+    real(8) :: aj, ap, qp, qm, xxi
 
     segj%jsno = 0
     pp = 0.0d0
@@ -177,7 +178,7 @@ contains
     end do
     goto 27
 
-20  ! Junction 1 only
+20  continue  ! Junction 1 only
     if (icap /= 0) then
       qm = PI * geom%bi(i)
       xxi = qm * qm
@@ -198,7 +199,7 @@ contains
     end do
     goto 27
 
-24  ! No junctions
+24  continue  ! No junctions
     segj%bx(jsnop) = 0.0d0
     if (icap /= 0) then
       qp = PI * geom%bi(i)

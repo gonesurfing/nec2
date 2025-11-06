@@ -301,7 +301,7 @@ contains
   !============================================================================
   ! PATCH - Generate surface patch geometry
   !============================================================================
-  subroutine patch(geom, angle_data, nx, ny, &
+  subroutine patch(geom, ang, nx, ny, &
                    x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4)
     ! Generates and modifies patch geometry data
     !
@@ -314,12 +314,12 @@ contains
     !
     ! Arguments:
     !   geom       - geometry data structure
-    !   angle_data - angle data (for SALP array)
+    !   ang        - angle data (for SALP array)
     !   nx, ny     - patch dimensions/type
     !   x1,y1,z1 through x4,y4,z4 - corner coordinates
 
     type(geometry_data), intent(inout) :: geom
-    type(angle_data), intent(inout) :: angle_data
+    type(angle_data), intent(inout) :: ang
     integer, intent(in) :: nx, ny
     real(8), intent(in) :: x1, y1, z1, x2, y2, z2
     real(8), intent(in) :: x3, y3, z3, x4, y4, z4
@@ -443,7 +443,7 @@ contains
   !============================================================================
   ! MOVE_GEOMETRY - Move and replicate geometry
   !============================================================================
-  subroutine move_geometry(geom, angle_data, rox, roy, roz, &
+  subroutine move_geometry(geom, ang, rox, roy, roz, &
                           xs, ys, zs, its, nrpt, itgi)
     ! Rotates and translates structure
     ! Structure is rotated about X, Y, Z axes by rox, roy, roz (radians)
@@ -451,7 +451,7 @@ contains
     !
     ! Arguments:
     !   geom       - geometry data
-    !   angle_data - angle data
+    !   ang        - angle data
     !   rox, roy, roz - rotation angles (radians)
     !   xs, ys, zs - translation
     !   its        - starting tag (0 = all)
@@ -459,7 +459,7 @@ contains
     !   itgi       - tag increment for replications
 
     type(geometry_data), intent(inout) :: geom
-    type(angle_data), intent(inout) :: angle_data
+    type(angle_data), intent(inout) :: ang
     real(8), intent(in) :: rox, roy, roz, xs, ys, zs
     integer, intent(in) :: its, nrpt, itgi
 
@@ -567,7 +567,7 @@ contains
           geom%icon2(kr) = int(xi*yx + yi*yy + zi*yz)
           geom%itag(kr) = int(xi*zx + yi*zy + zi*zz)
 
-          angle_data%salp(kr) = angle_data%salp(ir)
+          ang%salp(kr) = ang%salp(ir)
           geom%bi(kr) = geom%bi(ir)
         end do
         i1 = geom%m + 1
@@ -586,19 +586,19 @@ contains
   !============================================================================
   ! REFLECT_GEOMETRY - Reflect geometry for symmetry
   !============================================================================
-  subroutine reflect_geometry(geom, angle_data, ix, iy, iz, itx, nop)
+  subroutine reflect_geometry(geom, ang, ix, iy, iz, itx, nop)
     ! Reflects partial structure along X, Y, or Z axes or rotates
     ! structure to complete a symmetric structure
     !
     ! Arguments:
     !   geom       - geometry data
-    !   angle_data - angle data
+    !   ang        - angle data
     !   ix, iy, iz - reflection flags (1=reflect, 0=no)
     !   itx        - tag increment
     !   nop        - operation flag
 
     type(geometry_data), intent(inout) :: geom
-    type(angle_data), intent(inout) :: angle_data
+    type(angle_data), intent(inout) :: ang
     integer, intent(in) :: ix, iy, iz, itx, nop
 
     integer :: iti, i, nx, nxx, ir, kr
@@ -671,7 +671,7 @@ contains
           geom%icon1(nx) = geom%icon1(nxx)
           geom%icon2(nx) = geom%icon2(nxx)
           geom%itag(nx) = -geom%itag(nxx)
-          angle_data%salp(nx) = -angle_data%salp(nxx)
+          ang%salp(nx) = -ang%salp(nxx)
           geom%bi(nx) = geom%bi(nxx)
         end do
         geom%m = geom%m * 2 - geom%m1

@@ -437,27 +437,231 @@ contains
   end subroutine gxx
 
   subroutine intx(el1, el2, b, ij, sgr, sgi)
-    ! Romberg integration of exp(jkr)/r
-    ! Variable interval width integration using GF() for integrand values
-    !
-    ! NOTE: This is still a PLACEHOLDER - needs full implementation
-    !       from nec2dxs.f lines 6065-6172 plus GF() helper (lines 6173-6220)
+    ! Romberg integration of exp(jkr)/r with variable interval width
+    ! Uses GF() to compute integrand values
     !
     ! Arguments:
     !   el1, el2 - integration limits
-    !   b   - parameter for integration
-    !   ij  - integration type flag
-    !   sgr, sgi - REAL output values (NOT complex!)
+    !   b   - radial distance parameter (for singularity handling)
+    !   ij  - integration type flag (0=diagonal term, nonzero=off-diagonal)
+    !   sgr, sgi - Real and imaginary parts of integral result
     !
-    ! Original: nec2dxs.f lines 6065-6172
+    ! Original: nec2dxs.f lines 6065-6174
 
     real(8), intent(in) :: el1, el2, b
     integer, intent(in) :: ij
-    real(8), intent(out) :: sgr, sgi  ! NOTE: These are REAL, not COMPLEX!
+    real(8), intent(out) :: sgr, sgi
 
-    ! Placeholder - needs full implementation with GF() helper
+    ! Integration parameters
+    integer, parameter :: nx = 1        ! Initial step count
+    integer, parameter :: nm = 65536    ! Maximum step count
+    integer, parameter :: nts = 4       ! Threshold for step size increase
+    real(8), parameter :: rx = 1.0d-4   ! Convergence tolerance
+
+    ! Local variables
+    real(8) :: z, ze, s, ep, zend, dz, dzot, zp, fnm, fns
+    real(8) :: g1r, g1i, g2r, g2i, g3r, g3i, g4r, g4i, g5r, g5i
+    real(8) :: t00r, t00i, t01r, t01i, t02r, t02i
+    real(8) :: t10r, t10i, t11r, t11i, t20r, t20i
+    real(8) :: te1r, te1i, te2r, te2i
+    integer :: ns, nt
+
+    ! Initialize integration bounds
+    z = el1
+    ze = el2
+    if (ij == 0) ze = 0.0d0
+
+    s = ze - z
+    fnm = real(nm, kind=8)
+    ep = s / (10.0d0 * fnm)
+    zend = ze - ep
+
+    ! Initialize result
     sgr = 0.0d0
     sgi = 0.0d0
+
+    ns = nx
+    nt = 0
+
+    ! Get initial integrand value
+    call gf_integrand(z, g1r, g1i)
+
+    ! Main integration loop
+    do while (.true.)
+      fns = real(ns, kind=8)
+      dz = s / fns
+      zp = z + dz
+
+      ! Check if we've reached the end
+      if (zp >= ze) then
+        dz = ze - z
+        if (abs(dz) < ep) exit
+      end if
+
+      ! Compute interval values
+      dzot = dz * 0.5d0
+      zp = z + dzot
+      call gf_integrand(zp, g3r, g3i)
+      zp = z + dz
+      call gf_integrand(zp, g5r, g5i)
+
+      ! 3-point Romberg integration
+      t00r = (g1r + g5r) * dzot
+      t00i = (g1i + g5i) * dzot
+      t01r = (t00r + dz * g3r) * 0.5d0
+      t01i = (t00i + dz * g3i) * 0.5d0
+      t10r = (4.0d0 * t01r - t00r) / 3.0d0
+      t10i = (4.0d0 * t01i - t00i) / 3.0d0
+
+      ! Test convergence of 3-point result
+      call test_convergence(t01r, t10r, te1r, t01i, t10i, te1i, 0.0d0)
+
+      if (te1i <= rx .and. te1r <= rx) then
+        ! 3-point converged
+        sgr = sgr + t10r
+        sgi = sgi + t10i
+        nt = nt + 2
+      else
+        ! Need 5-point integration
+        zp = z + dz * 0.25d0
+        call gf_integrand(zp, g2r, g2i)
+        zp = z + dz * 0.75d0
+        call gf_integrand(zp, g4r, g4i)
+
+        t02r = (t01r + dzot * (g2r + g4r)) * 0.5d0
+        t02i = (t01i + dzot * (g2i + g4i)) * 0.5d0
+        t11r = (4.0d0 * t02r - t01r) / 3.0d0
+        t11i = (4.0d0 * t02i - t01i) / 3.0d0
+        t20r = (16.0d0 * t11r - t10r) / 15.0d0
+        t20i = (16.0d0 * t11i - t10i) / 15.0d0
+
+        ! Test convergence of 5-point result
+        call test_convergence(t11r, t20r, te2r, t11i, t20i, te2i, 0.0d0)
+
+        if (te2i <= rx .and. te2r <= rx) then
+          ! 5-point converged
+          sgr = sgr + t20r
+          sgi = sgi + t20i
+          nt = nt + 1
+        else
+          ! Need to halve step size
+          nt = 0
+          if (ns >= nm) then
+            ! Step size limit reached - use best estimate
+            write(*,'(A,F10.5)') ' STEP SIZE LIMITED AT Z=', z
+            sgr = sgr + t20r
+            sgi = sgi + t20i
+          else
+            ! Halve step size and retry
+            ns = ns * 2
+            fns = real(ns, kind=8)
+            dz = s / fns
+            dzot = dz * 0.5d0
+            g5r = g3r
+            g5i = g3i
+            g3r = g2r
+            g3i = g2i
+            cycle
+          end if
+        end if
+      end if
+
+      ! Move to next interval
+      z = z + dz
+      if (z >= zend) exit
+
+      g1r = g5r
+      g1i = g5i
+
+      ! Check if we can increase step size
+      if (nt >= nts .and. ns > nx) then
+        ns = ns / 2
+        nt = 1
+      end if
+    end do
+
+    ! Add contribution of near singularity for diagonal term
+    if (ij == 0) then
+      sgr = 2.0d0 * (sgr + log((sqrt(b*b + s*s) + s) / b))
+      sgi = 2.0d0 * sgi
+    end if
+
   end subroutine intx
+
+  !============================================================================
+  ! GF_INTEGRAND - Integrand function for INTX
+  !============================================================================
+  subroutine gf_integrand(zk, co, si)
+    ! Computes the integrand exp(jkr)/(kr) for numerical integration
+    ! Uses module variables zpk_mod, rkb2_mod, ijx_mod from COMMON /TMI/
+    !
+    ! Arguments:
+    !   zk - integration point
+    !   co - cosine part (real component)
+    !   si - sine part (imaginary component)
+    !
+    ! Original: nec2dxs.f lines 4879-4901
+
+    real(8), intent(in) :: zk
+    real(8), intent(out) :: co, si
+
+    real(8) :: zdk, rk, rks
+
+    zdk = zk - zpk_mod
+    rk = sqrt(rkb2_mod + zdk*zdk)
+    si = sin(rk) / rk
+
+    if (ijx_mod /= 0) then
+      ! Off-diagonal term
+      co = cos(rk) / rk
+    else
+      ! Diagonal term - need special handling near rk=0
+      if (rk >= 0.2d0) then
+        co = (cos(rk) - 1.0d0) / rk
+      else
+        ! Taylor series for small rk: (cos(rk)-1)/rk ≈ -rk/2 + rk³/24 - ...
+        rks = rk * rk
+        co = ((-1.38888889d-3 * rks + 4.16666667d-2) * rks - 0.5d0) * rk
+      end if
+    end if
+
+  end subroutine gf_integrand
+
+  !============================================================================
+  ! TEST_CONVERGENCE - Test for convergence in numerical integration
+  !============================================================================
+  subroutine test_convergence(f1r, f2r, tr, f1i, f2i, ti, dmin)
+    ! Tests relative error between two integration estimates
+    !
+    ! Arguments:
+    !   f1r, f1i - first estimate (real and imaginary)
+    !   f2r, f2i - second estimate (real and imaginary)
+    !   tr, ti - relative errors (output)
+    !   dmin - minimum denominator for relative error
+    !
+    ! Original: nec2dxs.f lines 9674-9694
+
+    real(8), intent(in) :: f1r, f2r, f1i, f2i, dmin
+    real(8), intent(out) :: tr, ti
+
+    real(8) :: den
+
+    ! Find maximum absolute value for denominator
+    den = abs(f2r)
+    tr = abs(f2i)
+    if (den < tr) den = tr
+    if (den < dmin) den = dmin
+
+    if (den >= 1.0d-37) then
+      ! Compute relative errors
+      tr = abs((f1r - f2r) / den)
+      ti = abs((f1i - f2i) / den)
+    else
+      ! Denominator too small - consider converged
+      tr = 0.0d0
+      ti = 0.0d0
+    end if
+
+  end subroutine test_convergence
 
 end module nec2_kernel

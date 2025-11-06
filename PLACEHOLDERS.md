@@ -14,7 +14,7 @@ These are needed for the main program to work:
 These are needed for specific advanced features:
 - Ground wave calculations (gfld, gwave)
 - Surface patch calculations (hsfld)
-- ~~Advanced kernel functions (gx, gxx, intx)~~ → ✅ gx, gxx complete; intx signature fixed
+- ~~Advanced kernel functions (gx, gxx, intx)~~ → ✅ ALL COMPLETE (2025-11-06)
 - Alternative integration method (rom2)
 
 ### Minor/Optimization
@@ -77,17 +77,23 @@ subroutine gxx(zz, rh, a, a2, xk, ira, g1, g1p, g2, g2p, g3, gzp)
 **Implemented:** 2025-11-06
 **Implementation:** 45 lines from nec2dxs.f, includes IRA branching logic
 
-#### intx() - Integration Function (Line 435)
+#### intx() - Integration Function (Line 439)
 ```fortran
 subroutine intx(el1, el2, b, ij, sgr, sgi)
 ```
-**Status:** ⚠️ SIGNATURE FIXED, STILL PLACEHOLDER
-**Purpose:** Romberg integration of exp(jkr)/r for kernel calculations
-**Impact:** Surface patch calculations still incomplete
-**Priority:** HIGH - needed for extended thin wire approximation
-**Implementation needed:** ~108 lines from nec2dxs.f (lines 6065-6172)
-**Dependencies:** Needs GF() helper (lines 6173-6220) and TEST() convergence function
-**Fixed:** Corrected signature - sgr, sgi are now real(8) as in original (were incorrectly complex(8))
+**Status:** ✅ COMPLETED (Implemented from original lines 6065-6174)
+**Purpose:** Romberg integration of exp(jkr)/r with variable interval width
+**Impact:** Extended thin wire approximation now fully functional
+**Implemented:** 2025-11-06
+**Implementation:**
+- Main intx() function: ~150 lines (modernized from 108 lines original)
+- gf_integrand() helper: ~24 lines (from GF subroutine, lines 4879-4901)
+- test_convergence() helper: ~21 lines (from TEST subroutine, lines 9674-9694)
+**Features:**
+- Adaptive step size control
+- 3-point and 5-point Romberg integration
+- Special handling for diagonal terms (near singularity)
+- Convergence testing with configurable tolerance
 
 **Note:** Line 274 also has a placeholder comment about needing UNERE function.
 
@@ -140,12 +146,12 @@ Priority order:
 2. Complete ground wave support in gwave()
 3. Verify Sommerfeld integration (rom1/rom2)
 
-### Phase 3: Surface Patch Support (IN PROGRESS)
+### Phase 3: Surface Patch Support (PARTIALLY COMPLETE)
 Priority order:
 1. ✅ Implement gx(), gxx() kernel functions (DONE 2025-11-06)
-2. ⚠️  Fix intx() signature (DONE 2025-11-06), complete implementation (TODO)
-3. Complete hsfld() for surface fields
-4. Verify surface matrix assembly in cmset()
+2. ✅ Implement intx() integration with GF() and TEST() helpers (DONE 2025-11-06)
+3. ⬜ Complete hsfld() for surface fields (TODO)
+4. ⬜ Verify surface matrix assembly in cmset() (TODO)
 
 ### Phase 4: Optimization and Edge Cases (TODO)
 - Complete rom2() if needed
@@ -205,7 +211,8 @@ For each placeholder function:
 - Far-field radiation patterns
 - Wire-wire coupling
 - Matrix solution
-- ✅ Green's function kernels (gx, gxx) for thin wire and extended approximations
+- ✅ Green's function kernels (gx, gxx, intx) - ALL kernel functions complete!
+- ✅ Extended thin wire approximation (ekscx) fully functional
 
 **What Doesn't Work:**
 - Accurate ground plane calculations

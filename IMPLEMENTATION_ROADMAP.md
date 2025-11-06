@@ -24,12 +24,21 @@ These are used by other functions and should be implemented first.
 **Dependencies:** None
 
 #### 3. intx() - Complex, Needs GF helper
-**File:** `nec2_kernel.f90` (Line 345)
-**Original:** `nec2dxs.f` (Lines 6065-6172, ~108 lines)
+**File:** `nec2_kernel.f90` (Line 439)
+**Original:** `nec2dxs.f` (Lines 6065-6174, ~108 lines)
 **Complexity:** HIGH
-**Status:** Needs GF subroutine (Lines 6173-6220)
-**Dependencies:** Calls GF(), TEST()
-**Note:** Current stub has WRONG signature - sgr, sgi are REAL not COMPLEX
+**Status:** ✅ COMPLETE (2025-11-06)
+**Dependencies:** GF() (lines 4879-4901), TEST() (lines 9674-9694)
+**Implementation:**
+- Fixed signature (sgr, sgi now REAL not COMPLEX)
+- Implemented full Romberg integration with adaptive step size
+- Added gf_integrand() helper (~24 lines)
+- Added test_convergence() helper (~21 lines)
+**Features:**
+- Variable interval width integration
+- 3-point and 5-point Romberg schemes
+- Automatic step size halving/doubling
+- Near singularity handling for diagonal terms
 
 ### Phase 2: Field Functions - HIGH PRIORITY
 
@@ -106,9 +115,9 @@ grep -n "SUBROUTINE <NAME>" nec2dxs.f
 
 | Function | Status | Lines | Complexity | Priority |
 |----------|--------|-------|------------|----------|
-| gx()     | ⬜ TODO | 15    | LOW        | HIGH     |
-| gxx()    | ⬜ TODO | 45    | MEDIUM     | HIGH     |
-| intx()   | ⬜ TODO | 108+  | HIGH       | HIGH     |
+| gx()     | ✅ DONE | 15    | LOW        | HIGH     |
+| gxx()    | ✅ DONE | 45    | MEDIUM     | HIGH     |
+| intx()   | ✅ DONE | 150+  | HIGH       | HIGH     |
 | gfld()   | ⬜ TODO | ~200  | HIGH       | MEDIUM   |
 | gwave()  | ⬜ TODO | ~100  | MEDIUM     | MEDIUM   |
 | hsfld()  | ⬜ TODO | ~150  | MEDIUM     | MEDIUM   |
@@ -158,14 +167,14 @@ After implementing each function:
 ## Next Actions
 
 1. ✅ Create this roadmap document
-2. ⬜ Implement gx() (simplest, 15 lines)
-3. ⬜ Implement gxx() (moderate, 45 lines)
-4. ⬜ Locate remaining functions in original
-5. ⬜ Implement intx() + GF helper
-6. ⬜ Implement field functions
+2. ✅ Implement gx() (15 lines) - DONE 2025-11-06
+3. ✅ Implement gxx() (45 lines) - DONE 2025-11-06
+4. ✅ Implement intx() + GF() + TEST() helpers - DONE 2025-11-06
+5. ⬜ Locate remaining functions in original (gfld, gwave, hsfld)
+6. ⬜ Implement field functions (gfld, gwave, hsfld)
 7. ⬜ Complete rom2()
-8. ⬜ Update STATUS.md and PLACEHOLDERS.md
-9. ⬜ Full testing
+8. ✅ Update STATUS.md and PLACEHOLDERS.md - DONE 2025-11-06
+9. ⬜ Full testing after all implementations
 
 ## Estimated Effort
 

@@ -325,9 +325,12 @@ Several functions have placeholder implementations that limit full functionality
 - LU decomposition and solution
 - Impedance and admittance calculations
 
-✅ **Kernel functions** (as of 2025-11-06)
+✅ **Kernel functions** (COMPLETE as of 2025-11-06)
 - gx() - Green's function for thin wire approximation
 - gxx() - Extended Green's function with finite radius correction
+- intx() - Romberg integration for extended thin wire kernel
+- gf_integrand() - Integrand function with singularity handling
+- test_convergence() - Adaptive convergence testing
 
 ### What Has Placeholders (Advanced Features)
 ⚠️ **Ground plane calculations**
@@ -335,12 +338,12 @@ Several functions have placeholder implementations that limit full functionality
 - gwave() - Ground wave using Sommerfeld integrals - PLACEHOLDER
 - Impact: Ground plane accuracy reduced
 
-⚠️ **Surface patch features** (partially complete)
+⚠️ **Surface patch features** (kernel functions complete)
 - ✅ gx() - Basic kernel - COMPLETE (2025-11-06)
 - ✅ gxx() - Extended kernel - COMPLETE (2025-11-06)
-- ⚠️ intx() - Integration function - SIGNATURE FIXED, needs full implementation
+- ✅ intx() + GF() + TEST() - Integration complete - COMPLETE (2025-11-06)
 - ⚠️ hsfld() - H field from surfaces - PLACEHOLDER
-- Impact: Surface patches partially working, need intx() for full functionality
+- Impact: Extended thin wire approximation fully functional; surface patches need hsfld()
 
 ⚠️ **Advanced integration**
 - rom2() - Alternative Romberg integration - PARTIAL

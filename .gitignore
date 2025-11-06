@@ -3,5 +3,5 @@ nec2dxs
 *.o
 tests/test_all_modules
 tests/test_new_modules
-*.out
+tests/reference_outputs/*.out
 *.log

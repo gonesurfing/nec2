@@ -305,6 +305,48 @@ Created comprehensive build infrastructure:
   - `make integration` - Run full integration test
   - Updated executable paths for modernized version
 
+## Known Limitations and Placeholders ⚠️
+
+Several functions have placeholder implementations that limit full functionality. These do not affect basic wire antenna analysis but are needed for advanced features.
+
+**See `PLACEHOLDERS.md` for complete details.**
+
+### What Works (Core Functionality)
+✅ **Wire antennas in free space**
+- Straight wires, helical wires, arc segments
+- Wire-wire coupling and mutual impedance
+- Current distribution calculations
+- Far-field radiation patterns
+- Wire arrays (Yagi, log-periodic, etc.)
+- Basic frequency sweeps
+
+✅ **Matrix operations**
+- Full matrix assembly for wire structures
+- LU decomposition and solution
+- Impedance and admittance calculations
+
+### What Has Placeholders (Advanced Features)
+⚠️ **Ground plane calculations**
+- gfld() - Ground field (Norton approximation) - PLACEHOLDER
+- gwave() - Ground wave using Sommerfeld integrals - PLACEHOLDER
+- Impact: Ground plane accuracy reduced
+
+⚠️ **Surface patch features**
+- gx(), gxx(), intx() - Patch interaction kernels - PLACEHOLDER
+- hsfld() - H field from surfaces - PLACEHOLDER
+- Impact: Surface patch antennas won't work correctly
+
+⚠️ **Advanced integration**
+- rom2() - Alternative Romberg integration - PARTIAL
+- Impact: Minor effect on some Sommerfeld integrals
+
+### Recommended Testing Approach
+1. **Start with**: Free-space wire antennas (dipoles, Yagi arrays, helical antennas)
+2. **Avoid initially**: Ground planes, surface patches, near-field over ground
+3. **After validation**: Implement placeholders based on specific needs
+
+See `PLACEHOLDERS.md` for implementation priorities and detailed function-by-function analysis.
+
 ## Current Status
 
 ### What Works

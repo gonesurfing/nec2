@@ -171,8 +171,8 @@ contains
                           "PI value correct", total, passed)
     call assert_real_equal(TWO_PI, 6.283185307d0, 1.0d-9, &
                           "TWO_PI = 2*PI", total, passed)
-    call assert_real_equal(HALF_PI, 1.570796327d0, 1.0d-9, &
-                          "HALF_PI = PI/2", total, passed)
+    call assert_real_equal(PI_OVER_2, 1.570796327d0, 1.0d-9, &
+                          "PI_OVER_2 = PI/2", total, passed)
 
     ! Conversion factors
     call assert_real_equal(DEG_TO_RAD * 180.0d0, PI, 1.0d-9, &
@@ -206,14 +206,14 @@ contains
     call print_module_header("nec2_data_types")
 
     ! Test geometry_data initialization
-    call init_geometry_data(geom, 10, 5)
+    call init_geometry_data(geom, 100)
     call assert_true(allocated(geom%x), &
                      "geometry_data: x array allocated", total, passed)
     call assert_true(allocated(geom%y), &
                      "geometry_data: y array allocated", total, passed)
     call assert_true(allocated(geom%z), &
                      "geometry_data: z array allocated", total, passed)
-    call assert_int_equal(size(geom%x), 10, &
+    call assert_int_equal(size(geom%x), 100, &
                           "geometry_data: x size correct", total, passed)
     call cleanup_geometry_data(geom)
     call assert_true(.not. allocated(geom%x), &
@@ -311,7 +311,7 @@ contains
     call print_module_header("nec2_geometry")
 
     ! Initialize geometry
-    call init_geometry_data(geom, 1000, 100)
+    call init_geometry_data(geom, 1000)
     geom%n = 0
     geom%np = 0
     geom%m = 0
@@ -333,14 +333,14 @@ contains
 
     ! Test helix generation
     initial_n = geom%n
-    call helix(geom, 1.0d0, 0.5d0, 0.0d0, 0.0d0, 0.001d0, 0.001d0, 1.0d0, &
-               5, 10, 2)
+    call helix(geom, 1.0d0, 0.5d0, 0.1d0, 0.1d0, 0.1d0, 0.1d0, 0.001d0, &
+               10, 2)
     call assert_true(geom%n > initial_n, &
                      "helix: segments added", total, passed)
 
     ! Test arc generation
     initial_n = geom%n
-    call arc(geom, 5, 1.0d0, 0.0d0, 90.0d0, 0.001d0, 3)
+    call arc(geom, 3, 5, 1.0d0, 0.0d0, 90.0d0, 0.001d0)
     call assert_true(geom%n > initial_n, &
                      "arc: segments added", total, passed)
 

@@ -325,16 +325,22 @@ Several functions have placeholder implementations that limit full functionality
 - LU decomposition and solution
 - Impedance and admittance calculations
 
+✅ **Kernel functions** (as of 2025-11-06)
+- gx() - Green's function for thin wire approximation
+- gxx() - Extended Green's function with finite radius correction
+
 ### What Has Placeholders (Advanced Features)
 ⚠️ **Ground plane calculations**
 - gfld() - Ground field (Norton approximation) - PLACEHOLDER
 - gwave() - Ground wave using Sommerfeld integrals - PLACEHOLDER
 - Impact: Ground plane accuracy reduced
 
-⚠️ **Surface patch features**
-- gx(), gxx(), intx() - Patch interaction kernels - PLACEHOLDER
-- hsfld() - H field from surfaces - PLACEHOLDER
-- Impact: Surface patch antennas won't work correctly
+⚠️ **Surface patch features** (partially complete)
+- ✅ gx() - Basic kernel - COMPLETE (2025-11-06)
+- ✅ gxx() - Extended kernel - COMPLETE (2025-11-06)
+- ⚠️ intx() - Integration function - SIGNATURE FIXED, needs full implementation
+- ⚠️ hsfld() - H field from surfaces - PLACEHOLDER
+- Impact: Surface patches partially working, need intx() for full functionality
 
 ⚠️ **Advanced integration**
 - rom2() - Alternative Romberg integration - PARTIAL

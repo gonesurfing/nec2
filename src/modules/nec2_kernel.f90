@@ -40,8 +40,9 @@ contains
     complex(8), intent(out) :: ezs, ers, ezc, erc, ezk, erk
 
     complex(8) :: con, gz1, gz2, gp1, gp2, gzp1, gzp2
-    complex(8) :: cint_val, sint_val
+    complex(8) :: cint_val
     real(8) :: sh, shk, ss, cs, z1, z2, rhk
+    real(8) :: sgr, sgi  ! Real/imaginary parts from intx()
     complex(8), parameter :: con_const = (0.0d0, 4.771341189d0)
 
     ijx_mod = ij
@@ -72,7 +73,8 @@ contains
     erk = con * (gp2 - gp1) * rh
 
     ! Integrate for constant current
-    call intx(-shk, shk, rhk, ij, cint_val, sint_val)
+    call intx(-shk, shk, rhk, ij, sgr, sgi)
+    cint_val = cmplx(sgr, sgi, kind=8)
     ezk = -con * (gzp2 - gzp1 + xk*xk * cint_val)
 
     gzp1 = gzp1 * z1
@@ -114,9 +116,10 @@ contains
 
     complex(8) :: con, gz1, gz2, gzp1, gzp2
     complex(8) :: gr1, gr2, grp1, grp2, grk1, grk2
-    complex(8) :: gzz1, gzz2, cint_val, sint_val
+    complex(8) :: gzz1, gzz2, cint_val
     real(8) :: rh, b, sh, shk, ss, cs, z1, z2, a2, rhk
     real(8) :: bk, bk2
+    real(8) :: sgr, sgi  ! Real/imaginary parts from intx()
     integer :: ira
     complex(8), parameter :: con_const = (0.0d0, 4.771341189d0)
 
@@ -178,7 +181,8 @@ contains
                   (z2*gr2 + z1*gr1) * ss * xk)
     erk = con * (grk2 - grk1)
 
-    call intx(-shk, shk, rhk, ij, cint_val, sint_val)
+    call intx(-shk, shk, rhk, ij, sgr, sgi)
+    cint_val = cmplx(sgr, sgi, kind=8)
 
     bk = b * xk
     bk2 = bk * bk * 0.25d0
@@ -318,37 +322,142 @@ contains
   end subroutine pcint
 
   !============================================================================
-  ! Placeholder stubs for GX, GXX, INTX
-  ! These would need to be implemented from the full code
+  ! GX - Green's function for thin wire approximation
   !============================================================================
   subroutine gx(zz, rh, xk, gz, gzp)
+    ! Segment end contributions for thin wire approximation
+    ! Computes Green's function and its derivative
+    !
+    ! Arguments:
+    !   zz  - z coordinate distance
+    !   rh  - radial distance
+    !   xk  - wave number (2*pi/wavelength)
+    !   gz  - Green's function value
+    !   gzp - Derivative of Green's function
+    !
+    ! Original: nec2dxs.f lines 5428-5442
+
     real(8), intent(in) :: zz, rh, xk
     complex(8), intent(out) :: gz, gzp
-    ! Placeholder - full implementation from GX subroutine
-    gz = (0.0d0, 0.0d0)
-    gzp = (0.0d0, 0.0d0)
+
+    real(8) :: r2, r, rk
+
+    ! Calculate distance
+    r2 = zz*zz + rh*rh
+    r = sqrt(r2)
+    rk = xk * r
+
+    ! Green's function: exp(ikr)/r
+    gz = cmplx(cos(rk), -sin(rk), kind=8) / r
+
+    ! Derivative: -(1 + ikr) * exp(ikr) / r^2
+    gzp = -cmplx(1.0d0, rk, kind=8) * gz / r2
+
   end subroutine gx
 
   subroutine gxx(zz, rh, a, a2, xk, ira, g1, g1p, g2, g2p, g3, gzp)
+    ! Segment end contributions for extended thin wire approximation
+    ! Computes Green's function and derivatives with finite radius correction
+    !
+    ! Arguments:
+    !   zz  - z coordinate distance
+    !   rh  - radial distance
+    !   a   - wire radius
+    !   a2  - wire radius squared (a^2)
+    !   xk  - wave number (2*pi/wavelength)
+    !   ira - flag: 0=normal, 1=special radial case
+    !   g1, g1p, g2, g2p, g3, gzp - Green's function components
+    !
+    ! Original: nec2dxs.f lines 5443-5487
+
     real(8), intent(in) :: zz, rh, a, a2, xk
     integer, intent(in) :: ira
     complex(8), intent(out) :: g1, g1p, g2, g2p, g3, gzp
-    ! Placeholder - full implementation from GXX subroutine
-    g1 = (0.0d0, 0.0d0)
-    g1p = (0.0d0, 0.0d0)
-    g2 = (0.0d0, 0.0d0)
-    g2p = (0.0d0, 0.0d0)
-    g3 = (0.0d0, 0.0d0)
-    gzp = (0.0d0, 0.0d0)
+
+    real(8) :: r2, r, r4, rk, rk2, rh2, t1, t2
+    complex(8) :: gz, c1, c2, c3
+
+    ! Calculate distance parameters
+    r2 = zz*zz + rh*rh
+    r = sqrt(r2)
+    r4 = r2 * r2
+    rk = xk * r
+    rk2 = rk * rk
+    rh2 = rh * rh
+
+    ! Radius correction terms
+    t1 = 0.25d0 * a2 * rh2 / r4
+    t2 = 0.5d0 * a2 / r2
+
+    ! Complex expansion terms
+    c1 = cmplx(1.0d0, rk, kind=8)
+    c2 = 3.0d0*c1 - rk2
+    c3 = cmplx(6.0d0, rk, kind=8)*rk2 - 15.0d0*c1
+
+    ! Base Green's function
+    gz = cmplx(cos(rk), -sin(rk), kind=8) / r
+
+    ! Compute G2 and G1
+    g2 = gz * (1.0d0 + t1*c2)
+    g1 = g2 - t2*c1*gz
+
+    ! Scale gz for derivatives
+    gz = gz / r2
+
+    ! Compute derivatives
+    g2p = gz * (t1*c3 - c1)
+    gzp = t2 * c2 * gz
+    g3 = g2p + gzp
+    g1p = g3 * zz
+
+    ! Branch based on IRA flag
+    if (ira == 1) then
+      ! Special radial case (IRA=1)
+      t2 = 0.5d0 * a
+      g2 = -t2 * c1 * gz
+      g2p = t2 * gz * c2 / r2
+      g3 = rh2*g2p - a*gz*c1
+      g2p = g2p * zz
+      gzp = -zz * c1 * gz
+    else
+      ! Normal case (IRA=0)
+      g3 = (g3 + gzp) * rh
+      gzp = -zz * c1 * gz
+
+      if (rh > 1.0d-10) then
+        g2 = g2 / rh
+        g2p = g2p * zz / rh
+      else
+        ! Singularity handling for rh → 0
+        g2 = (0.0d0, 0.0d0)
+        g2p = (0.0d0, 0.0d0)
+      end if
+    end if
+
   end subroutine gxx
 
   subroutine intx(el1, el2, b, ij, sgr, sgi)
+    ! Romberg integration of exp(jkr)/r
+    ! Variable interval width integration using GF() for integrand values
+    !
+    ! NOTE: This is still a PLACEHOLDER - needs full implementation
+    !       from nec2dxs.f lines 6065-6172 plus GF() helper (lines 6173-6220)
+    !
+    ! Arguments:
+    !   el1, el2 - integration limits
+    !   b   - parameter for integration
+    !   ij  - integration type flag
+    !   sgr, sgi - REAL output values (NOT complex!)
+    !
+    ! Original: nec2dxs.f lines 6065-6172
+
     real(8), intent(in) :: el1, el2, b
     integer, intent(in) :: ij
-    complex(8), intent(out) :: sgr, sgi
-    ! Placeholder - full implementation from INTX subroutine
-    sgr = (0.0d0, 0.0d0)
-    sgi = (0.0d0, 0.0d0)
+    real(8), intent(out) :: sgr, sgi  ! NOTE: These are REAL, not COMPLEX!
+
+    ! Placeholder - needs full implementation with GF() helper
+    sgr = 0.0d0
+    sgi = 0.0d0
   end subroutine intx
 
 end module nec2_kernel

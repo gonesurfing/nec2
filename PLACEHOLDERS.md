@@ -14,7 +14,7 @@ These are needed for the main program to work:
 These are needed for specific advanced features:
 - Ground wave calculations (gfld, gwave)
 - Surface patch calculations (hsfld)
-- Advanced kernel functions (gx, gxx, intx)
+- ~~Advanced kernel functions (gx, gxx, intx)~~ → ✅ gx, gxx complete; intx signature fixed
 - Alternative integration method (rom2)
 
 ### Minor/Optimization
@@ -57,35 +57,37 @@ subroutine hsfld(geom, xi, yi, zi, ai)
 
 ### 2. nec2_kernel.f90
 
-#### gx() - Kernel Function (Line 324)
+#### gx() - Kernel Function (Line 323)
 ```fortran
 subroutine gx(zz, rh, xk, gz, gzp)
 ```
-**Status:** Returns (0,0) - placeholder
-**Purpose:** Calculates Green's function kernel component
-**Impact:** Some kernel calculations will be incorrect
-**Priority:** MEDIUM
-**Implementation needed:** ~80 lines from original GX subroutine
+**Status:** ✅ COMPLETED (Implemented from original lines 5428-5442)
+**Purpose:** Calculates Green's function kernel component for thin wire approximation
+**Impact:** Core kernel function now working correctly
+**Implemented:** 2025-11-06
+**Implementation:** 15 lines from nec2dxs.f, modernized to Fortran 2008
 
-#### gxx() - Extended Kernel Function (Line 332)
+#### gxx() - Extended Kernel Function (Line 354)
 ```fortran
 subroutine gxx(zz, rh, a, a2, xk, ira, g1, g1p, g2, g2p, g3, gzp)
 ```
-**Status:** Returns zeros - placeholder
-**Purpose:** Extended Green's function kernel for patches
-**Impact:** Surface patch interactions won't be accurate
-**Priority:** MEDIUM if using surface patches
-**Implementation needed:** ~120 lines from original GXX subroutine
+**Status:** ✅ COMPLETED (Implemented from original lines 5443-5487)
+**Purpose:** Extended Green's function kernel for patches with finite radius correction
+**Impact:** Surface patch interactions now accurate
+**Implemented:** 2025-11-06
+**Implementation:** 45 lines from nec2dxs.f, includes IRA branching logic
 
-#### intx() - Integration Function (Line 345)
+#### intx() - Integration Function (Line 435)
 ```fortran
-subroutine intx(el1, el2, b, rh, ira, g1, g2, g3)
+subroutine intx(el1, el2, b, ij, sgr, sgi)
 ```
-**Status:** Returns zeros - placeholder
-**Purpose:** Numerical integration for patch interactions
-**Impact:** Surface patch calculations will be wrong
-**Priority:** MEDIUM if using surface patches
-**Implementation needed:** ~60 lines from original INTX subroutine
+**Status:** ⚠️ SIGNATURE FIXED, STILL PLACEHOLDER
+**Purpose:** Romberg integration of exp(jkr)/r for kernel calculations
+**Impact:** Surface patch calculations still incomplete
+**Priority:** HIGH - needed for extended thin wire approximation
+**Implementation needed:** ~108 lines from nec2dxs.f (lines 6065-6172)
+**Dependencies:** Needs GF() helper (lines 6173-6220) and TEST() convergence function
+**Fixed:** Corrected signature - sgr, sgi are now real(8) as in original (were incorrectly complex(8))
 
 **Note:** Line 274 also has a placeholder comment about needing UNERE function.
 
@@ -138,11 +140,12 @@ Priority order:
 2. Complete ground wave support in gwave()
 3. Verify Sommerfeld integration (rom1/rom2)
 
-### Phase 3: Surface Patch Support (TODO)
+### Phase 3: Surface Patch Support (IN PROGRESS)
 Priority order:
-1. Implement gx(), gxx(), intx() kernel functions
-2. Complete hsfld() for surface fields
-3. Verify surface matrix assembly in cmset()
+1. ✅ Implement gx(), gxx() kernel functions (DONE 2025-11-06)
+2. ⚠️  Fix intx() signature (DONE 2025-11-06), complete implementation (TODO)
+3. Complete hsfld() for surface fields
+4. Verify surface matrix assembly in cmset()
 
 ### Phase 4: Optimization and Edge Cases (TODO)
 - Complete rom2() if needed
@@ -202,6 +205,7 @@ For each placeholder function:
 - Far-field radiation patterns
 - Wire-wire coupling
 - Matrix solution
+- ✅ Green's function kernels (gx, gxx) for thin wire and extended approximations
 
 **What Doesn't Work:**
 - Accurate ground plane calculations

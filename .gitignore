@@ -1,0 +1,7 @@
+nec2dxs
+*.mod
+*.o
+tests/test_all_modules
+tests/test_new_modules
+*.out
+*.log

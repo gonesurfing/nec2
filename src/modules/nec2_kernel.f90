@@ -227,12 +227,13 @@ contains
     xs = dataj%s
 
     ! Extract tangent vectors from dataj
+    ! For patches: (t1x,t1y,t1z) = (cabj,sabj,salpj) and (t2x,t2y,t2z) = (b,t2y,t2z)
     t1xj = dataj%cabj
     t1yj = dataj%sabj
     t1zj = dataj%salpj
     t2xj = dataj%b
-    t2yj = real(dataj%ind1, kind=8)
-    t2zj = real(dataj%ind2, kind=8)
+    t2yj = dataj%t2y
+    t2zj = dataj%t2z
 
     ! Setup integration parameters
     d = sqrt(dataj%s) * 0.5d0

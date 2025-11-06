@@ -285,11 +285,15 @@ module nec2_data_types
   ! DATA J (replaces COMMON /DATAJ/)
   !============================================================================
   type :: dataj_data
-    real(8) :: s, b                     ! Segment length and radius
+    real(8) :: s, b                     ! Segment length and radius (also b=t2x for patches)
     real(8) :: xj, yj, zj               ! Junction coordinates
-    real(8) :: cabj, sabj, salpj        ! Direction cosines
-    real(8) :: exk, eyk, ezk            ! E field components (kernel)
-    real(8) :: exs, eys, ezs            ! E field components (source)
+    real(8) :: cabj, sabj, salpj        ! Direction cosines (also t1x, t1y, t1z for patches)
+    complex(8) :: exk, eyk, ezk         ! E field components (kernel)
+    complex(8) :: exs, eys, ezs         ! E field components (source)
+    complex(8) :: exc, eyc, ezc         ! E field components (constant)
+    real(8) :: rkh                      ! R*k for H field
+    real(8) :: t2y, t2z                 ! Second tangent vector for patches (t2x=b)
+    integer :: iexk, ipgnd              ! Field type flag, ground plane flag
   end type dataj_data
 
   !============================================================================

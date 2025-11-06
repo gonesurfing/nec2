@@ -11,7 +11,7 @@ module nec2_fields
   private
 
   ! Public subroutines
-  public :: ffld, nefld, nhfld, efld, gfld, gwave, hsfld, fflds, sflds
+  public :: ffld, nefld, nhfld, efld, gfld, gwave, hsfld, hsflx, fflds, sflds
 
 contains
 
@@ -773,17 +773,250 @@ contains
   end subroutine gwave
 
   !============================================================================
-  ! HSFLD - H field from surface (placeholder)
+  ! HSFLX - H field calculation helper
   !============================================================================
-  subroutine hsfld(geom, xi, yi, zi, ai)
-    ! Computes H field from surface patches
-    ! Placeholder for full implementation
+  subroutine hsflx(s, rh, zp, hpk, hps, hpc)
+    ! Calculates H field of sine, cosine, and constant current of segment
+    !
+    ! Arguments:
+    !   s - segment length
+    !   rh - radial distance
+    !   zp - z projection
+    !   hpk, hps, hpc - H field components (constant, sine, cosine)
+    !
+    ! Original: nec2dxs.f lines 5852-5908
 
-    type(geometry_data), intent(in) :: geom
+    use nec2_kernel, only: hfk
+
+    real(8), intent(in) :: s, rh, zp
+    complex(8), intent(out) :: hpk, hps, hpc
+
+    complex(8) :: ekr1, ekr2, t1, t2, cons
+    real(8) :: dh, z1, z2, rhz, dk, cdk, sdk, hkr, hki, rh2, r1, r2
+    real(8) :: zp_local, hss
+
+    real(8), parameter :: tp = TWO_PI
+    real(8), parameter :: pi8 = 8.0d0 * PI
+    complex(8), parameter :: fj = cmplx(0.0d0, 1.0d0, kind=8)
+    complex(8), parameter :: fjk = cmplx(0.0d0, -TWO_PI, kind=8)
+
+    ! Check for singularity
+    if (rh < 1.0d-10) then
+      hps = cmplx(0.0d0, 0.0d0, kind=8)
+      hpc = cmplx(0.0d0, 0.0d0, kind=8)
+      hpk = cmplx(0.0d0, 0.0d0, kind=8)
+      return
+    end if
+
+    ! Handle sign of zp
+    if (zp < 0.0d0) then
+      zp_local = -zp
+      hss = -1.0d0
+    else
+      zp_local = zp
+      hss = 1.0d0
+    end if
+
+    dh = 0.5d0 * s
+    z1 = zp_local + dh
+    z2 = zp_local - dh
+
+    ! Check for small z2
+    if (z2 < 1.0d-7) then
+      rhz = 1.0d0
+    else
+      rhz = rh / z2
+    end if
+
+    dk = tp * dh
+    cdk = cos(dk)
+    sdk = sin(dk)
+
+    ! Call hfk for constant current term
+    call hfk(-dk, dk, rh*tp, zp_local*tp, hkr, hki)
+    hpk = cmplx(hkr, hki, kind=8)
+
+    if (rhz < 1.0d-3) then
+      ! Small rhz approximation
+      ekr1 = cmplx(cdk, sdk, kind=8) / (z2*z2)
+      ekr2 = cmplx(cdk, -sdk, kind=8) / (z1*z1)
+      t1 = tp * (1.0d0/z1 - 1.0d0/z2)
+      t2 = exp(fjk*zp_local) * rh / pi8
+      hps = t2 * (t1 + (ekr1 + ekr2)*sdk) * hss
+      hpc = t2 * (-fj*t1 + (ekr1 - ekr2)*cdk)
+    else
+      ! Normal case
+      rh2 = rh * rh
+      r1 = sqrt(rh2 + z1*z1)
+      r2 = sqrt(rh2 + z2*z2)
+      ekr1 = exp(fjk*r1)
+      ekr2 = exp(fjk*r2)
+      t1 = z1 * ekr1 / r1
+      t2 = z2 * ekr2 / r2
+      hps = (cdk*(ekr2 - ekr1) - fj*sdk*(t2 + t1)) * hss
+      hpc = -sdk*(ekr2 + ekr1) - fj*cdk*(t2 - t1)
+      cons = -fj / (2.0d0*tp*rh)
+      hps = cons * hps
+      hpc = cons * hpc
+    end if
+
+  end subroutine hsflx
+
+  !============================================================================
+  ! HSFLD - H field from surface patches
+  !============================================================================
+  subroutine hsfld(dataj, ground, xi, yi, zi, ai)
+    ! Computes H field for constant, sine, and cosine current on a segment
+    ! including ground effects
+    !
+    ! Arguments:
+    !   dataj - junction/segment data (contains E fields and geometry)
+    !   ground - ground parameters
+    !   xi, yi, zi - observation point
+    !   ai - segment radius
+    !
+    ! Original: nec2dxs.f lines 5739-5851
+
+    type(dataj_data), intent(inout) :: dataj
+    type(ground_data), intent(in) :: ground
     real(8), intent(in) :: xi, yi, zi, ai
 
-    ! Placeholder
-    return
+    complex(8) :: hpk, hps, hpc, qx, qy, qz
+    complex(8) :: rrv, rrh, zratx
+    real(8) :: xij, yij, zij, rfl, salpr, zp
+    real(8) :: rhox, rhoy, rhoz, rh, phx, phy, phz
+    real(8) :: rmag, xymag, px, py, cth
+    real(8) :: xspec, yspec, rhospc
+
+    real(8), parameter :: eta = 376.73d0
+    integer :: ip
+
+    xij = xi - dataj%xj
+    yij = yi - dataj%yj
+    rfl = -1.0d0
+
+    ! Loop over symmetry (1 or 2 iterations)
+    do ip = 1, ground%ksymp
+      rfl = -rfl
+      salpr = dataj%salpj * rfl
+      zij = zi - rfl*dataj%zj
+
+      ! Project onto segment axis
+      zp = xij*dataj%cabj + yij*dataj%sabj + zij*salpr
+
+      ! Perpendicular components
+      rhox = xij - dataj%cabj*zp
+      rhoy = yij - dataj%sabj*zp
+      rhoz = zij - salpr*zp
+
+      ! Radial distance with regularization
+      rh = sqrt(rhox*rhox + rhoy*rhoy + rhoz*rhoz + ai*ai)
+
+      if (rh <= 1.0d-10) then
+        ! Singularity - zero fields
+        dataj%exk = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%eyk = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%ezk = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%exs = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%eys = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%ezs = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%exc = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%eyc = cmplx(0.0d0, 0.0d0, kind=8)
+        dataj%ezc = cmplx(0.0d0, 0.0d0, kind=8)
+        cycle
+      end if
+
+      ! Normalize perpendicular vector
+      rhox = rhox / rh
+      rhoy = rhoy / rh
+      rhoz = rhoz / rh
+
+      ! Phi direction vector (cross product of segment axis with radial)
+      phx = dataj%sabj*rhoz - salpr*rhoy
+      phy = salpr*rhox - dataj%cabj*rhoz
+      phz = dataj%cabj*rhoy - dataj%sabj*rhox
+
+      ! Calculate H fields
+      call hsflx(dataj%s, rh, zp, hpk, hps, hpc)
+
+      if (ip /= 2) then
+        ! First iteration - direct contribution
+        dataj%exk = hpk * phx
+        dataj%eyk = hpk * phy
+        dataj%ezk = hpk * phz
+        dataj%exs = hps * phx
+        dataj%eys = hps * phy
+        dataj%ezs = hps * phz
+        dataj%exc = hpc * phx
+        dataj%eyc = hpc * phy
+        dataj%ezc = hpc * phz
+      else
+        ! Second iteration - add ground reflection
+        if (ground%iperf == 1) then
+          ! Perfect ground
+          dataj%exk = dataj%exk - hpk*phx
+          dataj%eyk = dataj%eyk - hpk*phy
+          dataj%ezk = dataj%ezk - hpk*phz
+          dataj%exs = dataj%exs - hps*phx
+          dataj%eys = dataj%eys - hps*phy
+          dataj%ezs = dataj%ezs - hps*phz
+          dataj%exc = dataj%exc - hpc*phx
+          dataj%eyc = dataj%eyc - hpc*phy
+          dataj%ezc = dataj%ezc - hpc*phz
+        else
+          ! Finite conductivity ground
+          zratx = ground%zrati
+          rmag = sqrt(zp*zp + rh*rh)
+          xymag = sqrt(xij*xij + yij*yij)
+
+          ! Handle radial wire ground screen
+          if (ground%nradl /= 0) then
+            xspec = (xi*dataj%zj + zi*dataj%xj) / (zi + dataj%zj)
+            yspec = (yi*dataj%zj + zi*dataj%yj) / (zi + dataj%zj)
+            rhospc = sqrt(xspec*xspec + yspec*yspec + ground%t2*ground%t2)
+
+            if (rhospc <= ground%scrwl) then
+              rrv = ground%t1 * rhospc * log(rhospc / ground%t2)
+              zratx = (rrv*ground%zrati) / (eta*ground%zrati + rrv)
+            end if
+          end if
+
+          ! Calculate reflection coefficients
+          if (xymag > 1.0d-6) then
+            px = -yij / xymag
+            py = xij / xymag
+            cth = zij / rmag
+            rrv = sqrt(1.0d0 - zratx*zratx*(1.0d0 - cth*cth))
+          else
+            px = 0.0d0
+            py = 0.0d0
+            cth = 1.0d0
+            rrv = cmplx(1.0d0, 0.0d0, kind=8)
+          end if
+
+          rrh = zratx * cth
+          rrh = -(rrh - rrv) / (rrh + rrv)
+          rrv = zratx * rrv
+          rrv = (cth - rrv) / (cth + rrv)
+
+          ! Apply reflection coefficients
+          qy = (phx*px + phy*py) * (rrv - rrh)
+          qx = qy*px + phx*rrh
+          qy = qy*py + phy*rrh
+          qz = phz*rrh
+
+          dataj%exk = dataj%exk - hpk*qx
+          dataj%eyk = dataj%eyk - hpk*qy
+          dataj%ezk = dataj%ezk - hpk*qz
+          dataj%exs = dataj%exs - hps*qx
+          dataj%eys = dataj%eys - hps*qy
+          dataj%ezs = dataj%ezs - hps*qz
+          dataj%exc = dataj%exc - hpc*qx
+          dataj%eyc = dataj%eyc - hpc*qy
+          dataj%ezc = dataj%ezc - hpc*qz
+        end if
+      end if
+    end do
 
   end subroutine hsfld
 

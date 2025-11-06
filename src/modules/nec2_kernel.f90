@@ -10,11 +10,14 @@ module nec2_kernel
   private
 
   ! Public subroutines
-  public :: eksc, ekscx, pcint
+  public :: eksc, ekscx, pcint, hfk, gh
 
   ! Module-level variables for kernel calculations (replaces COMMON /TMI/)
   real(8), save :: zpk_mod, rkb2_mod
   integer, save :: ijx_mod
+
+  ! Module-level variables for H-field calculations (replaces COMMON /TMH/)
+  real(8), save :: zpk_h, rhks_h
 
 contains
 
@@ -663,5 +666,190 @@ contains
     end if
 
   end subroutine test_convergence
+
+  !============================================================================
+  ! GH - Integrand for H field of a wire
+  !============================================================================
+  subroutine gh(zk, hr, hi)
+    ! Computes integrand for H-field of a wire segment
+    ! Uses module variables zpk_h, rhks_h from COMMON /TMH/
+    !
+    ! Arguments:
+    !   zk - integration point
+    !   hr - real part of integrand
+    !   hi - imaginary part of integrand
+    !
+    ! Original: nec2dxs.f lines 5329-5347
+
+    real(8), intent(in) :: zk
+    real(8), intent(out) :: hr, hi
+
+    real(8) :: rs, r, ckr, skr, rr2, rr3
+
+    ! Compute distance
+    rs = zk - zpk_h
+    rs = rhks_h + rs*rs
+    r = sqrt(rs)
+
+    ! Trig functions
+    ckr = cos(r)
+    skr = sin(r)
+
+    ! Powers of 1/r
+    rr2 = 1.0d0 / rs
+    rr3 = rr2 / r
+
+    ! H-field integrand components
+    hr = skr*rr2 + ckr*rr3
+    hi = ckr*rr2 - skr*rr3
+
+  end subroutine gh
+
+  !============================================================================
+  ! HFK - H field integration for uniform current filament
+  !============================================================================
+  subroutine hfk(el1, el2, rhk, zpkx, sgr, sgi)
+    ! Computes H field of uniform current filament by numerical integration
+    ! Uses variable interval width Romberg integration
+    !
+    ! Arguments:
+    !   el1, el2 - integration limits
+    !   rhk - radial distance * k
+    !   zpkx - z coordinate * k
+    !   sgr, sgi - real and imaginary parts of result
+    !
+    ! Original: nec2dxs.f lines 5563-5651
+
+    real(8), intent(in) :: el1, el2, rhk, zpkx
+    real(8), intent(out) :: sgr, sgi
+
+    ! Integration parameters
+    integer, parameter :: nx = 1
+    integer, parameter :: nm = 65536
+    integer, parameter :: nts = 4
+    real(8), parameter :: rx = 1.0d-4
+
+    ! Local variables
+    real(8) :: z, ze, s, ep, zend, dz, dzot, zp
+    real(8) :: g1r, g1i, g2r, g2i, g3r, g3i, g4r, g4i, g5r, g5i
+    real(8) :: t00r, t00i, t01r, t01i, t02r, t02i
+    real(8) :: t10r, t10i, t11r, t11i, t20r, t20i
+    real(8) :: te1r, te1i, te2r, te2i
+    integer :: ns, nt
+
+    ! Set module variables for gh()
+    zpk_h = zpkx
+    rhks_h = rhk * rhk
+
+    ! Initialize
+    z = el1
+    ze = el2
+    s = ze - z
+    ep = s / (10.0d0 * real(nm, kind=8))
+    zend = ze - ep
+    sgr = 0.0d0
+    sgi = 0.0d0
+    ns = nx
+    nt = 0
+
+    ! Get initial integrand value
+    call gh(z, g1r, g1i)
+
+    ! Main integration loop (same structure as intx)
+    do while (.true.)
+      dz = s / real(ns, kind=8)
+      zp = z + dz
+
+      if (zp >= ze) then
+        dz = ze - z
+        if (abs(dz) < ep) exit
+      end if
+
+      ! Compute interval values
+      dzot = dz * 0.5d0
+      zp = z + dzot
+      call gh(zp, g3r, g3i)
+      zp = z + dz
+      call gh(zp, g5r, g5i)
+
+      ! 3-point Romberg
+      t00r = (g1r + g5r) * dzot
+      t00i = (g1i + g5i) * dzot
+      t01r = (t00r + dz*g3r) * 0.5d0
+      t01i = (t00i + dz*g3i) * 0.5d0
+      t10r = (4.0d0*t01r - t00r) / 3.0d0
+      t10i = (4.0d0*t01i - t00i) / 3.0d0
+
+      ! Test convergence
+      call test_convergence(t01r, t10r, te1r, t01i, t10i, te1i, 0.0d0)
+
+      if (te1i <= rx .and. te1r <= rx) then
+        ! 3-point converged
+        sgr = sgr + t10r
+        sgi = sgi + t10i
+        nt = nt + 2
+      else
+        ! Need 5-point integration
+        zp = z + dz * 0.25d0
+        call gh(zp, g2r, g2i)
+        zp = z + dz * 0.75d0
+        call gh(zp, g4r, g4i)
+
+        t02r = (t01r + dzot*(g2r + g4r)) * 0.5d0
+        t02i = (t01i + dzot*(g2i + g4i)) * 0.5d0
+        t11r = (4.0d0*t02r - t01r) / 3.0d0
+        t11i = (4.0d0*t02i - t01i) / 3.0d0
+        t20r = (16.0d0*t11r - t10r) / 15.0d0
+        t20i = (16.0d0*t11i - t10i) / 15.0d0
+
+        ! Test convergence
+        call test_convergence(t11r, t20r, te2r, t11i, t20i, te2i, 0.0d0)
+
+        if (te2i <= rx .and. te2r <= rx) then
+          ! 5-point converged
+          sgr = sgr + t20r
+          sgi = sgi + t20i
+          nt = nt + 1
+        else
+          ! Need to halve step size
+          nt = 0
+          if (ns >= nm) then
+            ! Step size limit
+            write(*,'(A,F10.5)') ' STEP SIZE LIMITED AT Z=', z
+            sgr = sgr + t20r
+            sgi = sgi + t20i
+          else
+            ! Halve step size
+            ns = ns * 2
+            dz = s / real(ns, kind=8)
+            dzot = dz * 0.5d0
+            g5r = g3r
+            g5i = g3i
+            g3r = g2r
+            g3i = g2i
+            cycle
+          end if
+        end if
+      end if
+
+      ! Move to next interval
+      z = z + dz
+      if (z >= zend) exit
+
+      g1r = g5r
+      g1i = g5i
+
+      ! Check if we can increase step size
+      if (nt >= nts .and. ns > nx) then
+        ns = ns / 2
+        nt = 1
+      end if
+    end do
+
+    ! Scale result
+    sgr = sgr * rhk * 0.5d0
+    sgi = sgi * rhk * 0.5d0
+
+  end subroutine hfk
 
 end module nec2_kernel

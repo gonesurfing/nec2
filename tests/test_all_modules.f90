@@ -422,6 +422,13 @@ contains
 
     call print_module_header("nec2_current (TIER 2: Using validated geometry)")
 
+    ! Initialize segment junction data arrays
+    allocate(segj%ax(50))
+    allocate(segj%bx(50))
+    allocate(segj%cx(50))
+    allocate(segj%jco(50))
+    segj%jsno = 0
+
     write(*,'(A)') "  --- Testing with isolated segment (basic) ---"
 
     ! Setup simple geometry for testing - single isolated segment
@@ -509,6 +516,12 @@ contains
     call tbf(connected_geom, segj, seg_i4, 0)
     call assert_true(segj%jsno >= 2, &
                      "tbf: end segment has connection to one neighbor", total, passed)
+
+    ! Cleanup segment junction data
+    deallocate(segj%ax)
+    deallocate(segj%bx)
+    deallocate(segj%cx)
+    deallocate(segj%jco)
 
   end subroutine
 

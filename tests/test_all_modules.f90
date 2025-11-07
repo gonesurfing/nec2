@@ -417,7 +417,8 @@ contains
     type(geometry_data) :: geom_isolated
     type(segment_junction_data) :: segj
     real(8) :: aa, bb, cc, aa2, bb2, cc2
-    integer(8) :: seg_i, seg_is
+    integer(8) :: seg_i, seg_is  ! For sbf() and trio() which use integer(8)
+    integer :: seg_i4            ! For tbf() which uses integer(4)
 
     call print_module_header("nec2_current (TIER 2: Using validated geometry)")
 
@@ -452,7 +453,8 @@ contains
                      "trio: isolated segment has jsno=1 (self only)", total, passed)
 
     ! Test TBF - total basis function on isolated segment
-    call tbf(geom_isolated, segj, seg_i, 0)
+    seg_i4 = 1
+    call tbf(geom_isolated, segj, seg_i4, 0)
     call assert_int_equal(segj%jsno, 1, &
                      "tbf: isolated segment computes basis", total, passed)
     call assert_real_equal(segj%ax(1), -1.0d0, 1.0d-10, &
@@ -495,14 +497,16 @@ contains
                      "trio: end segment finds 2 basis functions", total, passed)
 
     ! Test TBF on center segment with connections
-    call tbf(connected_geom, segj, int(2, 8), 0)
+    seg_i4 = 2
+    call tbf(connected_geom, segj, seg_i4, 0)
     call assert_true(segj%jsno >= 3, &
                      "tbf: center segment has connections", total, passed)
     call assert_real_equal(segj%ax(segj%jsno), -1.0d0, 1.0d-10, &
                      "tbf: last coefficient ax = -1", total, passed)
 
     ! Test TBF on end segment
-    call tbf(connected_geom, segj, int(1, 8), 0)
+    seg_i4 = 1
+    call tbf(connected_geom, segj, seg_i4, 0)
     call assert_true(segj%jsno >= 2, &
                      "tbf: end segment has connection to one neighbor", total, passed)
 

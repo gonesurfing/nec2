@@ -471,6 +471,12 @@ contains
 
     write(*,'(A)') "  --- Testing with connected 3-segment wire (advanced) ---"
 
+    ! Debug: Print connection values
+    write(*,'(A)') "  DEBUG: Connection values from setup_test_geometry:"
+    write(*,'(A,I0,A,I0)') "    Seg 1: icon1=", connected_geom%icon1(1), ", icon2=", connected_geom%icon2(1)
+    write(*,'(A,I0,A,I0)') "    Seg 2: icon1=", connected_geom%icon1(2), ", icon2=", connected_geom%icon2(2)
+    write(*,'(A,I0,A,I0)') "    Seg 3: icon1=", connected_geom%icon1(3), ", icon2=", connected_geom%icon2(3)
+
     ! Now test with properly connected geometry from tier 1
     ! Test SBF on center segment (segment 2)
     seg_i = 2

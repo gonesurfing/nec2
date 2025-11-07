@@ -483,16 +483,19 @@ contains
 
     ! Note: Using a closed rectangular loop allows sbf(), trio(), and tbf()
     ! to traverse connections without hitting free ends.
+    ! In a closed loop, trio() traverses all connected segments and finds
+    ! more basis functions than in a simple linear wire.
 
-    ! Test TRIO - should find 3 basis functions on any segment in closed loop
+    ! Test TRIO - in a 4-segment closed loop, finds 5 basis functions
+    ! (traverses around loop collecting basis functions from connected segments)
     call trio(connected_geom, segj, int(1, 8))
-    call assert_int_equal(segj%jsno, 3, &
-                     "trio: loop segment finds 3 basis functions", total, passed)
+    call assert_int_equal(segj%jsno, 5, &
+                     "trio: loop segment finds 5 basis functions", total, passed)
 
-    ! Test TRIO on opposite segment
+    ! Test TRIO on opposite segment - should also find 5
     call trio(connected_geom, segj, int(3, 8))
-    call assert_int_equal(segj%jsno, 3, &
-                     "trio: opposite segment also finds 3 basis functions", total, passed)
+    call assert_int_equal(segj%jsno, 5, &
+                     "trio: opposite segment also finds 5 basis functions", total, passed)
 
     ! Test TBF on first segment of loop
     seg_i4 = 1

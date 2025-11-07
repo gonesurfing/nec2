@@ -535,10 +535,11 @@ contains
 
     write(*,'(A)') "  --- Basic field calculations (arbitrary parameters) ---"
 
-    ! Test parameters
+    ! Test parameters - use z != 0 to avoid geometric singularities
+    ! (sine current is antisymmetric, so Ez=0 at segment center z=0)
     s = 0.05d0      ! segment length
-    z = 0.0d0       ! on-axis point
-    rh = 0.001d0    ! radial distance
+    z = 0.01d0      ! off-center point (not at segment center)
+    rh = 0.01d0     ! radial distance (not too close to axis)
     xk = TWO_PI     ! wavenumber (wavelength = 1m)
 
     ! Test EKSC - E field from sine/cosine/constant currents

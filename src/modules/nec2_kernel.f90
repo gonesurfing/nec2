@@ -197,17 +197,21 @@ contains
   !============================================================================
   ! PCINT - Patch integration at wire connection
   !============================================================================
-  subroutine pcint(dataj, xi, yi, zi, cabi, sabi, salpi, e_array)
+  subroutine pcint(dataj, ground, xi, yi, zi, cabi, sabi, salpi, e_array)
     ! Integrates over patches at wire connection point
     ! Computes interaction between wire and connected patch
     !
     ! Arguments:
     !   dataj  - junction data
+    !   ground - ground parameters
     !   xi, yi, zi - observation point
     !   cabi, sabi, salpi - direction cosines
     !   e_array - output field components (9 values)
+    !
+    ! Original: nec2dxs.f lines 7581-7668
 
     type(dataj_data), intent(inout) :: dataj
+    type(ground_data), intent(in) :: ground
     real(8), intent(in) :: xi, yi, zi, cabi, sabi, salpi
     complex(8), intent(out) :: e_array(9)
 
@@ -278,8 +282,10 @@ contains
         dataj%yj = dataj%yj - ds * t2yj
         dataj%zj = dataj%zj - ds * t2zj
 
-        ! Call near field routine (would need UNERE)
-        ! For now, using placeholder - full implementation needs UNERE
+        ! Call near field routine to compute E field at this integration point
+        call unere(dataj, ground, xi, yi, zi)
+
+        ! Project field onto wire direction
         exk_local = dataj%exk * cabi + dataj%eyk * sabi + dataj%ezk * salpi
         exs_local = dataj%exs * cabi + dataj%eys * sabi + dataj%ezs * salpi
 
@@ -667,6 +673,138 @@ contains
     end if
 
   end subroutine test_convergence
+
+  !============================================================================
+  ! UNERE - Near electric field from patch unit current
+  !============================================================================
+  subroutine unere(dataj, ground, xob, yob, zob)
+    ! Calculates the electric field due to unit current in the T1 and T2
+    ! directions on a patch
+    !
+    ! Arguments:
+    !   dataj  - junction data (modified)
+    !   ground - ground parameters
+    !   xob, yob, zob - observation point
+    !
+    ! Original: nec2dxs.f lines 9743-9828
+
+    type(dataj_data), intent(inout) :: dataj
+    type(ground_data), intent(in) :: ground
+    real(8), intent(in) :: xob, yob, zob
+
+    complex(8) :: er, q1, q2, rrv, rrh, edp
+    real(8) :: zr, t1zr, t2zr, rx, ry, rz, r2, r, tt1, tt2, rt
+    real(8) :: xymag, px, py, cth
+    real(8) :: t1xj, t1yj, t1zj, t2xj, t2yj, t2zj
+    real(8), parameter :: const = 4.771341188d0  ! ETA/(8*PI^2)
+
+    ! Extract tangent vectors
+    t1xj = dataj%cabj
+    t1yj = dataj%sabj
+    t1zj = dataj%salpj
+    t2xj = dataj%b
+    t2yj = dataj%t2y
+    t2zj = dataj%t2z
+
+    ! Handle ground reflection
+    zr = dataj%zj
+    t1zr = t1zj
+    t2zr = t2zj
+    if (dataj%ipgnd == 2) then
+      zr = -zr
+      t1zr = -t1zr
+      t2zr = -t2zr
+    end if
+
+    ! Calculate distance vector
+    rx = xob - dataj%xj
+    ry = yob - dataj%yj
+    rz = zob - zr
+    r2 = rx*rx + ry*ry + rz*rz
+
+    ! Handle singularity at r=0
+    if (r2 <= 1.0d-20) then
+      dataj%exk = (0.0d0, 0.0d0)
+      dataj%eyk = (0.0d0, 0.0d0)
+      dataj%ezk = (0.0d0, 0.0d0)
+      dataj%exs = (0.0d0, 0.0d0)
+      dataj%eys = (0.0d0, 0.0d0)
+      dataj%ezs = (0.0d0, 0.0d0)
+      return
+    end if
+
+    r = sqrt(r2)
+    tt1 = -TWO_PI * r
+    tt2 = tt1 * tt1
+    rt = r2 * r
+
+    ! Electric field kernel
+    er = cmplx(sin(tt1), -cos(tt1), kind=8) * (const * dataj%s)
+    q1 = cmplx(tt2 - 1.0d0, tt1, kind=8) * er / rt
+    q2 = cmplx(3.0d0 - tt2, -3.0d0*tt1, kind=8) * er / (rt * r2)
+
+    ! Field from T1 current
+    er = q2 * (t1xj*rx + t1yj*ry + t1zr*rz)
+    dataj%exk = q1 * t1xj + er * rx
+    dataj%eyk = q1 * t1yj + er * ry
+    dataj%ezk = q1 * t1zr + er * rz
+
+    ! Field from T2 current
+    er = q2 * (t2xj*rx + t2yj*ry + t2zr*rz)
+    dataj%exs = q1 * t2xj + er * rx
+    dataj%eys = q1 * t2yj + er * ry
+    dataj%ezs = q1 * t2zr + er * rz
+
+    ! Apply ground effects
+    if (dataj%ipgnd == 1) then
+      ! Normal ground - no modification needed
+      return
+    end if
+
+    if (ground%iperf == 1) then
+      ! Perfect ground - flip sign for image
+      dataj%exk = -dataj%exk
+      dataj%eyk = -dataj%eyk
+      dataj%ezk = -dataj%ezk
+      dataj%exs = -dataj%exs
+      dataj%eys = -dataj%eys
+      dataj%ezs = -dataj%ezs
+      return
+    end if
+
+    ! Finite conductivity ground - Fresnel reflection coefficients
+    xymag = sqrt(rx*rx + ry*ry)
+    if (xymag > 1.0d-6) then
+      px = -ry / xymag
+      py = rx / xymag
+      cth = rz / sqrt(xymag*xymag + rz*rz)
+      rrv = sqrt((1.0d0, 0.0d0) - ground%zrati*ground%zrati * (1.0d0 - cth*cth))
+    else
+      px = 0.0d0
+      py = 0.0d0
+      cth = 1.0d0
+      rrv = (1.0d0, 0.0d0)
+    end if
+
+    ! Reflection coefficients (Fresnel formulas)
+    rrh = ground%zrati * cth
+    rrh = (rrh - rrv) / (rrh + rrv)
+    rrv = ground%zrati * rrv
+    rrv = -(cth - rrv) / (cth + rrv)
+
+    ! Apply reflection to T1 field
+    edp = (dataj%exk*px + dataj%eyk*py) * (rrh - rrv)
+    dataj%exk = dataj%exk * rrv + edp * px
+    dataj%eyk = dataj%eyk * rrv + edp * py
+    dataj%ezk = dataj%ezk * rrv
+
+    ! Apply reflection to T2 field
+    edp = (dataj%exs*px + dataj%eys*py) * (rrh - rrv)
+    dataj%exs = dataj%exs * rrv + edp * px
+    dataj%eys = dataj%eys * rrv + edp * py
+    dataj%ezs = dataj%ezs * rrv
+
+  end subroutine unere
 
   !============================================================================
   ! GH - Integrand for H field of a wire

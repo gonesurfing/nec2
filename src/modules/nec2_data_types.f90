@@ -299,6 +299,7 @@ module nec2_data_types
     real(8) :: rkh                      ! R*k for H field
     real(8) :: t2y, t2z                 ! Second tangent vector for patches (t2x=b)
     integer :: iexk, ipgnd              ! Field type flag, ground plane flag
+    integer :: ind1, ind2               ! Extended kernel flags for segment ends
   end type dataj_data
 
   !============================================================================

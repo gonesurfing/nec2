@@ -190,11 +190,7 @@ contains
     dataj%zj = geom%z(j)
     dataj%cabj = geom%alp(j)  ! Direction cosines stored in alp/bet
     dataj%sabj = geom%bet(j)
-    if (allocated(geom%salp)) then
-      dataj%salpj = geom%salp(j)
-    else
-      dataj%salpj = 0.0d0
-    end if
+    dataj%salpj = 0.0d0  ! For wires, salpj=0 (only used for patches)
 
     ! Determine whether extended thin wire approximation can be used
     call determine_kernel_type(geom, j, dataj)
@@ -212,11 +208,7 @@ contains
       ai = geom%bi(i)
       cabi = geom%alp(i)
       sabi = geom%bet(i)
-      if (allocated(geom%salp)) then
-        salpi = geom%salp(i)
-      else
-        salpi = 0.0d0
-      end if
+      salpi = 0.0d0  ! For wires, salp=0 (only used for patches)
 
       ! Calculate electric field (would call EFLD)
       ! For now, placeholder - full implementation needs efld()
@@ -297,11 +289,7 @@ contains
     dataj%zj = geom%z(j)
     dataj%cabj = geom%alp(j)
     dataj%sabj = geom%bet(j)
-    if (allocated(geom%salp)) then
-      dataj%salpj = geom%salp(j)
-    else
-      dataj%salpj = 0.0d0
-    end if
+    dataj%salpj = 0.0d0  ! For wires, salpj=0 (only used for patches)
 
     ! Determine kernel type
     call determine_kernel_type(geom, j, dataj)

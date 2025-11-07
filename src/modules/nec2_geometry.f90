@@ -434,9 +434,10 @@ contains
     end if
 
     ! Calculate second tangent vector (perpendicular to first and normal)
-    geom%icon1(mi) = ynv * geom%bet(mi) - znv * geom%alp(mi)
-    geom%icon2(mi) = znv * geom%si(mi) - xnv * geom%bet(mi)
-    geom%itag(mi) = xnv * geom%alp(mi) - ynv * geom%si(mi)
+    ! Use TRANSFER to store real tangent components in integer arrays (type punning like F77 EQUIVALENCE)
+    geom%icon1(mi) = transfer(ynv * geom%bet(mi) - znv * geom%alp(mi), 0)
+    geom%icon2(mi) = transfer(znv * geom%si(mi) - xnv * geom%bet(mi), 0)
+    geom%itag(mi) = transfer(xnv * geom%alp(mi) - ynv * geom%si(mi), 0)
 
   end subroutine patch
 
@@ -466,7 +467,8 @@ contains
     real(8) :: sps, cps, sth, cth, sph, cph
     real(8) :: xx, xy, xz, yx, yy, yz, zx, zy, zz
     real(8) :: xi, yi, zi
-    integer :: nrp, ix, i1, k, ir, i, ldi, ii, kr, itagi
+    integer :: nrp, ix, i1, k, ir, i, ldi, ii, kr
+    integer(8) :: itagi
 
     ! Update symmetry flag if rotating about X or Y
     if (abs(rox) + abs(roy) > 1.0d-10) geom%ipsym = geom%ipsym * 3
@@ -559,13 +561,13 @@ contains
           geom%alp(kr) = xi*yx + yi*yy + zi*yz
           geom%bet(kr) = xi*zx + yi*zy + zi*zz
 
-          ! Transform tangent vector 2 (in icon1, icon2, itag)
-          xi = real(geom%icon1(ir), kind=8)
-          yi = real(geom%icon2(ir), kind=8)
-          zi = real(geom%itag(ir), kind=8)
-          geom%icon1(kr) = int(xi*xx + yi*xy + zi*xz)
-          geom%icon2(kr) = int(xi*yx + yi*yy + zi*yz)
-          geom%itag(kr) = int(xi*zx + yi*zy + zi*zz)
+          ! Transform tangent vector 2 (in icon1, icon2, itag via type punning)
+          xi = transfer(geom%icon1(ir), 1.0_8)
+          yi = transfer(geom%icon2(ir), 1.0_8)
+          zi = transfer(geom%itag(ir), 1.0_8)
+          geom%icon1(kr) = transfer(xi*xx + yi*xy + zi*xz, 0)
+          geom%icon2(kr) = transfer(xi*yx + yi*yy + zi*yz, 0)
+          geom%itag(kr) = transfer(xi*zx + yi*zy + zi*zz, 0)
 
           ang%salp(kr) = ang%salp(ir)
           geom%bi(kr) = geom%bi(ir)
@@ -602,7 +604,8 @@ contains
     integer, intent(in) :: ix, iy, iz, itx, nop
 
     integer :: iti, i, nx, nxx, ir, kr
-    integer :: ldi, itagi
+    integer :: ldi
+    integer(8) :: itagi
     real(8) :: e1, e2, xi, yi, zi
 
     geom%np = geom%n

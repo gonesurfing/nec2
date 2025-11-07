@@ -29,10 +29,12 @@ module nec2_data_types
     real(8), allocatable :: bet(:)      ! Beta direction cosines
 
     ! Connectivity information
-    integer, allocatable :: icon1(:)    ! Connection data 1
-    integer, allocatable :: icon2(:)    ! Connection data 2
-    integer, allocatable :: itag(:)     ! Segment tags
-    integer, allocatable :: iconx(:)    ! Connection index
+    ! Note: icon1/icon2/itag are integer(8) for compatibility with type-punning
+    ! (F77 used EQUIVALENCE to store real tangent vectors here for patches)
+    integer(8), allocatable :: icon1(:)    ! Connection data 1
+    integer(8), allocatable :: icon2(:)    ! Connection data 2
+    integer(8), allocatable :: itag(:)     ! Segment tags
+    integer, allocatable :: iconx(:)       ! Connection index
 
     ! Wavelength and counts
     real(8) :: wlam                     ! Wavelength
@@ -149,7 +151,7 @@ module nec2_data_types
     real(8), allocatable :: ax(:)       ! A coefficients X
     real(8), allocatable :: bx(:)       ! B coefficients X
     real(8), allocatable :: cx(:)       ! C coefficients X
-    integer, allocatable :: jco(:)      ! Junction connection
+    integer(8), allocatable :: jco(:)   ! Junction connection (integer(8) to match icon1/icon2)
     integer :: jsno                     ! Junction segment number
     integer :: iscon(50)                ! Connection indices
     integer :: nscon                    ! Number of segment connections

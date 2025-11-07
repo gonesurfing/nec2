@@ -99,7 +99,8 @@ contains
       integer, intent(in) :: i, start_seg, end_flag
       real(8), intent(inout) :: pp
 
-      integer :: jcox, jend, sig_flag
+      integer(8) :: jcox
+      integer :: jend, sig_flag
       real(8) :: sig, d, sdh, cdh, sd, omc, aj
       logical :: continue_loop
 
@@ -421,7 +422,8 @@ contains
       real(8), intent(inout) :: pp, aa, bb, cc
       integer, intent(inout) :: jsno
 
-      integer :: jcox, jend, iend, sig_flag
+      integer(8) :: jcox
+      integer :: jend, iend, sig_flag
       real(8) :: sig, d, sdh, cdh, sd, omc, aj
 
       ! Get starting connection
@@ -546,7 +548,8 @@ contains
       type(segment_junction_data), intent(inout) :: segj
       integer, intent(in) :: j, end_flag
 
-      integer :: jcox, jend
+      integer(8) :: jcox
+      integer :: jend
       real(8) :: aa, bb, cc
 
       ! Get starting connection

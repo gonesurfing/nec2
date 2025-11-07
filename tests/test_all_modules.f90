@@ -417,7 +417,7 @@ contains
     type(geometry_data) :: geom_isolated
     type(segment_junction_data) :: segj
     real(8) :: aa, bb, cc, aa2, bb2, cc2
-    integer :: seg_i, seg_is
+    integer(8) :: seg_i, seg_is
 
     call print_module_header("nec2_current (TIER 2: Using validated geometry)")
 
@@ -480,29 +480,29 @@ contains
                      "sbf: adjacent segment has non-zero coefficients", total, passed)
 
     ! Verify that adjacent coupling is weaker than self-coupling
-    call sbf(connected_geom, 2, 2, aa2, bb2, cc2)
+    call sbf(connected_geom, int(2, 8), int(2, 8), aa2, bb2, cc2)
     call assert_true(abs(aa2) >= abs(aa), &
                      "sbf: self-coupling stronger than adjacent coupling", total, passed)
 
     ! Test TRIO - should find all 3 basis functions on center segment
-    call trio(connected_geom, segj, 2)
+    call trio(connected_geom, segj, int(2, 8))
     call assert_int_equal(segj%jsno, 3, &
                      "trio: center segment finds all 3 basis functions", total, passed)
 
     ! Test TRIO on end segment - should find 2 basis functions
-    call trio(connected_geom, segj, 1)
+    call trio(connected_geom, segj, int(1, 8))
     call assert_int_equal(segj%jsno, 2, &
                      "trio: end segment finds 2 basis functions", total, passed)
 
     ! Test TBF on center segment with connections
-    call tbf(connected_geom, segj, 2, 0)
+    call tbf(connected_geom, segj, int(2, 8), 0)
     call assert_true(segj%jsno >= 3, &
                      "tbf: center segment has connections", total, passed)
     call assert_real_equal(segj%ax(segj%jsno), -1.0d0, 1.0d-10, &
                      "tbf: last coefficient ax = -1", total, passed)
 
     ! Test TBF on end segment
-    call tbf(connected_geom, segj, 1, 0)
+    call tbf(connected_geom, segj, int(1, 8), 0)
     call assert_true(segj%jsno >= 2, &
                      "tbf: end segment has connection to one neighbor", total, passed)
 

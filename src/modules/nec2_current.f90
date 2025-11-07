@@ -33,86 +33,29 @@ contains
     type(segment_junction_data), intent(inout) :: segj
     integer, intent(in) :: i, icap
 
-    integer :: jcox, jend, iend, jsno, njun1, njun2, jsnop
-    real(8) :: pp, pm, sig, d, sdh, cdh, sd, cd, omc
+    integer :: njun1, njun2, jsnop, iend
+    real(8) :: pp, pm, d, sdh, cdh, sd, cd, omc
     real(8) :: aj, ap, qp, qm, xxi
 
+    ! Initialize
     segj%jsno = 0
     pp = 0.0d0
-    jcox = geom%icon1(i)
-    if (jcox > 10000) jcox = i
-    jend = -1
-    iend = -1
-    sig = -1.0d0
 
     ! Process connections at end 1
-    if (jcox == 0) goto 10
-    if (jcox < 0) then
-      jcox = -jcox
-      goto 3
-    end if
-
-2   sig = -sig
-    jend = -jend
-
-3   segj%jsno = segj%jsno + 1
-    if (segj%jsno >= DEFAULT_JMAX) then
-      write(*,'(A,I5)') 'TBF - Segment connection error for segment', i
-      stop 1
-    end if
-
-    segj%jco(segj%jsno) = jcox
-    d = PI * geom%si(jcox)
-    sdh = sin(d)
-    cdh = cos(d)
-    sd = 2.0d0 * sdh * cdh
-
-    if (d > 0.015d0) then
-      omc = 1.0d0 - cdh*cdh + sdh*sdh
-    else
-      omc = 4.0d0 * d * d
-      omc = ((1.3888889d-3 * omc - 4.1666666667d-2) * omc + 0.5d0) * omc
-    end if
-
-    aj = 1.0d0 / (log(1.0d0 / (PI * geom%bi(jcox))) - EULER_GAMMA)
-    pp = pp - omc / sd * aj
-    segj%ax(segj%jsno) = aj / sd * sig
-    segj%bx(segj%jsno) = aj / (2.0d0 * cdh)
-    segj%cx(segj%jsno) = -aj / (2.0d0 * sdh) * sig
-
-    if (jcox == i) goto 8
-    if (jend == 1) then
-      jcox = geom%icon1(jcox)
-    else
-      jcox = geom%icon2(jcox)
-    end if
-
-    if (abs(jcox) == i) goto 9
-    if (jcox == 0) goto 28
-    if (jcox < 0) goto 1
-    goto 2
-
-8   segj%bx(segj%jsno) = -segj%bx(segj%jsno)
-
-9   if (iend == 1) goto 11
+    call tbf_process_end(geom, segj, i, i, -1, pp)
+    njun1 = segj%jsno
 
     ! Process connections at end 2
-10  pm = -pp
+    pm = -pp
     pp = 0.0d0
-    njun1 = segj%jsno
-    jcox = geom%icon2(i)
-    if (jcox > 10000) jcox = i
-    jend = 1
-    iend = 1
-    sig = -1.0d0
-    if (jcox /= 0) then
-      if (jcox < 0) goto 1
-      goto 2
-    end if
+    call tbf_process_end(geom, segj, i, i, 1, pp)
+    njun2 = segj%jsno - njun1
 
-11  njun2 = segj%jsno - njun1
+    ! Add the segment itself
     jsnop = segj%jsno + 1
     segj%jco(jsnop) = i
+
+    ! Calculate segment properties
     d = PI * geom%si(i)
     sdh = sin(d)
     cdh = cos(d)
@@ -129,94 +72,214 @@ contains
     ap = 1.0d0 / (log(1.0d0 / (PI * geom%bi(i))) - EULER_GAMMA)
     aj = ap
 
-    ! Junction matching
-    if (njun1 == 0) goto 16
-    if (njun2 == 0) goto 20
-
-    ! Both junctions present
-    qp = sd * (pm*pp + aj*ap) + cd * (pm*ap - pp*aj)
-    qm = (ap*omc - pp*sd) / qp
-    qp = -(aj*omc + pm*sd) / qp
-    segj%bx(jsnop) = (aj*qm + ap*qp) * sdh / sd
-    segj%cx(jsnop) = (aj*qm - ap*qp) * cdh / sd
-
-    do iend = 1, njun1
-      segj%ax(iend) = segj%ax(iend) * qm
-      segj%bx(iend) = segj%bx(iend) * qm
-      segj%cx(iend) = segj%cx(iend) * qm
-    end do
-
-    do iend = njun1 + 1, segj%jsno
-      segj%ax(iend) = -segj%ax(iend) * qp
-      segj%bx(iend) = segj%bx(iend) * qp
-      segj%cx(iend) = -segj%cx(iend) * qp
-    end do
-    goto 27
-
-16  if (njun2 == 0) goto 24
-
-    ! Junction 2 only
-    if (icap /= 0) then
-      qp = PI * geom%bi(i)
-      xxi = qp * qp
-      xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+    ! Apply junction matching based on connection configuration
+    if (njun1 == 0 .and. njun2 == 0) then
+      ! No junctions - isolated segment
+      call tbf_match_none(segj, jsnop, icap, geom%bi(i), cdh, sdh)
+    else if (njun1 == 0) then
+      ! Junction 2 only
+      call tbf_match_end2(segj, jsnop, icap, geom%bi(i), ap, pp, cd, sd, omc, cdh, sdh, njun2, njun1)
+    else if (njun2 == 0) then
+      ! Junction 1 only
+      call tbf_match_end1(segj, jsnop, icap, geom%bi(i), aj, pm, cd, sd, omc, cdh, sdh, njun1)
     else
-      xxi = 0.0d0
+      ! Both junctions present
+      call tbf_match_both(segj, jsnop, aj, ap, pm, pp, cd, sd, omc, sdh, cdh, njun1, njun2)
     end if
 
-    qp = -(omc + xxi*sd) / (sd*(ap + xxi*pp) + cd*(xxi*ap - pp))
-    d = cd - xxi*sd
-    segj%bx(jsnop) = (sdh + ap*qp*(cdh - xxi*sdh)) / d
-    segj%cx(jsnop) = (cdh + ap*qp*(sdh + xxi*cdh)) / d
-
-    do iend = 1, njun2
-      segj%ax(iend) = -segj%ax(iend) * qp
-      segj%bx(iend) = segj%bx(iend) * qp
-      segj%cx(iend) = -segj%cx(iend) * qp
-    end do
-    goto 27
-
-20  continue  ! Junction 1 only
-    if (icap /= 0) then
-      qm = PI * geom%bi(i)
-      xxi = qm * qm
-      xxi = qm * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
-    else
-      xxi = 0.0d0
-    end if
-
-    qm = (omc + xxi*sd) / (sd*(aj - xxi*pm) + cd*(pm + xxi*aj))
-    d = cd - xxi*sd
-    segj%bx(jsnop) = (aj*qm*(cdh - xxi*sdh) - sdh) / d
-    segj%cx(jsnop) = (cdh - aj*qm*(sdh + xxi*cdh)) / d
-
-    do iend = 1, njun1
-      segj%ax(iend) = segj%ax(iend) * qm
-      segj%bx(iend) = segj%bx(iend) * qm
-      segj%cx(iend) = segj%cx(iend) * qm
-    end do
-    goto 27
-
-24  continue  ! No junctions
-    segj%bx(jsnop) = 0.0d0
-    if (icap /= 0) then
-      qp = PI * geom%bi(i)
-      xxi = qp * qp
-      xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
-    else
-      xxi = 0.0d0
-    end if
-    segj%cx(jsnop) = 1.0d0 / (cdh - xxi*sdh)
-
-27  segj%jsno = jsnop
+    segj%jsno = jsnop
     segj%ax(segj%jsno) = -1.0d0
-    return
 
-28  write(*,'(A,I5)') 'TBF - Segment connection error for segment', i
-    stop 1
+  contains
 
-1   jcox = -jcox
-    goto 3
+    ! Process connections at one end of segment
+    subroutine tbf_process_end(geom, segj, i, start_seg, end_flag, pp)
+      type(geometry_data), intent(in) :: geom
+      type(segment_junction_data), intent(inout) :: segj
+      integer, intent(in) :: i, start_seg, end_flag
+      real(8), intent(inout) :: pp
+
+      integer :: jcox, jend, sig_flag
+      real(8) :: sig, d, sdh, cdh, sd, omc, aj
+      logical :: continue_loop
+
+      ! Get starting connection
+      if (end_flag == -1) then
+        jcox = geom%icon1(start_seg)
+      else
+        jcox = geom%icon2(start_seg)
+      end if
+
+      if (jcox > 10000) jcox = start_seg
+      if (jcox == 0) return
+
+      jend = end_flag
+      sig_flag = -1
+
+      ! Traverse connected segments
+      continue_loop = .true.
+      do while (continue_loop)
+        ! Handle negative connection (reverses direction)
+        if (jcox < 0) then
+          jcox = -jcox
+        else
+          sig_flag = -sig_flag
+          jend = -jend
+        end if
+
+        ! Add this segment to the list
+        segj%jsno = segj%jsno + 1
+        if (segj%jsno >= DEFAULT_JMAX) then
+          write(*,'(A,I5)') 'TBF - Segment connection error for segment', i
+          stop 1
+        end if
+
+        segj%jco(segj%jsno) = jcox
+
+        ! Calculate segment properties
+        d = PI * geom%si(jcox)
+        sdh = sin(d)
+        cdh = cos(d)
+        sd = 2.0d0 * sdh * cdh
+
+        if (d > 0.015d0) then
+          omc = 1.0d0 - cdh*cdh + sdh*sdh
+        else
+          omc = 4.0d0 * d * d
+          omc = ((1.3888889d-3 * omc - 4.1666666667d-2) * omc + 0.5d0) * omc
+        end if
+
+        aj = 1.0d0 / (log(1.0d0 / (PI * geom%bi(jcox))) - EULER_GAMMA)
+        pp = pp - omc / sd * aj
+
+        sig = real(sig_flag, kind=8)
+        segj%ax(segj%jsno) = aj / sd * sig
+        segj%bx(segj%jsno) = aj / (2.0d0 * cdh)
+        segj%cx(segj%jsno) = -aj / (2.0d0 * sdh) * sig
+
+        ! Check if we reached the original segment
+        if (jcox == i) then
+          segj%bx(segj%jsno) = -segj%bx(segj%jsno)
+          return
+        end if
+
+        ! Move to next connected segment
+        if (jend == 1) then
+          jcox = geom%icon2(jcox)
+        else
+          jcox = geom%icon1(jcox)
+        end if
+
+        ! Check termination conditions
+        if (abs(jcox) == i) then
+          return
+        else if (jcox == 0) then
+          write(*,'(A,I5)') 'TBF - Segment connection error for segment', i
+          stop 1
+        end if
+      end do
+    end subroutine tbf_process_end
+
+    ! Junction matching: no junctions (isolated segment)
+    subroutine tbf_match_none(segj, jsnop, icap, bi, cdh, sdh)
+      type(segment_junction_data), intent(inout) :: segj
+      integer, intent(in) :: jsnop, icap
+      real(8), intent(in) :: bi, cdh, sdh
+      real(8) :: qp, xxi
+
+      segj%bx(jsnop) = 0.0d0
+      if (icap /= 0) then
+        qp = PI * bi
+        xxi = qp * qp
+        xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+      else
+        xxi = 0.0d0
+      end if
+      segj%cx(jsnop) = 1.0d0 / (cdh - xxi*sdh)
+    end subroutine tbf_match_none
+
+    ! Junction matching: junction 1 only
+    subroutine tbf_match_end1(segj, jsnop, icap, bi, aj, pm, cd, sd, omc, cdh, sdh, njun1)
+      type(segment_junction_data), intent(inout) :: segj
+      integer, intent(in) :: jsnop, icap, njun1
+      real(8), intent(in) :: bi, aj, pm, cd, sd, omc, cdh, sdh
+      real(8) :: qm, xxi, d
+      integer :: iend
+
+      if (icap /= 0) then
+        qm = PI * bi
+        xxi = qm * qm
+        xxi = qm * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+      else
+        xxi = 0.0d0
+      end if
+
+      qm = (omc + xxi*sd) / (sd*(aj - xxi*pm) + cd*(pm + xxi*aj))
+      d = cd - xxi*sd
+      segj%bx(jsnop) = (aj*qm*(cdh - xxi*sdh) - sdh) / d
+      segj%cx(jsnop) = (cdh - aj*qm*(sdh + xxi*cdh)) / d
+
+      do iend = 1, njun1
+        segj%ax(iend) = segj%ax(iend) * qm
+        segj%bx(iend) = segj%bx(iend) * qm
+        segj%cx(iend) = segj%cx(iend) * qm
+      end do
+    end subroutine tbf_match_end1
+
+    ! Junction matching: junction 2 only
+    subroutine tbf_match_end2(segj, jsnop, icap, bi, ap, pp, cd, sd, omc, cdh, sdh, njun2, njun1)
+      type(segment_junction_data), intent(inout) :: segj
+      integer, intent(in) :: jsnop, icap, njun2, njun1
+      real(8), intent(in) :: bi, ap, pp, cd, sd, omc, cdh, sdh
+      real(8) :: qp, xxi, d
+      integer :: iend
+
+      if (icap /= 0) then
+        qp = PI * bi
+        xxi = qp * qp
+        xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+      else
+        xxi = 0.0d0
+      end if
+
+      qp = -(omc + xxi*sd) / (sd*(ap + xxi*pp) + cd*(xxi*ap - pp))
+      d = cd - xxi*sd
+      segj%bx(jsnop) = (sdh + ap*qp*(cdh - xxi*sdh)) / d
+      segj%cx(jsnop) = (cdh + ap*qp*(sdh + xxi*cdh)) / d
+
+      do iend = njun1 + 1, njun1 + njun2
+        segj%ax(iend) = -segj%ax(iend) * qp
+        segj%bx(iend) = segj%bx(iend) * qp
+        segj%cx(iend) = -segj%cx(iend) * qp
+      end do
+    end subroutine tbf_match_end2
+
+    ! Junction matching: both junctions present
+    subroutine tbf_match_both(segj, jsnop, aj, ap, pm, pp, cd, sd, omc, sdh, cdh, njun1, njun2)
+      type(segment_junction_data), intent(inout) :: segj
+      integer, intent(in) :: jsnop, njun1, njun2
+      real(8), intent(in) :: aj, ap, pm, pp, cd, sd, omc, sdh, cdh
+      real(8) :: qp, qm
+      integer :: iend
+
+      qp = sd * (pm*pp + aj*ap) + cd * (pm*ap - pp*aj)
+      qm = (ap*omc - pp*sd) / qp
+      qp = -(aj*omc + pm*sd) / qp
+      segj%bx(jsnop) = (aj*qm + ap*qp) * sdh / sd
+      segj%cx(jsnop) = (aj*qm - ap*qp) * cdh / sd
+
+      do iend = 1, njun1
+        segj%ax(iend) = segj%ax(iend) * qm
+        segj%bx(iend) = segj%bx(iend) * qm
+        segj%cx(iend) = segj%cx(iend) * qm
+      end do
+
+      do iend = njun1 + 1, njun1 + njun2
+        segj%ax(iend) = -segj%ax(iend) * qp
+        segj%bx(iend) = segj%bx(iend) * qp
+        segj%cx(iend) = -segj%cx(iend) * qp
+      end do
+    end subroutine tbf_match_both
 
   end subroutine tbf
 
@@ -238,91 +301,27 @@ contains
     integer, intent(in) :: i, is
     real(8), intent(out) :: aa, bb, cc
 
-    integer :: jcox, jend, iend, jsno, njun1, njun2, june
-    real(8) :: pp, pm, sig, d, sdh, cdh, sd, cd, omc, aj, ap, qp, qm, xxi
+    integer :: njun1, njun2, june
+    real(8) :: pp, pm, d, sdh, cdh, sd, cd, omc, aj, ap, qp, qm, xxi
 
+    ! Initialize
     aa = 0.0d0
     bb = 0.0d0
     cc = 0.0d0
     june = 0
-    jsno = 0
     pp = 0.0d0
-    jcox = geom%icon1(i)
-
-    if (jcox > 10000) jcox = i
-    jend = -1
-    iend = -1
-    sig = -1.0d0
 
     ! Process connections at end 1
-    if (jcox == 0) goto 11
-    if (jcox < 0) goto 1
-
-2   sig = -sig
-    jend = -jend
-
-3   jsno = jsno + 1
-    if (jsno >= DEFAULT_JMAX) then
-      write(*,'(A,I5)') 'SBF - Segment connection error for segment', i
-      stop 1
-    end if
-
-    d = PI * geom%si(jcox)
-    sdh = sin(d)
-    cdh = cos(d)
-    sd = 2.0d0 * sdh * cdh
-
-    if (d > 0.015d0) then
-      omc = 1.0d0 - cdh*cdh + sdh*sdh
-    else
-      omc = 4.0d0 * d * d
-      omc = ((1.3888889d-3 * omc - 4.1666666667d-2) * omc + 0.5d0) * omc
-    end if
-
-    aj = 1.0d0 / (log(1.0d0 / (PI * geom%bi(jcox))) - EULER_GAMMA)
-    pp = pp - omc / sd * aj
-
-    ! Check if this is the target segment
-    if (jcox == is) then
-      aa = aj / sd * sig
-      bb = aj / (2.0d0 * cdh)
-      cc = -aj / (2.0d0 * sdh) * sig
-      june = iend
-    end if
-
-6   if (jcox == i) goto 9
-
-    if (jend == 1) then
-      jcox = geom%icon2(jcox)
-    else
-      jcox = geom%icon1(jcox)
-    end if
-
-8   if (abs(jcox) == i) goto 10
-    if (jcox == 0) goto 24
-    if (jcox < 0) goto 1
-    goto 2
-
-9   if (jcox == is) bb = -bb
-
-10  if (iend == 1) goto 12
+    call sbf_process_end(geom, i, is, -1, pp, aa, bb, cc, june)
+    njun1 = june  ! Reuse june as counter for end 1
 
     ! Process connections at end 2
-11  pm = -pp
+    pm = -pp
     pp = 0.0d0
-    njun1 = jsno
-    jcox = geom%icon2(i)
-    if (jcox > 10000) jcox = i
-    jend = 1
-    iend = 1
-    sig = -1.0d0
-    if (jcox /= 0) then
-      if (jcox < 0) goto 1
-      goto 2
-    end if
+    call sbf_process_end(geom, i, is, 1, pp, aa, bb, cc, june)
+    njun2 = june - njun1  ! june now has total count
 
-    ! Apply junction matching
-12  njun2 = jsno - njun1
+    ! Calculate segment I properties
     d = PI * geom%si(i)
     sdh = sin(d)
     cdh = cos(d)
@@ -339,88 +338,169 @@ contains
     ap = 1.0d0 / (log(1.0d0 / (PI * geom%bi(i))) - EULER_GAMMA)
     aj = ap
 
-    if (njun1 == 0) goto 19
-    if (njun2 == 0) goto 21
+    ! Apply junction matching based on connection configuration
+    if (njun1 == 0 .and. njun2 == 0) then
+      ! No junctions - isolated segment
+      aa = -1.0d0
+      qp = PI * geom%bi(i)
+      xxi = qp * qp
+      xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+      cc = 1.0d0 / (cdh - xxi*sdh)
 
-    ! Both junctions present
-    qp = sd * (pm*pp + aj*ap) + cd * (pm*ap - pp*aj)
-    qm = (ap*omc - pp*sd) / qp
-    qp = -(aj*omc + pm*sd) / qp
+    else if (njun1 == 0) then
+      ! Junction 2 only
+      qp = PI * geom%bi(i)
+      xxi = qp * qp
+      xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+      qp = -(omc + xxi*sd) / (sd*(ap + xxi*pp) + cd*(xxi*ap - pp))
 
-    if (june < 0) then
-      ! Match at end 1
-      aa = aa * qm
-      bb = bb * qm
-      cc = cc * qm
-    else if (june > 0) then
-      ! Match at end 2
-      aa = -aa * qp
-      bb = bb * qp
-      cc = -cc * qp
+      if (june == 1) then
+        aa = -aa * qp
+        bb = bb * qp
+        cc = -cc * qp
+      end if
+
+      if (i == is) then
+        aa = aa - 1.0d0
+        d = cd - xxi*sd
+        bb = bb + (sdh + ap*qp*(cdh - xxi*sdh)) / d
+        cc = cc + (cdh + ap*qp*(sdh + xxi*cdh)) / d
+      end if
+
+    else if (njun2 == 0) then
+      ! Junction 1 only
+      qm = PI * geom%bi(i)
+      xxi = qm * qm
+      xxi = qm * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+      qm = (omc + xxi*sd) / (sd*(aj - xxi*pm) + cd*(pm + xxi*aj))
+
+      if (june == -1) then
+        aa = aa * qm
+        bb = bb * qm
+        cc = cc * qm
+      end if
+
+      if (i == is) then
+        aa = aa - 1.0d0
+        d = cd - xxi*sd
+        bb = bb + (aj*qm*(cdh - xxi*sdh) - sdh) / d
+        cc = cc + (cdh - aj*qm*(sdh + xxi*cdh)) / d
+      end if
+
+    else
+      ! Both junctions present
+      qp = sd * (pm*pp + aj*ap) + cd * (pm*ap - pp*aj)
+      qm = (ap*omc - pp*sd) / qp
+      qp = -(aj*omc + pm*sd) / qp
+
+      if (june < 0) then
+        ! Match at end 1
+        aa = aa * qm
+        bb = bb * qm
+        cc = cc * qm
+      else if (june > 0) then
+        ! Match at end 2
+        aa = -aa * qp
+        bb = bb * qp
+        cc = -cc * qp
+      end if
+
+      if (i == is) then
+        aa = aa - 1.0d0
+        bb = bb + (aj*qm + ap*qp) * sdh / sd
+        cc = cc + (aj*qm - ap*qp) * cdh / sd
+      end if
     end if
 
-    if (i == is) then
-      aa = aa - 1.0d0
-      bb = bb + (aj*qm + ap*qp) * sdh / sd
-      cc = cc + (aj*qm - ap*qp) * cdh / sd
-    end if
-    return
+  contains
 
-    ! Junction 2 only
-19  if (njun2 == 0) goto 23
+    ! Process connections at one end of segment
+    subroutine sbf_process_end(geom, i, is, end_flag, pp, aa, bb, cc, jsno)
+      type(geometry_data), intent(in) :: geom
+      integer, intent(in) :: i, is, end_flag
+      real(8), intent(inout) :: pp, aa, bb, cc
+      integer, intent(inout) :: jsno
 
-    qp = PI * geom%bi(i)
-    xxi = qp * qp
-    xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
-    qp = -(omc + xxi*sd) / (sd*(ap + xxi*pp) + cd*(xxi*ap - pp))
+      integer :: jcox, jend, iend, sig_flag
+      real(8) :: sig, d, sdh, cdh, sd, omc, aj
 
-    if (june == 1) then
-      aa = -aa * qp
-      bb = bb * qp
-      cc = -cc * qp
-    end if
+      ! Get starting connection
+      if (end_flag == -1) then
+        jcox = geom%icon1(i)
+      else
+        jcox = geom%icon2(i)
+      end if
 
-    if (i == is) then
-      aa = aa - 1.0d0
-      d = cd - xxi*sd
-      bb = bb + (sdh + ap*qp*(cdh - xxi*sdh)) / d
-      cc = cc + (cdh + ap*qp*(sdh + xxi*cdh)) / d
-    end if
-    return
+      if (jcox > 10000) jcox = i
+      if (jcox == 0) return
 
-    ! Junction 1 only
-21  qm = PI * geom%bi(i)
-    xxi = qm * qm
-    xxi = qm * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
-    qm = (omc + xxi*sd) / (sd*(aj - xxi*pm) + cd*(pm + xxi*aj))
+      jend = end_flag
+      iend = end_flag
+      sig_flag = -1
 
-    if (june == -1) then
-      aa = aa * qm
-      bb = bb * qm
-      cc = cc * qm
-    end if
+      ! Traverse connected segments
+      do while (.true.)
+        ! Handle negative connection (reverses direction)
+        if (jcox < 0) then
+          jcox = -jcox
+        else
+          sig_flag = -sig_flag
+          jend = -jend
+        end if
 
-    if (i == is) then
-      aa = aa - 1.0d0
-      d = cd - xxi*sd
-      bb = bb + (aj*qm*(cdh - xxi*sdh) - sdh) / d
-      cc = cc + (cdh - aj*qm*(sdh + xxi*cdh)) / d
-    end if
-    return
+        jsno = jsno + 1
+        if (jsno >= DEFAULT_JMAX) then
+          write(*,'(A,I5)') 'SBF - Segment connection error for segment', i
+          stop 1
+        end if
 
-    ! No junctions - isolated segment
-23  aa = -1.0d0
-    qp = PI * geom%bi(i)
-    xxi = qp * qp
-    xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
-    cc = 1.0d0 / (cdh - xxi*sdh)
-    return
+        ! Calculate segment properties
+        d = PI * geom%si(jcox)
+        sdh = sin(d)
+        cdh = cos(d)
+        sd = 2.0d0 * sdh * cdh
 
-24  write(*,'(A,I5)') 'SBF - Segment connection error for segment', i
-    stop 1
+        if (d > 0.015d0) then
+          omc = 1.0d0 - cdh*cdh + sdh*sdh
+        else
+          omc = 4.0d0 * d * d
+          omc = ((1.3888889d-3 * omc - 4.1666666667d-2) * omc + 0.5d0) * omc
+        end if
 
-1   jcox = -jcox
-    goto 3
+        aj = 1.0d0 / (log(1.0d0 / (PI * geom%bi(jcox))) - EULER_GAMMA)
+        pp = pp - omc / sd * aj
+
+        ! Check if this is the target segment
+        if (jcox == is) then
+          sig = real(sig_flag, kind=8)
+          aa = aj / sd * sig
+          bb = aj / (2.0d0 * cdh)
+          cc = -aj / (2.0d0 * sdh) * sig
+          june = iend  ! Record which end matched
+        end if
+
+        ! Check if we reached the original segment
+        if (jcox == i) then
+          if (jcox == is) bb = -bb
+          return
+        end if
+
+        ! Move to next connected segment
+        if (jend == 1) then
+          jcox = geom%icon2(jcox)
+        else
+          jcox = geom%icon1(jcox)
+        end if
+
+        ! Check termination conditions
+        if (abs(jcox) == i) then
+          return
+        else if (jcox == 0) then
+          write(*,'(A,I5)') 'SBF - Segment connection error for segment', i
+          stop 1
+        end if
+      end do
+    end subroutine sbf_process_end
 
   end subroutine sbf
 
@@ -439,66 +519,87 @@ contains
     type(segment_junction_data), intent(inout) :: segj
     integer, intent(in) :: j
 
-    integer :: jcox, jend, iend
     real(8) :: aa, bb, cc
 
+    ! Initialize
     segj%jsno = 0
-    jcox = geom%icon1(j)
 
-    if (jcox > 10000) goto 7
-    jend = -1
-    iend = -1
+    ! Process connections at end 1
+    call trio_process_end(geom, segj, j, -1)
 
-    if (jcox < 0) goto 1
-    if (jcox == 0) goto 7
-    goto 2
+    ! Process connections at end 2
+    call trio_process_end(geom, segj, j, 1)
 
-1   jcox = -jcox
-    goto 3
-
-2   jend = -jend
-
-3   if (jcox == j) goto 6
-
+    ! Add segment J itself
     segj%jsno = segj%jsno + 1
-    if (segj%jsno >= DEFAULT_JMAX) goto 9
-
-    call sbf(geom, jcox, j, aa, bb, cc)
-    segj%ax(segj%jsno) = aa
-    segj%bx(segj%jsno) = bb
-    segj%cx(segj%jsno) = cc
-    segj%jco(segj%jsno) = jcox
-
-    if (jend == 1) then
-      jcox = geom%icon2(jcox)
-    else
-      jcox = geom%icon1(jcox)
-    end if
-
-    if (jcox < 0) goto 1
-    if (jcox == 0) goto 9
-    goto 2
-
-6   if (iend == 1) goto 8
-
-7   jcox = geom%icon2(j)
-    if (jcox > 10000) goto 8
-    jend = 1
-    iend = 1
-    if (jcox < 0) goto 1
-    if (jcox == 0) goto 8
-    goto 2
-
-8   segj%jsno = segj%jsno + 1
     call sbf(geom, j, j, aa, bb, cc)
     segj%ax(segj%jsno) = aa
     segj%bx(segj%jsno) = bb
     segj%cx(segj%jsno) = cc
     segj%jco(segj%jsno) = j
-    return
 
-9   write(*,'(A,I5)') 'TRIO - Segment connection error for segment', j
-    stop 1
+  contains
+
+    ! Process connections at one end of segment
+    subroutine trio_process_end(geom, segj, j, end_flag)
+      type(geometry_data), intent(in) :: geom
+      type(segment_junction_data), intent(inout) :: segj
+      integer, intent(in) :: j, end_flag
+
+      integer :: jcox, jend
+      real(8) :: aa, bb, cc
+
+      ! Get starting connection
+      if (end_flag == -1) then
+        jcox = geom%icon1(j)
+      else
+        jcox = geom%icon2(j)
+      end if
+
+      if (jcox > 10000) return
+      if (jcox == 0) return
+
+      jend = end_flag
+
+      ! Traverse connected segments
+      do while (.true.)
+        ! Handle negative connection (reverses direction)
+        if (jcox < 0) then
+          jcox = -jcox
+        else
+          jend = -jend
+        end if
+
+        ! Check if we reached segment J
+        if (jcox == j) return
+
+        ! Add this basis function
+        segj%jsno = segj%jsno + 1
+        if (segj%jsno >= DEFAULT_JMAX) then
+          write(*,'(A,I5)') 'TRIO - Segment connection error for segment', j
+          stop 1
+        end if
+
+        call sbf(geom, jcox, j, aa, bb, cc)
+        segj%ax(segj%jsno) = aa
+        segj%bx(segj%jsno) = bb
+        segj%cx(segj%jsno) = cc
+        segj%jco(segj%jsno) = jcox
+
+        ! Move to next connected segment
+        if (jend == 1) then
+          jcox = geom%icon2(jcox)
+        else
+          jcox = geom%icon1(jcox)
+        end if
+
+        ! Check termination conditions
+        if (jcox == 0) then
+          write(*,'(A,I5)') 'TRIO - Segment connection error for segment', j
+          stop 1
+        end if
+      end do
+    end subroutine trio_process_end
 
   end subroutine trio
 

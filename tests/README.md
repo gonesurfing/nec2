@@ -2,34 +2,34 @@
 
 This directory contains the comprehensive test infrastructure for validating the modernization of nec2dxs.f.
 
-## Quick Start - Complete Testing
+## ⚠️ IMPORTANT: Two Types of Tests
 
-For comprehensive testing of the modernized code:
+### 🔧 Unit Tests (`make test_all`) - Does code run correctly?
+- Tests that each modernized module works properly
+- Validates functions produce reasonable outputs
+- **Does NOT compare against original code**
+- Fast (~20 seconds)
+
+### ✅ Regression Tests (`make end_to_end`) - Does output match original?
+- **Compares modernized code output vs. original FORTRAN 77 output**
+- Runs 4 antenna test cases through both versions
+- Numerically compares results with tolerances
+- **This is what validates correctness!**
+- Slower (~2 minutes)
+
+## Quick Start
 
 ```bash
 cd tests
-make full_test
-```
 
-This runs:
-1. **Integration test** - Build verification and basic execution
-2. **Module unit tests** - All 12 modules tested comprehensively
-3. **End-to-end test** - Full comparison against original code
-
-## Quick Start - Individual Test Levels
-
-```bash
-# Level 1: Build and basic execution test
-make integration
-
-# Level 2: Unit tests for all modules
+# Test if modernized code runs correctly
 make test_all
 
-# Level 3: Complete end-to-end comparison
+# Validate output matches original code ← THIS IS THE KEY TEST
 make end_to_end
 
-# See all available targets
-make help
+# Run both (recommended before committing)
+make full_test
 ```
 
 ## Documentation
@@ -67,105 +67,27 @@ tests/
 
 ```
 
-## Test Levels (Hierarchy)
+## Test Commands Summary
 
-### Level 0: Integration Test (Build Verification)
+| Command | What It Tests | Compares to Original? | Duration | When to Use |
+|---------|---------------|----------------------|----------|-------------|
+| `make integration` | Builds and runs basic execution | ❌ No | ~30s | After code changes |
+| `make test_all` | All modernized modules work | ❌ No | ~20s | Validate module correctness |
+| `make end_to_end` | **Output matches original** | ✅ **YES** | ~2m | **Validate correctness** |
+| `make full_test` | Everything | ✅ YES (includes end_to_end) | ~3m | Before committing/releasing |
 
-Quick test to verify everything compiles and links:
-
-```bash
-make integration
-```
-
-Tests:
-- All 12 modules compile successfully
-- Main program links correctly
-- Basic execution doesn't crash
-- Output appears valid
-
-**Duration:** ~30 seconds
-**Use when:** After any code changes, before committing
-
-### Level 1: Unit Tests - Original Functions
-
-Test extracted functions from original code:
+### Recommended Workflow
 
 ```bash
-make unit_tests
-```
-
-Tests:
-- DB10, DB20: dB conversion
-- ATGN2: Safe arctangent
-- CANG: Complex angle
-- ZINT: Internal impedance
-
-**Duration:** ~5 seconds
-**Use when:** Baseline verification
-
-### Level 2: Unit Tests - Basic Modernized Modules
-
-Test basic modernized modules:
-
-```bash
-make test_modules
-```
-
-Tests:
-- Constants module
-- Utilities module
-- Data types module
-
-**Duration:** ~10 seconds
-**Use when:** Testing foundation modules
-
-### Level 3: Unit Tests - Comprehensive (All 12 Modules)
-
-Test ALL modernized modules comprehensively:
-
-```bash
+# During development - quick checks
 make test_all
-```
 
-Tests:
-- All 12 modules: constants, data_types, utilities, geometry, current, kernel, matrix, solver, sommerfeld, fields, excitation, io
-- Allocation/deallocation
-- Mathematical functions
-- Geometry generation
-- (Complex modules tested via end-to-end)
-
-**Duration:** ~20 seconds
-**Use when:** Validating module-level correctness
-
-### Level 4: End-to-End Tests
-
-Complete simulation comparison:
-
-```bash
+# Before committing - validate against original
 make end_to_end
-```
 
-Tests:
-- Builds both original and modernized code
-- Runs all test cases through both
-- Compares outputs numerically
-- Benchmarks performance
-
-**Duration:** ~2 minutes
-**Use when:** Final validation before release
-
-### Level 5: Full Test Suite
-
-Run EVERYTHING:
-
-```bash
+# Before releasing - complete validation
 make full_test
 ```
-
-Runs all levels: integration + test_all + end_to_end
-
-**Duration:** ~3 minutes
-**Use when:** Final comprehensive validation
 
 ## Test Cases
 
@@ -296,41 +218,18 @@ If performance degrades >20%, investigate:
 - Did array layouts change?
 - Are temporary allocations excessive?
 
-## Quick Reference - Make Targets
+## All Available Test Commands
 
-| Target | Description | Duration | When to Use |
-|--------|-------------|----------|-------------|
-| `make integration` | Build + basic execution test | ~30s | After code changes |
-| `make unit_tests` | Original function tests | ~5s | Baseline verification |
-| `make test_modules` | Basic module tests | ~10s | Foundation modules |
-| `make test_all` | All 12 modules comprehensive | ~20s | Module validation |
-| `make end_to_end` | Full comparison vs original | ~2m | Final validation |
-| `make full_test` | Everything (integration + test_all + end_to_end) | ~3m | Comprehensive check |
-| `make reference` | Generate reference data | ~1m | When adding tests |
-| `make benchmark` | Performance comparison | ~2m | Performance check |
-| `make clean` | Remove test outputs | ~1s | Cleanup |
-| `make help` | Show all targets | instant | Reference |
-
-## Recommended Testing Workflow
-
-### During Development
-```bash
-# After each significant change
-make test_all
-```
-
-### Before Committing
-```bash
-# Quick validation
-make integration
-make test_all
-```
-
-### Before Pushing / Release
-```bash
-# Comprehensive validation
-make full_test
-```
+| Command | Description | Validates vs Original? | When to Use |
+|---------|-------------|----------------------|-------------|
+| **`make test_all`** | **Unit tests - all 12 modules** | ❌ No | **During development** |
+| **`make end_to_end`** | **Regression test - compare outputs** | ✅ **YES** | **Before committing** |
+| **`make full_test`** | **Both unit + regression tests** | ✅ **YES** | **Before releasing** |
+| `make integration` | Build verification | ❌ No | Quick build check |
+| `make reference` | Generate reference data from original | N/A | When adding new test cases |
+| `make benchmark` | Performance comparison | ✅ YES | Performance analysis |
+| `make clean` | Remove test outputs | N/A | Cleanup |
+| `make help` | Show all targets | N/A | Reference |
 
 ## Test Status Summary
 

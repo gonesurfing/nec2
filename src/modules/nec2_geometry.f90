@@ -678,8 +678,139 @@ contains
       end if
     end if
 
-    ! Similar logic for Y and X reflections...
-    ! (Implementation follows same pattern as Z reflection)
+    ! Reflect along Y axis
+    if (iy /= 0) then
+      if (geom%ipsym == 2) then
+        geom%ipsym = 3
+      else
+        geom%ipsym = 1
+      end if
+
+      ! Reflect wire segments
+      if (geom%n >= geom%n2) then
+        do i = geom%n2, geom%n
+          nx = i + geom%n - geom%n1
+          e1 = geom%y(i)
+          e2 = geom%alp(i)  ! End Y coordinate
+
+          if (abs(e1) + abs(e2) <= 1.0d-5 .or. e1 * e2 < -1.0d-6) then
+            write(*,'(A,I0)') 'ERROR in REFLC: Illegal segment for Y reflection, segment ', i
+            stop 1
+          end if
+
+          geom%x(nx) = geom%x(i)
+          geom%y(nx) = -e1
+          geom%z(nx) = geom%z(i)
+          geom%si(nx) = geom%si(i)
+          geom%alp(nx) = -e2
+          geom%bet(nx) = geom%bet(i)
+
+          itagi = geom%itag(i)
+          if (itagi == 0) then
+            geom%itag(nx) = 0
+          else
+            geom%itag(nx) = itagi + iti
+          end if
+          geom%bi(nx) = geom%bi(i)
+        end do
+        geom%n = geom%n * 2 - geom%n1
+        iti = iti * 2
+      end if
+
+      ! Reflect patches
+      if (geom%m >= geom%m2) then
+        nxx = geom%ld + 1 - geom%m1
+        do i = geom%m2, geom%m
+          nxx = nxx - 1
+          nx = nxx - geom%m + geom%m1
+
+          if (abs(geom%y(nxx)) <= 1.0d-10) then
+            write(*,'(A,I0)') 'ERROR in REFLC: Illegal patch for Y reflection, patch ', i
+            stop 1
+          end if
+
+          geom%x(nx) = geom%x(nxx)
+          geom%y(nx) = -geom%y(nxx)
+          geom%z(nx) = geom%z(nxx)
+          geom%si(nx) = geom%si(nxx)
+          geom%alp(nx) = -geom%alp(nxx)
+          geom%bet(nx) = geom%bet(nxx)
+          geom%icon1(nx) = -geom%icon1(nxx)
+          geom%icon2(nx) = geom%icon2(nxx)
+          geom%itag(nx) = geom%itag(nxx)
+          ang%salp(nx) = -ang%salp(nxx)
+          geom%bi(nx) = geom%bi(nxx)
+        end do
+        geom%m = geom%m * 2 - geom%m1
+      end if
+    end if
+
+    ! Reflect along X axis
+    if (ix /= 0) then
+      if (geom%ipsym == 2) then
+        geom%ipsym = 3
+      else
+        geom%ipsym = 1
+      end if
+
+      ! Reflect wire segments
+      if (geom%n >= geom%n2) then
+        do i = geom%n2, geom%n
+          nx = i + geom%n - geom%n1
+          e1 = geom%x(i)
+          e2 = geom%si(i)  ! End X coordinate
+
+          if (abs(e1) + abs(e2) <= 1.0d-5 .or. e1 * e2 < -1.0d-6) then
+            write(*,'(A,I0)') 'ERROR in REFLC: Illegal segment for X reflection, segment ', i
+            stop 1
+          end if
+
+          geom%x(nx) = -e1
+          geom%y(nx) = geom%y(i)
+          geom%z(nx) = geom%z(i)
+          geom%si(nx) = -e2
+          geom%alp(nx) = geom%alp(i)
+          geom%bet(nx) = geom%bet(i)
+
+          itagi = geom%itag(i)
+          if (itagi == 0) then
+            geom%itag(nx) = 0
+          else
+            geom%itag(nx) = itagi + iti
+          end if
+          geom%bi(nx) = geom%bi(i)
+        end do
+        geom%n = geom%n * 2 - geom%n1
+        iti = iti * 2
+      end if
+
+      ! Reflect patches
+      if (geom%m >= geom%m2) then
+        nxx = geom%ld + 1 - geom%m1
+        do i = geom%m2, geom%m
+          nxx = nxx - 1
+          nx = nxx - geom%m + geom%m1
+
+          if (abs(geom%x(nxx)) <= 1.0d-10) then
+            write(*,'(A,I0)') 'ERROR in REFLC: Illegal patch for X reflection, patch ', i
+            stop 1
+          end if
+
+          geom%x(nx) = -geom%x(nxx)
+          geom%y(nx) = geom%y(nxx)
+          geom%z(nx) = geom%z(nxx)
+          geom%si(nx) = -geom%si(nxx)
+          geom%alp(nx) = geom%alp(nxx)
+          geom%bet(nx) = geom%bet(nxx)
+          geom%icon1(nx) = geom%icon1(nxx)
+          geom%icon2(nx) = -geom%icon2(nxx)
+          geom%itag(nx) = geom%itag(nxx)
+          ang%salp(nx) = -ang%salp(nxx)
+          geom%bi(nx) = geom%bi(nxx)
+        end do
+        geom%m = geom%m * 2 - geom%m1
+      end if
+    end if
 
   end subroutine reflect_geometry
 
@@ -761,8 +892,46 @@ contains
 
 100   continue
 
-      ! Similar logic for end 2...
-      ! (Following same pattern as end 1)
+      ! Find connection for end 2
+      if (ignd >= 1) then
+        ! Check ground connection
+        if (zi2 < -slen) then
+          write(*,'(A,I0)') 'ERROR: Segment below ground, segment ', i
+          stop 1
+        end if
+        if (zi2 <= slen) then
+          geom%icon2(i) = i  ! Connected to ground
+          geom%bet(i) = 0.0d0
+          goto 200
+        end if
+      end if
+
+      ! Search for connected segment
+      ic = i
+      do j = 2, geom%n
+        ic = ic + 1
+        if (ic > geom%n) ic = 1
+
+        ! Check connection to start of segment ic
+        sep = abs(xi2 - geom%x(ic)) + abs(yi2 - geom%y(ic)) + abs(zi2 - geom%z(ic))
+        if (sep <= slen) then
+          geom%icon2(i) = -ic
+          goto 200
+        end if
+
+        ! Check connection to end of segment ic
+        sep = abs(xi2 - geom%si(ic)) + abs(yi2 - geom%alp(ic)) + abs(zi2 - geom%bet(ic))
+        if (sep <= slen) then
+          geom%icon2(i) = ic
+          goto 200
+        end if
+      end do
+
+      if (i >= geom%n2 .and. geom%icon2(i) <= 10000) then
+        geom%icon2(i) = 0
+      end if
+
+200   continue
 
     end do
 

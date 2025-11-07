@@ -231,6 +231,8 @@ contains
     !   i    - basis function number
     !   is   - segment to evaluate on
     !   aa, bb, cc - output basis function coefficients
+    !
+    ! Original: nec2dxs.f lines 8713-8854
 
     type(geometry_data), intent(in) :: geom
     integer, intent(in) :: i, is
@@ -247,17 +249,178 @@ contains
     pp = 0.0d0
     jcox = geom%icon1(i)
 
-    ! Similar algorithm to TBF but evaluates at specific segment IS
-    ! [Implementation follows same pattern as TBF]
-    ! For brevity, showing structure - full implementation would mirror TBF logic
-
     if (jcox > 10000) jcox = i
     jend = -1
     iend = -1
     sig = -1.0d0
 
-    ! [Rest of SBF implementation - follows TBF pattern but stores
-    !  coefficients when jcox == is]
+    ! Process connections at end 1
+    if (jcox == 0) goto 11
+    if (jcox < 0) goto 1
+
+2   sig = -sig
+    jend = -jend
+
+3   jsno = jsno + 1
+    if (jsno >= DEFAULT_JMAX) then
+      write(*,'(A,I5)') 'SBF - Segment connection error for segment', i
+      stop 1
+    end if
+
+    d = PI * geom%si(jcox)
+    sdh = sin(d)
+    cdh = cos(d)
+    sd = 2.0d0 * sdh * cdh
+
+    if (d > 0.015d0) then
+      omc = 1.0d0 - cdh*cdh + sdh*sdh
+    else
+      omc = 4.0d0 * d * d
+      omc = ((1.3888889d-3 * omc - 4.1666666667d-2) * omc + 0.5d0) * omc
+    end if
+
+    aj = 1.0d0 / (log(1.0d0 / (PI * geom%bi(jcox))) - EULER_GAMMA)
+    pp = pp - omc / sd * aj
+
+    ! Check if this is the target segment
+    if (jcox == is) then
+      aa = aj / sd * sig
+      bb = aj / (2.0d0 * cdh)
+      cc = -aj / (2.0d0 * sdh) * sig
+      june = iend
+    end if
+
+6   if (jcox == i) goto 9
+
+    if (jend == 1) then
+      jcox = geom%icon2(jcox)
+    else
+      jcox = geom%icon1(jcox)
+    end if
+
+8   if (abs(jcox) == i) goto 10
+    if (jcox == 0) goto 24
+    if (jcox < 0) goto 1
+    goto 2
+
+9   if (jcox == is) bb = -bb
+
+10  if (iend == 1) goto 12
+
+    ! Process connections at end 2
+11  pm = -pp
+    pp = 0.0d0
+    njun1 = jsno
+    jcox = geom%icon2(i)
+    if (jcox > 10000) jcox = i
+    jend = 1
+    iend = 1
+    sig = -1.0d0
+    if (jcox /= 0) then
+      if (jcox < 0) goto 1
+      goto 2
+    end if
+
+    ! Apply junction matching
+12  njun2 = jsno - njun1
+    d = PI * geom%si(i)
+    sdh = sin(d)
+    cdh = cos(d)
+    sd = 2.0d0 * sdh * cdh
+    cd = cdh*cdh - sdh*sdh
+
+    if (d > 0.015d0) then
+      omc = 1.0d0 - cd
+    else
+      omc = 4.0d0 * d * d
+      omc = ((1.3888889d-3 * omc - 4.1666666667d-2) * omc + 0.5d0) * omc
+    end if
+
+    ap = 1.0d0 / (log(1.0d0 / (PI * geom%bi(i))) - EULER_GAMMA)
+    aj = ap
+
+    if (njun1 == 0) goto 19
+    if (njun2 == 0) goto 21
+
+    ! Both junctions present
+    qp = sd * (pm*pp + aj*ap) + cd * (pm*ap - pp*aj)
+    qm = (ap*omc - pp*sd) / qp
+    qp = -(aj*omc + pm*sd) / qp
+
+    if (june < 0) then
+      ! Match at end 1
+      aa = aa * qm
+      bb = bb * qm
+      cc = cc * qm
+    else if (june > 0) then
+      ! Match at end 2
+      aa = -aa * qp
+      bb = bb * qp
+      cc = -cc * qp
+    end if
+
+    if (i == is) then
+      aa = aa - 1.0d0
+      bb = bb + (aj*qm + ap*qp) * sdh / sd
+      cc = cc + (aj*qm - ap*qp) * cdh / sd
+    end if
+    return
+
+    ! Junction 2 only
+19  if (njun2 == 0) goto 23
+
+    qp = PI * geom%bi(i)
+    xxi = qp * qp
+    xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+    qp = -(omc + xxi*sd) / (sd*(ap + xxi*pp) + cd*(xxi*ap - pp))
+
+    if (june == 1) then
+      aa = -aa * qp
+      bb = bb * qp
+      cc = -cc * qp
+    end if
+
+    if (i == is) then
+      aa = aa - 1.0d0
+      d = cd - xxi*sd
+      bb = bb + (sdh + ap*qp*(cdh - xxi*sdh)) / d
+      cc = cc + (cdh + ap*qp*(sdh + xxi*cdh)) / d
+    end if
+    return
+
+    ! Junction 1 only
+21  qm = PI * geom%bi(i)
+    xxi = qm * qm
+    xxi = qm * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+    qm = (omc + xxi*sd) / (sd*(aj - xxi*pm) + cd*(pm + xxi*aj))
+
+    if (june == -1) then
+      aa = aa * qm
+      bb = bb * qm
+      cc = cc * qm
+    end if
+
+    if (i == is) then
+      aa = aa - 1.0d0
+      d = cd - xxi*sd
+      bb = bb + (aj*qm*(cdh - xxi*sdh) - sdh) / d
+      cc = cc + (cdh - aj*qm*(sdh + xxi*cdh)) / d
+    end if
+    return
+
+    ! No junctions - isolated segment
+23  aa = -1.0d0
+    qp = PI * geom%bi(i)
+    xxi = qp * qp
+    xxi = qp * (1.0d0 - 0.5d0 * xxi) / (1.0d0 - xxi)
+    cc = 1.0d0 / (cdh - xxi*sdh)
+    return
+
+24  write(*,'(A,I5)') 'SBF - Segment connection error for segment', i
+    stop 1
+
+1   jcox = -jcox
+    goto 3
 
   end subroutine sbf
 

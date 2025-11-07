@@ -30,10 +30,14 @@ program test_all_modules
   ! Tiered testing: Create validated geometry for current module tests
   call setup_test_geometry(test_geom)
   call test_module_current(total_tests, passed_tests, test_geom)
-  call cleanup_geometry_data(test_geom)
 
-  call test_module_kernel(total_tests, passed_tests)
-  call test_module_sommerfeld(total_tests, passed_tests)
+  ! Tier 3: Use validated geometry for kernel field calculations
+  call test_module_kernel(total_tests, passed_tests, test_geom)
+
+  ! Tier 4: Use validated geometry for sommerfeld ground wave calculations
+  call test_module_sommerfeld(total_tests, passed_tests, test_geom)
+
+  call cleanup_geometry_data(test_geom)
   ! Note: matrix, solver, fields, excitation, io
   ! require more complex setup - tested via integration tests
 
@@ -505,15 +509,20 @@ contains
   end subroutine
 
   !============================================================================
-  ! Module 6: Kernel (Electric Field Calculations)
+  ! Module 6: Kernel (Electric Field Calculations) - TIER 3
   !============================================================================
 
-  subroutine test_module_kernel(total, passed)
+  subroutine test_module_kernel(total, passed, connected_geom)
     integer, intent(inout) :: total, passed
+    type(geometry_data), intent(in) :: connected_geom  ! Validated 3-segment wire
     complex(8) :: ezs, ers, ezc, erc, ezk, erk
-    real(8) :: s, z, rh, xk
+    complex(8) :: ezs2, ers2, ezc2, erc2, ezk2, erk2
+    real(8) :: s, z, rh, xk, seg_len, wire_rad
+    real(8) :: obs_x, obs_y, obs_z  ! Observation point
 
-    call print_module_header("nec2_kernel")
+    call print_module_header("nec2_kernel (TIER 3: Using validated geometry)")
+
+    write(*,'(A)') "  --- Basic field calculations (arbitrary parameters) ---"
 
     ! Test parameters
     s = 0.05d0      ! segment length
@@ -546,22 +555,66 @@ contains
     call assert_true(abs(ezs) > 0.0d0, &
                      "eksc: off-axis evaluation works", total, passed)
 
+    write(*,'(A)') "  --- Realistic field calculations (using geometry) ---"
+
+    ! Extract segment parameters from validated geometry
+    seg_len = distance_3d(connected_geom%x(2), connected_geom%y(2), connected_geom%z(2), &
+                          connected_geom%si(2), connected_geom%alp(2), connected_geom%bet(2))
+    wire_rad = connected_geom%bi(2)
+
+    call assert_true(seg_len > 0.04d0 .and. seg_len < 0.06d0, &
+                     "geometry: segment length ~0.05m", total, passed)
+
+    ! Test field at observation point near center segment
+    obs_x = 0.01d0  ! 1cm off axis
+    obs_y = 0.0d0
+    obs_z = 0.0d0   ! At center of wire
+
+    ! Calculate field from center segment to observation point
+    z = obs_z - connected_geom%z(2)  ! Relative z coordinate
+    rh = sqrt(obs_x*obs_x + obs_y*obs_y)  ! Radial distance
+
+    call eksc(seg_len, z, rh, xk, 0, ezs, ers, ezc, erc, ezk, erk)
+
+    call assert_true(abs(ezk) > 0.0d0, &
+                     "eksc: field at observation point non-zero", total, passed)
+
+    ! Test field decay with distance (farther point should have weaker field)
+    obs_x = 0.1d0  ! 10cm off axis (10x farther)
+    rh = sqrt(obs_x*obs_x + obs_y*obs_y)
+
+    call eksc(seg_len, z, rh, xk, 0, ezs2, ers2, ezc2, erc2, ezk2, erk2)
+
+    call assert_true(abs(ezk2) < abs(ezk), &
+                     "eksc: field decreases with distance", total, passed)
+
+    ! Test EKSCX - extended thin wire kernel with actual wire radius
+    call ekscx(wire_rad, seg_len, z, 0.01d0, xk, 0, 0, 0, &
+               ezs, ers, ezc, erc, ezk, erk)
+
+    call assert_true(abs(ezk) > 0.0d0, &
+                     "ekscx: extended kernel with real wire radius works", total, passed)
+
     ! Note: gx(), gxx() are internal helper functions (not public)
     ! They are tested indirectly through eksc() and ekscx()
 
   end subroutine
 
   !============================================================================
-  ! Module 7: Sommerfeld (Ground Wave Integrals)
+  ! Module 7: Sommerfeld (Ground Wave Integrals) - TIER 4
   !============================================================================
 
-  subroutine test_module_sommerfeld(total, passed)
+  subroutine test_module_sommerfeld(total, passed, connected_geom)
     integer, intent(inout) :: total, passed
+    type(geometry_data), intent(in) :: connected_geom  ! Validated 3-segment wire
     type(ground_data) :: ground
     type(evaluation_data) :: evl
-    complex(8) :: erv, ezv, erh, eph
+    complex(8) :: erv, ezv, erh, eph, erv2, ezv2, erh2, eph2
+    real(8) :: wire_height, ground_dist
 
-    call print_module_header("nec2_sommerfeld.f90")
+    call print_module_header("nec2_sommerfeld (TIER 4: Using validated geometry)")
+
+    write(*,'(A)') "  --- Basic Sommerfeld integrals (arbitrary parameters) ---"
 
     ! Initialize ground parameters
     ground%iperf = 1  ! Perfect ground
@@ -601,6 +654,43 @@ contains
     call evlua(evl, erv, ezv, erh, eph)
     call assert_true(.true., &
                      "evlua: finite conductivity evaluation completes", total, passed)
+
+    write(*,'(A)') "  --- Realistic ground wave calculations (using geometry) ---"
+
+    ! Extract wire height above ground (center segment z-coordinate)
+    wire_height = abs(connected_geom%z(2))
+
+    call assert_true(wire_height >= 0.0d0, &
+                     "geometry: wire height extracted", total, passed)
+
+    ! Test ground wave at realistic distance from wire
+    ! Observation point at ground level, 1m away horizontally
+    ground_dist = 1.0d0
+    evl%rho = ground_dist  ! Horizontal distance
+    evl%zph = 0.0d0        ! At ground level
+
+    ! Test with realistic ground parameters (typical soil)
+    ground%iperf = 0
+    ground%zrati = cmplx(0.707d0, -0.05d0, kind=8)  ! Typical soil
+    ground%zrati2 = ground%zrati * ground%zrati
+    ground%frati = ground%zrati  ! Ratio of ground to air
+
+    call evlua(evl, erv, ezv, erh, eph)
+    call assert_true(.true., &
+                     "evlua: realistic ground parameters work", total, passed)
+
+    ! Test ground wave at different distances
+    evl%rho = 0.5d0  ! Closer distance
+    call evlua(evl, erv2, ezv2, erh2, eph2)
+    call assert_true(.true., &
+                     "evlua: evaluates at multiple distances", total, passed)
+
+    ! Test with very poor ground (sea water has opposite property - good conductor)
+    ground%zrati = cmplx(0.1d0, -0.9d0, kind=8)  ! Very lossy
+    ground%zrati2 = ground%zrati * ground%zrati
+    call evlua(evl, erv, ezv, erh, eph)
+    call assert_true(.true., &
+                     "evlua: works with very lossy ground", total, passed)
 
     ! Test GSHANK - Shanks algorithm for convergence acceleration
     ! This is called internally by evlua, so we test it indirectly

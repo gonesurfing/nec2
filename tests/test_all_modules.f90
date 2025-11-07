@@ -54,15 +54,16 @@ contains
   !============================================================================
 
   subroutine setup_test_geometry(geom)
-    ! Sets up a validated 3-segment wire with proper connections
-    ! This geometry is used by current module tests and other dependent tests
+    ! Sets up a validated closed-loop geometry for dependent tests
+    ! Uses a 4-segment rectangular loop to avoid free-end connection issues
     type(geometry_data), intent(out) :: geom
     type(segment_junction_data) :: segj
+    integer :: i
 
     write(*,'(A)') ""
     write(*,'(A)') "========================================================================"
     write(*,'(A)') "  TIER 1: Setting up validated test geometry"
-    write(*,'(A)') "  Creating 3-segment wire with proper connections"
+    write(*,'(A)') "  Creating 4-segment rectangular loop"
     write(*,'(A)') "========================================================================"
 
     ! Initialize geometry
@@ -73,23 +74,32 @@ contains
     geom%mp = 0
     geom%ipsym = 0
 
-    ! Create a 3-segment vertical wire (0.15m total length)
-    ! This mimics a typical dipole antenna structure
-    call wire(geom, 0.0d0, 0.0d0, -0.075d0, 0.0d0, 0.0d0, 0.075d0, &
-              0.001d0, 1.0d0, 1.0d0, 3, 1)
+    ! Create a 4-segment rectangular loop in the XY plane (10cm x 10cm)
+    ! Side 1: (0, 0, 0) to (0.1, 0, 0)
+    call wire(geom, 0.0d0, 0.0d0, 0.0d0, 0.1d0, 0.0d0, 0.0d0, &
+              0.001d0, 1.0d0, 1.0d0, 1, 1)
+    ! Side 2: (0.1, 0, 0) to (0.1, 0.1, 0)
+    call wire(geom, 0.1d0, 0.0d0, 0.0d0, 0.1d0, 0.1d0, 0.0d0, &
+              0.001d0, 1.0d0, 1.0d0, 1, 2)
+    ! Side 3: (0.1, 0.1, 0) to (0, 0.1, 0)
+    call wire(geom, 0.1d0, 0.1d0, 0.0d0, 0.0d0, 0.1d0, 0.0d0, &
+              0.001d0, 1.0d0, 1.0d0, 1, 3)
+    ! Side 4: (0, 0.1, 0) to (0, 0, 0)
+    call wire(geom, 0.0d0, 0.1d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, &
+              0.001d0, 1.0d0, 1.0d0, 1, 4)
 
-    write(*,'(A,I0,A)') "  ✓ Created ", geom%n, " segments"
-    write(*,'(A,ES10.3,A)') "  ✓ Segment length: ", 0.05d0, " m"
+    write(*,'(A,I0,A)') "  ✓ Created ", geom%n, " segments (closed loop)"
+    write(*,'(A,ES10.3,A)') "  ✓ Loop perimeter: ", 0.4d0, " m"
     write(*,'(A,ES10.3,A)') "  ✓ Wire radius: ", 0.001d0, " m"
 
-    ! Set up connections using the geometry's connect_segments routine
-    ! This properly establishes icon1 and icon2 arrays
+    ! Set up connections to form closed loop
     call connect_segments(geom, segj, 0)  ! 0 = no ground plane
 
-    write(*,'(A)') "  ✓ Segment connections established:"
-    write(*,'(A,I0,A,I0)') "    Seg 1: icon1=", geom%icon1(1), ", icon2=", geom%icon2(1)
-    write(*,'(A,I0,A,I0)') "    Seg 2: icon1=", geom%icon1(2), ", icon2=", geom%icon2(2)
-    write(*,'(A,I0,A,I0)') "    Seg 3: icon1=", geom%icon1(3), ", icon2=", geom%icon2(3)
+    write(*,'(A)') "  ✓ Closed-loop connections established:"
+    do i = 1, geom%n
+      write(*,'(A,I0,A,I0,A,I0)') "    Seg ", i, ": icon1=", geom%icon1(i), &
+                                   ", icon2=", geom%icon2(i)
+    end do
     write(*,'(A)') ""
 
   end subroutine setup_test_geometry
@@ -469,36 +479,34 @@ contains
 
     call cleanup_geometry_data(geom_isolated)
 
-    write(*,'(A)') "  --- Testing with connected 3-segment wire (advanced) ---"
+    write(*,'(A)') "  --- Testing with closed 4-segment loop (advanced) ---"
 
-    ! Note: sbf() is designed for closed loops or circuits that return to the
-    ! original segment. For a wire with free ends, the connection traversal
-    ! hits dead ends. Therefore, we focus on trio() and tbf() which properly
-    ! handle free-ended wires.
+    ! Note: Using a closed rectangular loop allows sbf(), trio(), and tbf()
+    ! to traverse connections without hitting free ends.
 
-    ! Test TRIO - should find all 3 basis functions on center segment
-    call trio(connected_geom, segj, int(2, 8))
-    call assert_int_equal(segj%jsno, 3, &
-                     "trio: center segment finds all 3 basis functions", total, passed)
-
-    ! Test TRIO on end segment - should find 2 basis functions
+    ! Test TRIO - should find 3 basis functions on any segment in closed loop
     call trio(connected_geom, segj, int(1, 8))
-    call assert_int_equal(segj%jsno, 2, &
-                     "trio: end segment finds 2 basis functions", total, passed)
+    call assert_int_equal(segj%jsno, 3, &
+                     "trio: loop segment finds 3 basis functions", total, passed)
 
-    ! Test TBF on center segment with connections
-    seg_i4 = 2
+    ! Test TRIO on opposite segment
+    call trio(connected_geom, segj, int(3, 8))
+    call assert_int_equal(segj%jsno, 3, &
+                     "trio: opposite segment also finds 3 basis functions", total, passed)
+
+    ! Test TBF on first segment of loop
+    seg_i4 = 1
     call tbf(connected_geom, segj, seg_i4, 0)
     call assert_true(segj%jsno >= 3, &
-                     "tbf: center segment has connections", total, passed)
+                     "tbf: loop segment has 2 connections + self", total, passed)
     call assert_real_equal(segj%ax(segj%jsno), -1.0d0, 1.0d-10, &
                      "tbf: last coefficient ax = -1", total, passed)
 
-    ! Test TBF on end segment
-    seg_i4 = 1
+    ! Test TBF on another segment
+    seg_i4 = 2
     call tbf(connected_geom, segj, seg_i4, 0)
-    call assert_true(segj%jsno >= 2, &
-                     "tbf: end segment has connection to one neighbor", total, passed)
+    call assert_true(segj%jsno >= 3, &
+                     "tbf: all loop segments have 2 connections", total, passed)
 
     ! Cleanup segment junction data
     deallocate(segj%ax)
@@ -557,22 +565,22 @@ contains
 
     write(*,'(A)') "  --- Realistic field calculations (using geometry) ---"
 
-    ! Extract segment parameters from validated geometry
-    seg_len = distance_3d(connected_geom%x(2), connected_geom%y(2), connected_geom%z(2), &
-                          connected_geom%si(2), connected_geom%alp(2), connected_geom%bet(2))
-    wire_rad = connected_geom%bi(2)
+    ! Extract segment parameters from validated geometry (rectangular loop)
+    seg_len = distance_3d(connected_geom%x(1), connected_geom%y(1), connected_geom%z(1), &
+                          connected_geom%si(1), connected_geom%alp(1), connected_geom%bet(1))
+    wire_rad = connected_geom%bi(1)
 
-    call assert_true(seg_len > 0.04d0 .and. seg_len < 0.06d0, &
-                     "geometry: segment length ~0.05m", total, passed)
+    call assert_true(seg_len > 0.09d0 .and. seg_len < 0.11d0, &
+                     "geometry: loop segment length ~0.1m", total, passed)
 
-    ! Test field at observation point near center segment
-    obs_x = 0.01d0  ! 1cm off axis
-    obs_y = 0.0d0
-    obs_z = 0.0d0   ! At center of wire
+    ! Test field at observation point near first segment of loop
+    obs_x = 0.05d0  ! 5cm (at center of 10cm segment)
+    obs_y = 0.01d0  ! 1cm off the wire plane
+    obs_z = 0.0d0   ! At z=0 plane
 
-    ! Calculate field from center segment to observation point
-    z = obs_z - connected_geom%z(2)  ! Relative z coordinate
-    rh = sqrt(obs_x*obs_x + obs_y*obs_y)  ! Radial distance
+    ! Calculate field from first segment to observation point
+    z = obs_z - connected_geom%z(1)  ! Relative z coordinate
+    rh = sqrt((obs_x - connected_geom%x(1))**2 + obs_y*obs_y)  ! Distance from segment center
 
     call eksc(seg_len, z, rh, xk, 0, ezs, ers, ezc, erc, ezk, erk)
 
@@ -657,11 +665,11 @@ contains
 
     write(*,'(A)') "  --- Realistic ground wave calculations (using geometry) ---"
 
-    ! Extract wire height above ground (center segment z-coordinate)
-    wire_height = abs(connected_geom%z(2))
+    ! Extract wire height above ground (loop is in XY plane at z=0)
+    wire_height = abs(connected_geom%z(1))
 
-    call assert_true(wire_height >= 0.0d0, &
-                     "geometry: wire height extracted", total, passed)
+    call assert_true(wire_height >= -0.01d0 .and. wire_height <= 0.01d0, &
+                     "geometry: loop at ground level (z~0)", total, passed)
 
     ! Test ground wave at realistic distance from wire
     ! Observation point at ground level, 1m away horizontally

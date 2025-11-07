@@ -33,9 +33,9 @@ contains
     type(segment_junction_data), intent(inout) :: segj
     integer, intent(in) :: i, icap
 
-    integer :: njun1, njun2, jsnop, iend
+    integer :: njun1, njun2, jsnop
     real(8) :: pp, pm, d, sdh, cdh, sd, cd, omc
-    real(8) :: aj, ap, qp, qm, xxi
+    real(8) :: aj, ap
 
     ! Initialize
     segj%jsno = 0
@@ -292,14 +292,14 @@ contains
     !
     ! Arguments:
     !   geom - geometry data
-    !   i    - basis function number
-    !   is   - segment to evaluate on
+    !   i    - basis function number (integer(8) to match icon1/icon2)
+    !   is   - segment to evaluate on (integer(8) to match icon1/icon2)
     !   aa, bb, cc - output basis function coefficients
     !
     ! Original: nec2dxs.f lines 8713-8854
 
     type(geometry_data), intent(in) :: geom
-    integer, intent(in) :: i, is
+    integer(8), intent(in) :: i, is
     real(8), intent(out) :: aa, bb, cc
 
     integer :: njun1, njun2, june
@@ -418,7 +418,8 @@ contains
     ! Process connections at one end of segment
     subroutine sbf_process_end(geom, i, is, end_flag, pp, aa, bb, cc, jsno)
       type(geometry_data), intent(in) :: geom
-      integer, intent(in) :: i, is, end_flag
+      integer(8), intent(in) :: i, is
+      integer, intent(in) :: end_flag
       real(8), intent(inout) :: pp, aa, bb, cc
       integer, intent(inout) :: jsno
 
@@ -515,11 +516,11 @@ contains
     ! Arguments:
     !   geom - geometry data
     !   segj - segment junction data (output)
-    !   j    - segment number
+    !   j    - segment number (integer(8) to match icon1/icon2)
 
     type(geometry_data), intent(in) :: geom
     type(segment_junction_data), intent(inout) :: segj
-    integer, intent(in) :: j
+    integer(8), intent(in) :: j
 
     real(8) :: aa, bb, cc
 
@@ -546,7 +547,8 @@ contains
     subroutine trio_process_end(geom, segj, j, end_flag)
       type(geometry_data), intent(in) :: geom
       type(segment_junction_data), intent(inout) :: segj
-      integer, intent(in) :: j, end_flag
+      integer(8), intent(in) :: j
+      integer, intent(in) :: end_flag
 
       integer(8) :: jcox
       integer :: jend

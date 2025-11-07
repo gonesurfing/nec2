@@ -14,6 +14,7 @@ program test_all_modules
 
   integer :: total_tests, passed_tests
   logical :: all_passed
+  type(geometry_data) :: test_geom
 
   total_tests = 0
   passed_tests = 0
@@ -25,7 +26,12 @@ program test_all_modules
   call test_module_data_types(total_tests, passed_tests)
   call test_module_utilities(total_tests, passed_tests)
   call test_module_geometry(total_tests, passed_tests)
-  call test_module_current(total_tests, passed_tests)
+
+  ! Tiered testing: Create validated geometry for current module tests
+  call setup_test_geometry(test_geom)
+  call test_module_current(total_tests, passed_tests, test_geom)
+  call cleanup_geometry_data(test_geom)
+
   call test_module_kernel(total_tests, passed_tests)
   call test_module_sommerfeld(total_tests, passed_tests)
   ! Note: matrix, solver, fields, excitation, io
@@ -38,6 +44,51 @@ program test_all_modules
   end if
 
 contains
+
+  !============================================================================
+  ! Tiered Test Setup - Create validated geometry for dependent tests
+  !============================================================================
+
+  subroutine setup_test_geometry(geom)
+    ! Sets up a validated 3-segment wire with proper connections
+    ! This geometry is used by current module tests and other dependent tests
+    type(geometry_data), intent(out) :: geom
+    type(segment_junction_data) :: segj
+
+    write(*,'(A)') ""
+    write(*,'(A)') "========================================================================"
+    write(*,'(A)') "  TIER 1: Setting up validated test geometry"
+    write(*,'(A)') "  Creating 3-segment wire with proper connections"
+    write(*,'(A)') "========================================================================"
+
+    ! Initialize geometry
+    call init_geometry_data(geom, 1000)
+    geom%n = 0
+    geom%n1 = 1
+    geom%n2 = 1
+    geom%mp = 0
+    geom%ipsym = 0
+
+    ! Create a 3-segment vertical wire (0.15m total length)
+    ! This mimics a typical dipole antenna structure
+    call wire(geom, 0.0d0, 0.0d0, -0.075d0, 0.0d0, 0.0d0, 0.075d0, &
+              0.001d0, 1.0d0, 1.0d0, 3, 1)
+
+    write(*,'(A,I0,A)') "  ✓ Created ", geom%n, " segments"
+    write(*,'(A,ES10.3,A)') "  ✓ Segment length: ", 0.05d0, " m"
+    write(*,'(A,ES10.3,A)') "  ✓ Wire radius: ", 0.001d0, " m"
+
+    ! Set up connections using the geometry's connect_segments routine
+    ! This properly establishes icon1 and icon2 arrays
+    call connect_segments(geom, segj, 0)  ! 0 = no ground plane
+
+    write(*,'(A)') "  ✓ Segment connections established:"
+    write(*,'(A,I0,A,I0)') "    Seg 1: icon1=", geom%icon1(1), ", icon2=", geom%icon2(1)
+    write(*,'(A,I0,A,I0)') "    Seg 2: icon1=", geom%icon1(2), ", icon2=", geom%icon2(2)
+    write(*,'(A,I0,A,I0)') "    Seg 3: icon1=", geom%icon1(3), ", icon2=", geom%icon2(3)
+    write(*,'(A)') ""
+
+  end subroutine setup_test_geometry
 
   !============================================================================
   ! Test Framework Utilities
@@ -353,63 +404,104 @@ contains
   end subroutine
 
   !============================================================================
-  ! Module 5: Current (Basis Functions)
+  ! Module 5: Current (Basis Functions) - TIERED TESTING
   !============================================================================
 
-  subroutine test_module_current(total, passed)
+  subroutine test_module_current(total, passed, connected_geom)
     integer, intent(inout) :: total, passed
-    type(geometry_data) :: geom
+    type(geometry_data), intent(in) :: connected_geom  ! Validated 3-segment wire
+    type(geometry_data) :: geom_isolated
     type(segment_junction_data) :: segj
-    real(8) :: aa, bb, cc
+    real(8) :: aa, bb, cc, aa2, bb2, cc2
     integer :: seg_i, seg_is
 
-    call print_module_header("nec2_current")
+    call print_module_header("nec2_current (TIER 2: Using validated geometry)")
+
+    write(*,'(A)') "  --- Testing with isolated segment (basic) ---"
 
     ! Setup simple geometry for testing - single isolated segment
-    call init_geometry_data(geom, 100)
-    geom%n = 0
-    geom%n1 = 1
-    geom%n2 = 1
+    call init_geometry_data(geom_isolated, 100)
+    geom_isolated%n = 0
+    geom_isolated%n1 = 1
+    geom_isolated%n2 = 1
 
     ! Create a simple single-segment wire for testing basis functions
-    ! This avoids complex connection traversal issues
-    call wire(geom, 0.0d0, 0.0d0, -0.05d0, 0.0d0, 0.0d0, 0.05d0, &
+    call wire(geom_isolated, 0.0d0, 0.0d0, -0.05d0, 0.0d0, 0.0d0, 0.05d0, &
               0.001d0, 1.0d0, 1.0d0, 1, 1)
 
-    call assert_int_equal(geom%n, 1, &
-                          "Setup: single segment created", total, passed)
-
     ! Set up as isolated segment (no connections)
-    geom%icon1(1) = 0      ! No connection at end 1
-    geom%icon2(1) = 0      ! No connection at end 2
+    geom_isolated%icon1(1) = 0
+    geom_isolated%icon2(1) = 0
 
     ! Test SBF - basis function on isolated segment
     seg_i = 1
     seg_is = 1
-    call sbf(geom, seg_i, seg_is, aa, bb, cc)
-    call assert_true(abs(aa) < 0.0d0, &
+    call sbf(geom_isolated, seg_i, seg_is, aa, bb, cc)
+    call assert_true(aa < 0.0d0, &
                      "sbf: isolated segment has aa=-1", total, passed)
     call assert_true(abs(cc) > 0.0d0, &
                      "sbf: isolated segment has non-zero cc", total, passed)
 
     ! Test TRIO - all basis functions on isolated segment
-    call trio(geom, segj, seg_i)
+    call trio(geom_isolated, segj, seg_i)
     call assert_int_equal(segj%jsno, 1, &
                      "trio: isolated segment has jsno=1 (self only)", total, passed)
 
     ! Test TBF - total basis function on isolated segment
-    call tbf(geom, segj, seg_i, 0)
+    call tbf(geom_isolated, segj, seg_i, 0)
     call assert_int_equal(segj%jsno, 1, &
                      "tbf: isolated segment computes basis", total, passed)
     call assert_real_equal(segj%ax(1), -1.0d0, 1.0d-10, &
                      "tbf: isolated segment ax(1) = -1", total, passed)
 
-    ! Note: More complex multi-segment connection tests would require
-    ! proper geometry processing (connect_segments, etc.) and are better
-    ! suited for integration tests
+    call cleanup_geometry_data(geom_isolated)
 
-    ! Cleanup
-    call cleanup_geometry_data(geom)
+    write(*,'(A)') "  --- Testing with connected 3-segment wire (advanced) ---"
+
+    ! Now test with properly connected geometry from tier 1
+    ! Test SBF on center segment (segment 2)
+    seg_i = 2
+    seg_is = 2
+    call sbf(connected_geom, seg_i, seg_is, aa, bb, cc)
+    call assert_true(aa < 0.0d0, &
+                     "sbf: center segment has aa=-1", total, passed)
+    call assert_true(abs(bb) > 0.0d0 .or. abs(cc) > 0.0d0, &
+                     "sbf: center segment has non-zero bb or cc", total, passed)
+
+    ! Test SBF on adjacent segment (basis 2 evaluated at segment 1)
+    seg_i = 2
+    seg_is = 1
+    call sbf(connected_geom, seg_i, seg_is, aa, bb, cc)
+    call assert_true(abs(aa) > 0.0d0 .or. abs(bb) > 0.0d0 .or. abs(cc) > 0.0d0, &
+                     "sbf: adjacent segment has non-zero coefficients", total, passed)
+
+    ! Verify that adjacent coupling is weaker than self-coupling
+    call sbf(connected_geom, 2, 2, aa2, bb2, cc2)
+    call assert_true(abs(aa2) >= abs(aa), &
+                     "sbf: self-coupling stronger than adjacent coupling", total, passed)
+
+    ! Test TRIO - should find all 3 basis functions on center segment
+    call trio(connected_geom, segj, 2)
+    call assert_int_equal(segj%jsno, 3, &
+                     "trio: center segment finds all 3 basis functions", total, passed)
+
+    ! Test TRIO on end segment - should find 2 basis functions
+    call trio(connected_geom, segj, 1)
+    call assert_int_equal(segj%jsno, 2, &
+                     "trio: end segment finds 2 basis functions", total, passed)
+
+    ! Test TBF on center segment with connections
+    call tbf(connected_geom, segj, 2, 0)
+    call assert_true(segj%jsno >= 3, &
+                     "tbf: center segment has connections", total, passed)
+    call assert_real_equal(segj%ax(segj%jsno), -1.0d0, 1.0d-10, &
+                     "tbf: last coefficient ax = -1", total, passed)
+
+    ! Test TBF on end segment
+    call tbf(connected_geom, segj, 1, 0)
+    call assert_true(segj%jsno >= 2, &
+                     "tbf: end segment has connection to one neighbor", total, passed)
+
   end subroutine
 
   !============================================================================

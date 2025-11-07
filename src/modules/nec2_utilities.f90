@@ -230,21 +230,22 @@ contains
   !   is_zero = abs(x) < tol
   ! end function is_near_zero
 
-  ! pure function safe_divide(numerator, denominator, default_val) result(quotient)
-  !   ! Safe division that returns default value if denominator is near zero
-  !   real(8), intent(in) :: numerator, denominator
-  !   real(8), intent(in), optional :: default_val
-  !   real(8) :: quotient
-  !   real(8) :: def_value
+  pure function safe_divide(numerator, denominator, default_val) result(quotient)
+    ! Safe division that returns default value if denominator is near zero
+    ! Used in tests only
+    real(8), intent(in) :: numerator, denominator
+    real(8), intent(in), optional :: default_val
+    real(8) :: quotient
+    real(8) :: def_value
 
-  !   def_value = 0.0d0
-  !   if (present(default_val)) def_value = default_val
+    def_value = 0.0d0
+    if (present(default_val)) def_value = default_val
 
-  !   if (abs(denominator) < 1.0d-20) then
-  !     quotient = def_value
-  !   else
-  !     quotient = numerator / denominator
-  !   end if
-  ! end function safe_divide
+    if (abs(denominator) < 1.0d-20) then
+      quotient = def_value
+    else
+      quotient = numerator / denominator
+    end if
+  end function safe_divide
 
 end module nec2_utilities

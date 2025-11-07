@@ -3,7 +3,7 @@
 
 # Compiler and flags
 FC = gfortran
-FFLAGS = -O2 -g -Wall -Wextra -pedantic -std=f2008 -fall-intrinsics -fbacktrace
+FFLAGS = -O2 -g -Wall -Wextra -Wno-compare-reals -pedantic -std=f2008 -fall-intrinsics -fbacktrace
 MODDIR = modules
 OBJDIR = obj
 

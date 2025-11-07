@@ -13,6 +13,7 @@ contains
   !============================================================================
   ! DB10 - Convert magnitude to decibels (10*log10)
   !============================================================================
+  !RETURNS DB FOR MAGNITUDE (FIELD) OR MAG**2 (POWER) I
   pure function db10(x) result(db_value)
     ! Returns dB for magnitude (field)
     ! If x < 1e-20, returns -999.99 to indicate very small value
@@ -58,6 +59,7 @@ contains
     real(8), intent(in) :: x, y
     real(8) :: angle
 
+    ! Exact zero check (matches original behavior)
     if (x == 0.0d0 .and. y == 0.0d0) then
       angle = 0.0d0
     else
@@ -79,7 +81,7 @@ contains
     complex(8), intent(in) :: z
     real(8) :: phase_deg
 
-    phase_deg = atgn2(aimag(z), real(z, kind=8)) * RAD_TO_DEG
+    phase_deg = atgn2(aimag(z), real(z)) * RAD_TO_DEG
   end function cang
 
   !============================================================================
@@ -140,19 +142,19 @@ contains
   ! Additional utility functions
   !============================================================================
 
-  pure function cmplx_magnitude(z) result(mag)
-    ! Calculate magnitude of complex number
-    complex(8), intent(in) :: z
-    real(8) :: mag
-    mag = abs(z)
-  end function cmplx_magnitude
+  ! pure function cmplx_magnitude(z) result(mag)
+  !   ! Calculate magnitude of complex number
+  !   complex(8), intent(in) :: z
+  !   real(8) :: mag
+  !   mag = abs(z)
+  ! end function cmplx_magnitude
 
-  pure function cmplx_phase_rad(z) result(phase)
-    ! Phase angle in radians
-    complex(8), intent(in) :: z
-    real(8) :: phase
-    phase = atgn2(aimag(z), real(z, kind=8))
-  end function cmplx_phase_rad
+  ! pure function cmplx_phase_rad(z) result(phase)
+  !   ! Phase angle in radians
+  !   complex(8), intent(in) :: z
+  !   real(8) :: phase
+  !   phase = atgn2(aimag(z), real(z, kind=8))
+  ! end function cmplx_phase_rad
 
   pure function distance_3d(x1, y1, z1, x2, y2, z2) result(dist)
     ! Calculate 3D distance between two points
@@ -166,13 +168,13 @@ contains
     dist = sqrt(dx*dx + dy*dy + dz*dz)
   end function distance_3d
 
-  pure function normalize_vector(x, y, z) result(mag)
-    ! Return magnitude and normalize vector components in place
-    ! Note: This version returns magnitude; caller must divide by it
-    real(8), intent(in) :: x, y, z
-    real(8) :: mag
-    mag = sqrt(x*x + y*y + z*z)
-  end function normalize_vector
+  ! pure function normalize_vector(x, y, z) result(mag)
+  !   ! Return magnitude and normalize vector components in place
+  !   ! Note: This version returns magnitude; caller must divide by it
+  !   real(8), intent(in) :: x, y, z
+  !   real(8) :: mag
+  !   mag = sqrt(x*x + y*y + z*z)
+  ! end function normalize_vector
 
   !============================================================================
   ! String utilities
@@ -215,34 +217,34 @@ contains
   ! Error checking utilities
   !============================================================================
 
-  pure function is_near_zero(x, tolerance) result(is_zero)
-    ! Check if value is effectively zero within tolerance
-    real(8), intent(in) :: x
-    real(8), intent(in), optional :: tolerance
-    logical :: is_zero
-    real(8) :: tol
+  ! pure function is_near_zero(x, tolerance) result(is_zero)
+  !   ! Check if value is effectively zero within tolerance
+  !   real(8), intent(in) :: x
+  !   real(8), intent(in), optional :: tolerance
+  !   logical :: is_zero
+  !   real(8) :: tol
 
-    tol = 1.0d-20
-    if (present(tolerance)) tol = tolerance
+  !   tol = 1.0d-20
+  !   if (present(tolerance)) tol = tolerance
 
-    is_zero = abs(x) < tol
-  end function is_near_zero
+  !   is_zero = abs(x) < tol
+  ! end function is_near_zero
 
-  pure function safe_divide(numerator, denominator, default_val) result(quotient)
-    ! Safe division that returns default value if denominator is near zero
-    real(8), intent(in) :: numerator, denominator
-    real(8), intent(in), optional :: default_val
-    real(8) :: quotient
-    real(8) :: def_value
+  ! pure function safe_divide(numerator, denominator, default_val) result(quotient)
+  !   ! Safe division that returns default value if denominator is near zero
+  !   real(8), intent(in) :: numerator, denominator
+  !   real(8), intent(in), optional :: default_val
+  !   real(8) :: quotient
+  !   real(8) :: def_value
 
-    def_value = 0.0d0
-    if (present(default_val)) def_value = default_val
+  !   def_value = 0.0d0
+  !   if (present(default_val)) def_value = default_val
 
-    if (abs(denominator) < 1.0d-20) then
-      quotient = def_value
-    else
-      quotient = numerator / denominator
-    end if
-  end function safe_divide
+  !   if (abs(denominator) < 1.0d-20) then
+  !     quotient = def_value
+  !   else
+  !     quotient = numerator / denominator
+  !   end if
+  ! end function safe_divide
 
 end module nec2_utilities

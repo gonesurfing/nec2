@@ -16,15 +16,7 @@ module nec2_sommerfeld
   complex(8), save :: contour_a, contour_b  ! Integration contour endpoints
 
   ! Evaluation variables (replace COMMON /EVLCOM/)
-  type :: evlcom_data
-    complex(8) :: cksm, ct1, ct2, ct3
-    complex(8) :: ck1, ck1sq
-    real(8) :: ck2, ck2sq, tkmag, tsmag, ck1r
-    real(8) :: zph, rho
-    integer :: jh
-  end type evlcom_data
-
-  type(evlcom_data), save :: evl_params
+  type(evaluation_data), save :: evl_params
 
 contains
 
@@ -201,7 +193,7 @@ contains
     !   sum_vals - output sums
     !   nans - number of integrals (6)
     !   seed - seed values
-    !   ibk - break point flag
+    !   ibk - break point flag (0=check for break point, 1=break at ibk iteration)
     !   bk - break point value
     !   delb - step at break
 
@@ -210,106 +202,149 @@ contains
     complex(8), intent(out) :: sum_vals(:)
     integer, intent(in) :: nans, ibk
 
-    complex(8) :: a(6, 21), b(6, 21), as1(6), as2(6), del, aa
-    complex(8) :: t1, t2, brk_val
-    integer :: ibx, i, j, jm, intx, inx, brk_cnt
-    real(8) :: den, dena, denb, ratio_r, ratio_i
-    logical :: jump
-    integer, parameter :: INT_MAXH = 20  ! Maximum Shanks iterations
+    complex(8) :: q1(6, 20), q2(6, 20), ans1(6), ans2(6)
+    complex(8) :: as1, as2, del, aa, a1, a2
+    integer :: ibx, i, j, jm, int, inx
+    real(8) :: rbk, den, denm, amg
+    logical :: converged, break_found
+    integer, parameter :: MAXH = 20
+    real(8), parameter :: CRIT = 1.0e-4_8
+
+    ! Initialize
+    rbk = real(bk, kind=8)
+    del = dela
+    ibx = 0
+    if (ibk == 0) ibx = 1
 
     do i = 1, nans
-      a(i, 1) = seed(i)
+      ans2(i) = seed(i)
     end do
 
-    brk_val = start_val
-    del = dela
-    ibx = ibk
+    contour_b = start_val
+    converged = .false.
 
-    if (ibx == 1) then
-      brk_cnt = 2
-    else
-      brk_cnt = 1
+    ! Main integration loop
+    do int = 1, MAXH
+      inx = int
+      contour_a = contour_b
+      contour_b = contour_b + del
+
+      ! Check for break point on first step
+      break_found = .false.
+      if (ibx == 0 .and. real(contour_b, kind=8) >= rbk) then
+        ibx = 1
+        contour_b = bk
+        del = delb
+        call rom1(nans, sum_vals, 2)
+        do i = 1, nans
+          ans2(i) = ans2(i) + sum_vals(i)
+        end do
+        break_found = .true.
+      end if
+
+      if (.not. break_found) then
+        call rom1(nans, sum_vals, 2)
+        do i = 1, nans
+          ans1(i) = ans2(i) + sum_vals(i)
+        end do
+
+        contour_a = contour_b
+        contour_b = contour_b + del
+
+        ! Check for break point on second step
+        if (ibx == 0 .and. real(contour_b, kind=8) >= rbk) then
+          ibx = 2
+          contour_b = bk
+          del = delb
+          call rom1(nans, sum_vals, 2)
+          do i = 1, nans
+            ans2(i) = ans1(i) + sum_vals(i)
+          end do
+          break_found = .true.
+        end if
+
+        if (.not. break_found) then
+          call rom1(nans, sum_vals, 2)
+          do i = 1, nans
+            ans2(i) = ans1(i) + sum_vals(i)
+          end do
+        end if
+      end if
+
+      if (.not. break_found) then
+        ! Apply Shanks transformation
+        den = 0.0_8
+        do i = 1, nans
+          as1 = ans1(i)
+          as2 = ans2(i)
+
+          if (int >= 2) then
+            do j = 2, int
+              jm = j - 1
+              aa = q2(i, jm)
+              a1 = q1(i, jm) + as1 - 2.0_8 * aa
+              if (real(a1, kind=8) /= 0.0_8 .or. aimag(a1) /= 0.0_8) then
+                a2 = aa - q1(i, jm)
+                a1 = q1(i, jm) - a2 * a2 / a1
+              else
+                a1 = q1(i, jm)
+              end if
+
+              a2 = aa + as2 - 2.0_8 * as1
+              if (real(a2, kind=8) /= 0.0_8 .or. aimag(a2) /= 0.0_8) then
+                a2 = aa - (as1 - aa) * (as1 - aa) / a2
+              else
+                a2 = aa
+              end if
+
+              q1(i, jm) = as1
+              q2(i, jm) = as2
+              as1 = a1
+              as2 = a2
+            end do
+          end if
+
+          q1(i, int) = as1
+          q2(i, int) = as2
+          amg = abs(real(as2, kind=8)) + abs(aimag(as2))
+          if (amg > den) den = amg
+        end do
+
+        ! Test for convergence
+        denm = 1.0e-3_8 * den * CRIT
+        jm = int - 3
+        if (jm < 1) jm = 1
+
+        converged = .true.
+        outer: do j = jm, int
+          do i = 1, nans
+            a1 = q2(i, j)
+            den = (abs(real(a1, kind=8)) + abs(aimag(a1))) * CRIT
+            if (den < denm) den = denm
+            a1 = q1(i, j) - a1
+            amg = abs(real(a1, kind=8)) + abs(aimag(a1))
+            if (amg > den) then
+              converged = .false.
+              exit outer
+            end if
+          end do
+        end do outer
+
+        if (converged) exit
+      end if
+    end do
+
+    ! Check if converged
+    if (.not. converged) then
+      write(*, '(A)') ' **** NO CONVERGENCE IN SUBROUTINE GSHANK ****'
+      do i = 1, nans
+        write(*, '(1X,1P10E12.5)') q1(i, inx), q2(i, inx)
+      end do
     end if
 
-    ! Integration loop with Shanks extrapolation
-    do intx = 1, INT_MAXH
-      brk_val = brk_val + del
-
-      if (ibx /= 1) then
-        ! Check if we've reached break point
-        if (intx == 2 .and. abs(real(brk_val - bk, kind=8)) + &
-            abs(aimag(brk_val - bk)) < 1.0d-6) then
-          ibx = 2
-        end if
-      else
-        ! Update step at break
-        if (intx == brk_cnt) then
-          del = delb
-          ibx = 2
-        end if
-      end if
-
-      ! Evaluate integrand at current point
-      call saoa(brk_val, as1)
-
-      ! Save values
-      do i = 1, nans
-        a(i, intx + 1) = as1(i) * del
-      end do
-
-      ! Check for convergence starting at 4th iteration
-      if (intx >= 4) then
-        jump = .true.
-        do i = 1, nans
-          as1(i) = a(i, intx + 1) + a(i, intx)
-          as2(i) = as1(i) + a(i, intx - 1)
-
-          ! Convergence test
-          call test_convergence(real(a(i, intx + 1), kind=8), &
-                               real(as1(i), kind=8), ratio_r, &
-                               aimag(a(i, intx + 1)), &
-                               aimag(as1(i)), ratio_i, 0.0d0)
-
-          if (ratio_r > 1.0d-6 .or. ratio_i > 1.0d-6) jump = .false.
-        end do
-
-        if (jump) exit
-      end if
-    end do
-
-    ! Shanks transformation for convergence acceleration
-    jm = intx + 1
-    do j = 1, jm
-      do i = 1, nans
-        b(i, j) = a(i, j)
-      end do
-    end do
-
-    ! Apply Shanks recursion
-    do inx = 1, 5
-      do j = 1, jm
-        do i = 1, nans
-          den = b(i, j + 1) - b(i, j)
-          if (abs(den) < 1.0d-30) then
-            b(i, j) = b(i, j + 1)
-          else
-            b(i, j) = a(i, j + 1) - (a(i, j + 1) - a(i, j))**2 / den
-          end if
-        end do
-      end do
-
-      jm = jm - 1
-      if (jm < 2) exit
-
-      do j = 1, jm
-        do i = 1, nans
-          a(i, j) = b(i, j)
-        end do
-      end do
-    end do
-
+    ! Compute final result
     do i = 1, nans
-      sum_vals(i) = 0.5d0 * b(i, 1)
+      sum_vals(i) = 0.5_8 * (q1(i, inx) + q2(i, inx))
     end do
 
   end subroutine gshank
@@ -713,73 +748,71 @@ contains
   ! BESSEL_J0 - Bessel function J0 and its derivative
   !============================================================================
   subroutine bessel_j0(z, j0, j0p)
-    ! Computes Bessel function J0(z) and J0'(z)
-    ! Uses series expansion for small |z|, asymptotic form for large |z|
-    !
-    ! Arguments:
-    !   z - complex argument
-    !   j0 - J0(z)
-    !   j0p - J0'(z) = -J1(z)
+    ! Computes Bessel function J0(z) and J0'(z) using series for small |z|
+    ! and asymptotic expansion for large |z| (matching original NEC2 algorithm)
 
     complex(8), intent(in) :: z
     complex(8), intent(out) :: j0, j0p
 
-    complex(8) :: zs, p0, p1, q0, q1, zi, clogz, j1
-    real(8) :: az, azs
-    integer :: i
-    real(8), parameter :: pof = 0.7978845608d0
+    complex(8) :: p0z, p1z, q0z, q1z, zi, zi2, zk, cz, sz
+    complex(8), parameter :: fj = cmplx(0.0_8, 1.0_8, kind=8)
+    real(8) :: zms
+    integer :: k
+    real(8), parameter :: c3 = 0.7978845608_8
+    real(8), parameter :: p10 = 0.0703125_8, p20 = 0.1121520996_8
+    real(8), parameter :: q10 = 0.125_8, q20 = 0.0732421875_8
+    real(8), parameter :: p11 = 0.1171875_8, p21 = 0.1441955566_8
+    real(8), parameter :: q11 = 0.375_8, q21 = 0.1025390625_8
+    real(8), parameter :: pof = 0.7853981635_8
 
-    ! Coefficients for asymptotic expansion
-    real(8), parameter :: a1(7) = [&
-      -0.703125d-1, 0.112152099609375d0, -0.5725014209747314d0, &
-      0.6074042001273483d1, -0.1100171402692467d3, 0.3038090510922384d4, &
-      -0.1188384262567832d6]
+    zms = real(z * conjg(z), kind=8)
 
-    real(8), parameter :: a2(7) = [&
-      0.1171875d0, -0.144195556640625d0, 0.6765925884246826d0, &
-      -0.6883914268109947d1, 0.1215978918765359d3, -0.3302272294480852d4, &
-      0.1276412726461746d6]
+    if (zms <= 1.0e-12_8) then
+      j0 = cmplx(1.0_8, 0.0_8, kind=8)
+      j0p = -0.5_8 * z
+      return
+    end if
 
-    az = abs(z)
-
-    if (az <= 8.0d0) then
-      ! Series expansion for small argument
-      zs = 0.25d0 * z * z
-      p0 = 1.0d0
-      j0 = 1.0d0
-
-      do i = 1, 24
-        p0 = -p0 * zs / (real(i, kind=8)**2)
-        j0 = j0 + p0
-        if (abs(p0) < 1.0d-16) exit
+    if (zms <= 37.21_8) then
+      ! Series expansion
+      j0 = cmplx(1.0_8, 0.0_8, kind=8)
+      j0p = j0
+      zk = j0
+      zi = z * z
+      do k = 1, 24
+        zk = zk * (-0.25_8 / real(k, kind=8)**2) * zi
+        j0 = j0 + zk
+        j0p = j0p + zk / (real(k, kind=8) + 1.0_8)
+        if (abs(zk) < 1.0e-16_8) exit
       end do
+      j0p = -0.5_8 * z * j0p
+      if (zms <= 36.0_8) return
+    end if
 
-      ! J1 series
-      p1 = z * 0.5d0
-      j1 = p1
-      do i = 1, 24
-        p1 = -p1 * zs / (real(i, kind=8) * (real(i, kind=8) + 1.0d0))
-        j1 = j1 + p1
-        if (abs(p1) < 1.0d-16) exit
-      end do
+    ! Asymptotic expansion (always computed for zms > 36 for blending)
+    zi = 1.0_8 / z
+    zi2 = zi * zi
+    p0z = 1.0_8 + (p20 * zi2 - p10) * zi2
+    p1z = 1.0_8 + (p11 - p21 * zi2) * zi2
+    q0z = (q20 * zi2 - q10) * zi
+    q1z = (q11 - q21 * zi2) * zi
+    zk = exp(fj * (z - pof))
+    zi2 = 1.0_8 / zk
+    cz = 0.5_8 * (zk + zi2)
+    sz = fj * 0.5_8 * (zi2 - zk)
+    zk = c3 * sqrt(zi)
 
-      j0p = -j1
-
+    if (zms > 36.0_8 .and. zms <= 37.21_8) then
+      ! Blend series and asymptotic
+      p0z = zk * (p0z * cz - q0z * sz)
+      p1z = -zk * (p1z * sz + q1z * cz)
+      zms = cos((sqrt(zms) - 6.0_8) * 31.41592654_8)
+      j0 = 0.5_8 * (j0 * (1.0_8 + zms) + p0z * (1.0_8 - zms))
+      j0p = 0.5_8 * (j0p * (1.0_8 + zms) + p1z * (1.0_8 - zms))
     else
-      ! Asymptotic expansion for large argument
-      zi = 1.0d0 / z
-      zs = zi * zi
-      p0 = 1.0d0
-      q0 = 0.0d0
-
-      do i = 1, 7
-        p0 = p0 + a1(i) * zs**i
-        q0 = q0 + a2(i) * zi * zs**i
-      end do
-
-      azs = sqrt(pof / az)
-      j0 = azs * (p0 * cos(az - 0.25d0 * PI) - q0 * sin(az - 0.25d0 * PI))
-      j0p = -azs * (p0 * sin(az - 0.25d0 * PI) + q0 * cos(az - 0.25d0 * PI))
+      ! Use asymptotic only
+      j0 = zk * (p0z * cz - q0z * sz)
+      j0p = -zk * (p1z * sz + q1z * cz)
     end if
 
   end subroutine bessel_j0

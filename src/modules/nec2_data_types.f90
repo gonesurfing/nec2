@@ -261,8 +261,9 @@ module nec2_data_types
   type :: evaluation_data
     complex(8) :: cksm                  ! Checksum
     complex(8) :: ct1, ct2, ct3         ! C parameters
-    complex(8) :: ck1, ck2              ! CK parameters
-    complex(8) :: ck1sq, ck2sq          ! CK squared
+    complex(8) :: ck1                   ! CK1 parameter (complex)
+    complex(8) :: ck1sq                 ! CK1 squared
+    real(8) :: ck2, ck2sq               ! CK2 and CK2 squared (real)
     real(8) :: tkmag, tsmag             ! Magnitudes
     real(8) :: ck1r                     ! Real part of ck1
     real(8) :: zph, rho                 ! Z phase, rho parameters

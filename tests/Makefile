@@ -116,10 +116,14 @@ $(TEST_ALL): test_all_modules.f90 $(MOD_DIR)/*.f90
 	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_data_types.f90 -o nec2_data_types.o
 	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_utilities.f90 -o nec2_utilities.o
 	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_geometry.f90 -o nec2_geometry.o
+	@# Compile computational modules
+	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_current.f90 -o nec2_current.o
+	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_sommerfeld.f90 -o nec2_sommerfeld.o
+	$(FC) -O2 -std=f2008 -c $(MOD_DIR)/nec2_kernel.f90 -o nec2_kernel.o
 	@echo "  Compiling and linking test program..."
-	$(FC) -O2 -std=f2008 -o $@ test_all_modules.f90 nec2_constants.o nec2_data_types.o nec2_utilities.o nec2_geometry.o
+	$(FC) -O2 -std=f2008 -o $@ test_all_modules.f90 nec2_constants.o nec2_data_types.o nec2_utilities.o nec2_geometry.o nec2_current.o nec2_sommerfeld.o nec2_kernel.o
 	@echo "  Cleaning up intermediate files..."
-	@rm -f nec2_constants.o nec2_data_types.o nec2_utilities.o nec2_geometry.o
+	@rm -f nec2_constants.o nec2_data_types.o nec2_utilities.o nec2_geometry.o nec2_current.o nec2_sommerfeld.o nec2_kernel.o
 
 # Run complete end-to-end test
 end_to_end:

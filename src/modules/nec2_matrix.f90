@@ -347,11 +347,7 @@ contains
         ai = geom%bi(i)
         cabi = geom%alp(i)
         sabi = geom%bet(i)
-        if (allocated(geom%salp)) then
-          salpi = geom%salp(i)
-        else
-          salpi = 0.0d0
-        end if
+        salpi = 0.0d0  ! For wires, salp=0 (only used for patches)
 
         ! Calculate fields from patch
         ! Would call HSFLD for patch fields

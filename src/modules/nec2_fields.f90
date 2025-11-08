@@ -36,7 +36,7 @@ contains
     complex(8), intent(out) :: eth, eph
 
     complex(8) :: cix, ciy, ciz, exa, ccx, ccy, ccz
-    complex(8) :: rrv, rrh, const, ex, ey, ez
+    complex(8) :: rrv, rrh, const, ex, ey, ez, zrsin
     real(8) :: phx, phy, roz, rozs, thx, thy, thz, rox, roy
     real(8) :: omega, ar, ai, zij, rk
     integer :: i, k, ksymp_local
@@ -69,7 +69,6 @@ contains
           rrh = -cmplx(1.0d0, 0.0d0, kind=8)
         else
           ! Finite conductivity ground
-          complex(8) :: zrsin
           zrsin = sqrt(1.0d0 - ground%zrati * ground%zrati * thz * thz)
           rrv = -(roz - ground%zrati * zrsin) / (roz + ground%zrati * zrsin)
           rrh = (ground%zrati * roz - zrsin) / (ground%zrati * roz + zrsin)
@@ -98,38 +97,28 @@ contains
         const = const_val * cmplx(ar, ai, kind=8)
 
         ! Contribution from sine current
-        if (abs(current%bi(i)) > 1.0d-20) then
+        if (abs(current%bir(i)) > 1.0d-20 .or. abs(current%bii(i)) > 1.0d-20) then
           omega = PI * geom%si(i)
           rk = sin(omega) / omega
           ar = geom%alp(i) * rox + geom%bet(i) * roy
-          if (allocated(geom%salp)) then
-            ar = ar + geom%salp(i) * roz
-          end if
+          ! For wires, third direction cosine salp=0 (patches not yet supported)
           cix = cix + const * cmplx(current%bir(i), current%bii(i), kind=8) * &
                 (geom%alp(i) - ar * rox) * rk
           ciy = ciy + const * cmplx(current%bir(i), current%bii(i), kind=8) * &
                 (geom%bet(i) - ar * roy) * rk
-          if (allocated(geom%salp)) then
-            ciz = ciz + const * cmplx(current%bir(i), current%bii(i), kind=8) * &
-                  (geom%salp(i) - ar * roz) * rk
-          end if
+          ! ciz contribution is 0 for wires (salp=0)
         end if
 
         ! Contribution from constant current
-        if (abs(current%ci(i)) > 1.0d-20) then
+        if (abs(current%cir(i)) > 1.0d-20 .or. abs(current%cii(i)) > 1.0d-20) then
           omega = PI * geom%si(i)
           ar = geom%alp(i) * rox + geom%bet(i) * roy
-          if (allocated(geom%salp)) then
-            ar = ar + geom%salp(i) * roz
-          end if
+          ! For wires, third direction cosine salp=0 (patches not yet supported)
           cix = cix + const * cmplx(current%cir(i), current%cii(i), kind=8) * &
                 (geom%alp(i) - ar * rox) * geom%si(i)
           ciy = ciy + const * cmplx(current%cir(i), current%cii(i), kind=8) * &
                 (geom%bet(i) - ar * roy) * geom%si(i)
-          if (allocated(geom%salp)) then
-            ciz = ciz + const * cmplx(current%cir(i), current%cii(i), kind=8) * &
-                  (geom%salp(i) - ar * roz) * geom%si(i)
-          end if
+          ! ciz contribution is 0 for wires (salp=0)
         end if
 
         ! Contribution from cosine current (not commonly used)
@@ -195,9 +184,7 @@ contains
       zj_dist = zob - geom%z(i)
 
       zp = geom%alp(i) * xj_dist + geom%bet(i) * yj_dist
-      if (allocated(geom%salp)) then
-        zp = zp + geom%salp(i) * zj_dist
-      end if
+      ! For wires, third direction cosine salp=0 (patches not yet supported)
 
       if (abs(zp) <= 0.5001d0 * geom%si(i)) then
         dist_sq = xj_dist * xj_dist + yj_dist * yj_dist + zj_dist * zj_dist - zp * zp
@@ -218,14 +205,10 @@ contains
       dataj%zj = geom%z(i)
       dataj%cabj = geom%alp(i)
       dataj%sabj = geom%bet(i)
-      if (allocated(geom%salp)) then
-        dataj%salpj = geom%salp(i)
-      else
-        dataj%salpj = 0.0d0
-      end if
+      dataj%salpj = 0.0d0  ! For wires, third direction cosine is 0 (patches not yet supported)
 
       ! Determine extended kernel type if needed
-      dataj%iexk = ground%iexk
+      dataj%iexk = 0  ! Initialize to 0 (set by calling function if needed)
       ! (kernel type determination logic would go here)
 
       ! Calculate field from this segment
@@ -298,11 +281,7 @@ contains
       ! Simplified - full version would integrate over segment
       px = geom%alp(i)
       py = geom%bet(i)
-      if (allocated(geom%salp)) then
-        pz = geom%salp(i)
-      else
-        pz = 0.0d0
-      end if
+      pz = 0.0d0  ! For wires, third direction cosine is 0 (patches not yet supported)
 
       rx = xij / rh
       ry = yij / rh
@@ -535,9 +514,9 @@ contains
 
     ! Summation of field from individual segments
     do i = 1, geom%n
-      dx = geom%cab(i)
-      dy = geom%sab(i)
-      dz = geom%salp(i)
+      dx = geom%alp(i)
+      dy = geom%bet(i)
+      dz = 0.0d0  ! For wires, third direction cosine is 0 (patches not yet supported)
       rix = rx - geom%x(i)
       riy = ry - geom%y(i)
       rhs = rix*rix + riy*riy

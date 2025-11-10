@@ -411,13 +411,20 @@ contains
 
     allocate(rhs(neq), sol(neq))
 
-    ! This is a simplified version
-    ! Full NGF solution involves multiple matrix-vector products
-    ! and solving with the factored primary matrix
+    ! TODO: Implement full numerical Green's function solution
+    ! This is a complex specialized algorithm requiring:
+    ! - Block matrix operations (A, B, C, D matrices)
+    ! - Multiple forward/backward substitutions
+    ! - Reordering of excitation and current arrays
+    ! - File I/O for out-of-core storage (units 11, 13, 14, 15, 16)
+    ! - Connection handling (NSCON, NPCON from COMMON blocks)
+    ! Original: nec2dxs.f lines 9244-9370 (~126 lines)
+    !
+    ! For now, return without solving - this blocks netwk() network analysis
+    ! Implementation priority: MEDIUM (only needed for specialized network analysis)
 
-    ! Placeholder for complete implementation
-    ! The actual NGF solution is quite involved and requires
-    ! careful handling of the block structure
+    ! Placeholder: would solve NGF system here
+    xy = (0.0d0, 0.0d0)
 
     deallocate(rhs, sol)
 

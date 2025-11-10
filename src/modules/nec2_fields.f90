@@ -1002,18 +1002,61 @@ contains
   !============================================================================
   ! FFLDS - Far field supplementary calculations
   !============================================================================
-  subroutine fflds(rox, roy, roz, scur, ex, ey, ez)
-    ! Supplementary far field calculations
-    ! Simplified version
+  subroutine fflds(geom, rox, roy, roz, scur, ex, ey, ez)
+    ! Calculates the XYZ components of the electric field due to surface currents
+    ! Used for far-field contributions from surface patches
+    !
+    ! Arguments:
+    !   geom - geometry data (for surface patch locations)
+    !   rox, roy, roz - direction cosines of observation direction
+    !   scur - surface current array (3*M elements: x,y,z components)
+    !   ex, ey, ez - output electric field components
 
+    type(geometry_data), intent(in) :: geom
     real(8), intent(in) :: rox, roy, roz
     complex(8), intent(in) :: scur(:)
     complex(8), intent(out) :: ex, ey, ez
 
-    ! Placeholder for full implementation
+    complex(8) :: ct, proj
+    real(8) :: arg, cos_arg, sin_arg, area
+    integer :: i, j, k, patch_idx
+
+    complex(8), parameter :: CONS_VAL = cmplx(0.0d0, 188.365d0, kind=8)  ! j*60*pi
+
+    ! Initialize field components
     ex = (0.0d0, 0.0d0)
     ey = (0.0d0, 0.0d0)
     ez = (0.0d0, 0.0d0)
+
+    ! Sum contributions from all surface patches
+    ! Patches are stored after wire segments: indices LD+1 to LD+M
+    patch_idx = geom%ld + 1
+    do j = 1, geom%m
+      i = patch_idx - 1  ! Current patch index in geometry arrays
+
+      ! Compute phase factor: exp(j*2*pi*(rox*x + roy*y + roz*z)) * area
+      arg = TWO_PI * (rox * geom%x(i) + roy * geom%y(i) + roz * geom%z(i))
+      cos_arg = cos(arg)
+      sin_arg = sin(arg)
+      area = geom%bi(i)  ! Patch area stored in bi
+
+      ct = cmplx(cos_arg * area, sin_arg * area, kind=8)
+
+      ! Add current contributions (scur has x,y,z components for each patch)
+      k = 3 * j
+      ex = ex + scur(k-2) * ct
+      ey = ey + scur(k-1) * ct
+      ez = ez + scur(k) * ct
+
+      patch_idx = patch_idx - 1
+    end do
+
+    ! Project out radial component and apply constant
+    ! E = CONS * (proj * r_hat - E) where proj = r_hat . E
+    proj = rox * ex + roy * ey + roz * ez
+    ex = CONS_VAL * (proj * rox - ex)
+    ey = CONS_VAL * (proj * roy - ey)
+    ez = CONS_VAL * (proj * roz - ez)
 
   end subroutine fflds
 

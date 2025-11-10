@@ -369,10 +369,14 @@ contains
             zt = zlr(istep) * zt / (geom%si(i) + zlr(istep) * zt)
 
           case (5)
-            ! Wire conductivity (skin effect)
+            ! Wire conductivity (skin effect) - internal impedance with skin effect
+            ! TODO: Implement ZINT function for internal wire impedance
+            ! ZINT calculates impedance using Bessel function approximations
+            ! Original: nec2dxs.f lines 9894-9974 (~80 lines, complex math)
+            ! For now, use simplified approximation (zero impedance)
             rolam = zlc(istep) * geom%wlam
-            zt = zint_val  ! Would call ZINT function
-            zt = zt / rolam
+            zt = (0.0d0, 0.0d0)  ! Placeholder - requires ZINT implementation
+            ! zt = zint(sigl, rolam) / rolam  ! Would be called when implemented
 
           case (6)
             ! Impedance per unit length
@@ -467,30 +471,30 @@ contains
   !============================================================================
   ! INTRP - Interpolation utility
   !============================================================================
-  subroutine intrp(x_val, y_val, f1, f2, f3, f4)
-    ! Performs interpolation for field calculations
+  subroutine intrp(x_val, y_val, f1, f2, f3, f4, result_out)
+    ! Performs bilinear interpolation for field calculations
     ! Uses 4-point interpolation scheme
     !
     ! Arguments:
-    !   x_val, y_val - interpolation coordinates
+    !   x_val, y_val - interpolation coordinates (0 to 1)
     !   f1, f2, f3, f4 - function values at corners
+    !   result_out - interpolated result (output)
 
     real(8), intent(in) :: x_val, y_val
     complex(8), intent(in) :: f1, f2, f3, f4
+    complex(8), intent(out) :: result_out
 
     real(8) :: wx, wy
-    complex(8) :: result
 
-    ! Bilinear interpolation
+    ! Bilinear interpolation weights
     wx = x_val
     wy = y_val
 
-    result = f1 * (1.0d0 - wx) * (1.0d0 - wy) + &
-             f2 * wx * (1.0d0 - wy) + &
-             f3 * (1.0d0 - wx) * wy + &
-             f4 * wx * wy
-
-    ! Result would be returned through function value or output argument
+    ! Interpolate: (1-wx)(1-wy)*f1 + wx(1-wy)*f2 + (1-wx)wy*f3 + wx*wy*f4
+    result_out = f1 * (1.0d0 - wx) * (1.0d0 - wy) + &
+                 f2 * wx * (1.0d0 - wy) + &
+                 f3 * (1.0d0 - wx) * wy + &
+                 f4 * wx * wy
 
   end subroutine intrp
 

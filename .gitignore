@@ -1,4 +1,6 @@
 nec2dxs
+nec2
+src/nec2
 *.mod
 *.o
 tests/test_all_modules

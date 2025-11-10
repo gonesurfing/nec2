@@ -265,35 +265,87 @@ contains
       cmn2d(irow2, irow1) = cmn2d(irow2, irow1) - cmplx(y12r, y12i, kind=8)
     end do
 
-    ! Network solution algorithm
-    ! NOTE: Full implementation requires matrix conversion between 1D and 2D formats
-    ! The solgf() function is now implemented and functional
-    ! Integration requires:
-    !   1. Converting cm/cmb/cmc/cmd from 1D to 2D array format
-    !   2. Proper handling of matrix blocks for NGF formulation
-    !   3. Integration with cabc() for current basis functions
-    !
-    ! For now, output basic network information
-    write(*,'(///,27X,A)') '- - - NETWORK ANALYSIS - - -'
-    write(*,'(A,I0,A)') 'Number of network elements: ', network%nonet, ' (full solution requires matrix reformatting)'
+    ! STEP 2: Add structure interaction matrix admittances to network matrix
+    ! For each network node, solve structure with unit excitation
+    do i = 1, nteq
+      ! Set up unit excitation at segment i
+      rhs = (0.0d0, 0.0d0)
+      irow1 = nteqa(i)
+      rhs(irow1) = (1.0d0, 0.0d0)
 
-    do i = 1, network%nonet
-      write(*,'(A,I0,A,I0,A,I0,A,I0)') &
-        'Network ', i, ': Type=', network%ntyp(i), &
-        ' Seg1=', network%iseg1(i), ' Seg2=', network%iseg2(i)
+      ! Solve structure system with solgf (now uses 1D arrays - Fortran 77 compatible!)
+      call solgf(cm, cmb, cmc, cmd, rhs, ip, &
+                 network%np, network%n1, network%n, network%mp, network%m1, &
+                 network%m, network%neq, network%neq2, neqz2)
+
+      ! Apply basis function transformation
+      call cabc(rhs)
+
+      ! Add structure response to network matrix
+      do j = 1, nteq
+        irow1 = nteqa(j)
+        cmn2d(i, j) = cmn2d(i, j) + rhs(irow1)
+      end do
     end do
 
-    ! Placeholder: The core algorithm is:
-    ! 1. Build network Y-matrix from element Y-parameters (DONE above)
-    ! 2. For each network node, solve structure with unit excitation (needs solgf with proper arrays)
-    ! 3. Add structure admittance to network matrix
-    ! 4. Factor combined network matrix
-    ! 5. Solve for network voltages
-    ! 6. Apply voltages to structure and solve for final currents
-    ! 7. Calculate impedances and power
-    !
-    ! The solgf() solver is implemented and tested
-    ! Integration blocked by 1D vs 2D array format mismatch
+    ! STEP 3: Factor the network equation matrix
+    call factr(nteq, cmn2d, ipnt, ndimn)
+
+    ! STEP 4: Solve structure with actual excitation
+    rhs = einc
+    call solgf(cm, cmb, cmc, cmd, rhs, ip, &
+               network%np, network%n1, network%n, network%mp, network%m1, &
+               network%m, network%neq, network%neq2, neqz2)
+    call cabc(rhs)
+
+    ! STEP 5: Build network RHS from structure solution
+    do i = 1, nteq
+      irow1 = nteqa(i)
+      rhnt(i) = rhnx(i) + rhs(irow1)
+    end do
+
+    ! STEP 6: Solve network equations for voltages
+    call solve(nteq, cmn2d, ipnt, rhnt, ndimn)
+
+    ! STEP 7: Apply network voltages back to structure
+    do i = 1, nteq
+      irow1 = nteqa(i)
+      einc(irow1) = einc(irow1) - rhnt(i)
+    end do
+
+    ! STEP 8: Final structure solution with network effects
+    call solgf(cm, cmb, cmc, cmd, einc, ip, &
+               network%np, network%n1, network%n, network%mp, network%m1, &
+               network%m, network%neq, network%neq2, neqz2)
+    call cabc(einc)
+
+    ! STEP 9: Calculate and output power at network connection points
+    write(*,'(///,27X,A)') '- - - STRUCTURE EXCITATION DATA AT NETWORK CONNECTION POINTS - - -'
+    write(*,'(/,3X,A)') 'TAG  SEG.    VOLTAGE (VOLTS)         CURRENT (AMPS)         ' // &
+                        'IMPEDANCE (OHMS)        ADMITTANCE (MHOS)      POWER'
+
+    do i = 1, nteq
+      irow1 = nteqa(i)
+      ! Voltage at network node
+      vlt = rhnt(i)
+      ! Current from solution
+      cux = einc(irow1)
+
+      ! Impedance and admittance
+      if (abs(cux) > 1.0d-20) then
+        zped = vlt / cux
+        ymit = cux / vlt
+      else
+        zped = (0.0d0, 0.0d0)
+        ymit = (0.0d0, 0.0d0)
+      end if
+
+      ! Power (real part of V * conj(I) / 2)
+      pwr = 0.5d0 * real(vlt * conjg(cux), kind=8)
+      network%pnls = network%pnls - pwr
+
+      write(*,'(2(1X,I5),1P,9E12.5)') 0, irow1, vlt, cux, zped, ymit, pwr
+    end do
 
     deallocate(cmn2d, rhnt, rhnx, ipnt, nteqa, ntsca, rhs)
 

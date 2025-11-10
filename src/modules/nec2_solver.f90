@@ -273,25 +273,33 @@ contains
   subroutine solves(a, ip, b, neq, nrh, np, n, mp, m, ifl1, ifl2)
     ! Solves system with symmetry modes
     !
+    ! ARRAY STORAGE NOTE (Fortran 77 compatibility):
+    ! Like solgf, this routine accepts 1D arrays to maintain compatibility
+    ! with the original NEC2 memory layout. Matrix A is stored as 1D array
+    ! (column-major), and B can be passed as 1D when nrh=1.
+    !
+    ! For column-major 2D array element (i,j) with nrows rows:
+    !   1D_index = i + (j-1)*nrows
+    !
     ! Arguments:
-    !   a - LU factorized matrix
+    !   a - LU factorized matrix (NEQ×NEQ) stored as 1D array
     !   ip - pivot array
-    !   b - RHS vectors
+    !   b - RHS vectors (NEQ×NRH) stored as 1D array
     !   neq - number of equations
     !   nrh - number of right-hand sides
     !   np, n - wire segment counts
     !   mp, m - patch counts
     !   ifl1, ifl2 - flags for solution type
 
-    complex(8), intent(in) :: a(:,:)
+    complex(8), intent(in) :: a(:)
     integer, intent(in) :: ip(:)
-    complex(8), intent(inout) :: b(:,:)
+    complex(8), intent(inout) :: b(:)
     integer, intent(in) :: neq, nrh, np, n, mp, m, ifl1, ifl2
 
     integer :: i, j, k, irh
     complex(8), allocatable :: y(:)
     complex(8) :: sum_val
-    integer :: pi, ip1
+    integer :: pi, ip1, idx_a, idx_b, idx_b_pi, idx_b_i
 
     allocate(y(neq))
 
@@ -300,13 +308,19 @@ contains
       ! Forward substitution
       do i = 1, neq
         pi = ip(i)
-        y(i) = b(pi, irh)
-        b(pi, irh) = b(i, irh)
+        ! Access B(pi,irh) and B(i,irh)
+        idx_b_pi = pi + (irh - 1) * neq
+        idx_b_i = i + (irh - 1) * neq
+        y(i) = b(idx_b_pi)
+        b(idx_b_pi) = b(idx_b_i)
         ip1 = i + 1
 
         if (ip1 <= neq) then
           do j = ip1, neq
-            b(j, irh) = b(j, irh) - a(j, i) * y(i)
+            ! Access A(j,i) and B(j,irh)
+            idx_a = j + (i - 1) * neq  ! Column-major: A(j,i)
+            idx_b = j + (irh - 1) * neq  ! B(j,irh)
+            b(idx_b) = b(idx_b) - a(idx_a) * y(i)
           end do
         end if
       end do
@@ -319,11 +333,17 @@ contains
 
         if (ip1 <= neq) then
           do j = ip1, neq
-            sum_val = sum_val + a(i, j) * b(j, irh)
+            ! Access A(i,j) and B(j,irh)
+            idx_a = i + (j - 1) * neq  ! Column-major: A(i,j)
+            idx_b = j + (irh - 1) * neq  ! B(j,irh)
+            sum_val = sum_val + a(idx_a) * b(idx_b)
           end do
         end if
 
-        b(i, irh) = (y(i) - sum_val) / a(i, i)
+        ! Access A(i,i) and B(i,irh)
+        idx_a = i + (i - 1) * neq  ! Column-major: A(i,i)
+        idx_b = i + (irh - 1) * neq  ! B(i,irh)
+        b(idx_b) = (y(i) - sum_val) / a(idx_a)
       end do
     end do
 
@@ -395,25 +415,40 @@ contains
     !   3. Solve D*I2 = E2'  →  I2 = inv(D)*E2'
     !   4. Compute I1' = I1 - inv(A)*B*I2
     !
+    ! ARRAY STORAGE NOTE (Fortran 77 compatibility):
+    ! The original Fortran 77 code passed all matrices as 1D arrays and
+    ! reinterpreted them as 2D within the subroutine using assumed-size
+    ! array declarations like B(N1C,1). Modern Fortran's stricter type
+    ! system requires us to either:
+    !   (a) Accept 1D arrays and manually compute 2D indices [CHOSEN]
+    !   (b) Reshape arrays at every call site
+    !   (c) Change matrix storage throughout the entire program
+    ! We choose (a) to maintain compatibility with the original memory layout
+    ! and calling convention used throughout NEC2.
+    !
+    ! For column-major 2D array element (i,j) with nrows rows:
+    !   1D_index = i + (j-1)*nrows
+    !
     ! Arguments:
-    !   a - primary block matrix (N1C×N1C)
-    !   b - coupling matrix A→D (N1C×N2C)
-    !   c - coupling matrix D→A (N1C×N2C)
-    !   d - secondary block matrix (N2C×N2C)
-    !   xy - excitation/solution array
+    !   a - primary block matrix (N1C×N1C) stored as 1D array
+    !   b - coupling matrix A→D (N1C×N2C) stored as 1D array
+    !   c - coupling matrix D→A (N1C×N2C) stored as 1D array
+    !   d - secondary block matrix (N2C×N2C) stored as 1D array
+    !   xy - excitation/solution array (1D)
     !   ip - pivot array
     !   np, n1, n - wire segment parameters
     !   mp, m1, m - patch parameters
     !   n1c, n2c, n2cz - array dimensions
 
-    complex(8), intent(in) :: a(:,:), b(:,:), c(:,:), d(:,:)
-    complex(8), intent(inout) :: xy(:,:)
+    complex(8), intent(in) :: a(:)
+    complex(8), intent(in) :: b(:), c(:), d(:)
+    complex(8), intent(inout) :: xy(:)
     integer, intent(in) :: ip(:)
     integer, intent(in) :: np, n1, n, mp, m1, m, n1c, n2c, n2cz
 
     complex(8), allocatable :: y(:)
     complex(8) :: sum_val
-    integer :: i, j, ii, jj, jp, n2, npm
+    integer :: i, j, ii, jj, jp, n2, npm, idx
 
     ! Check for normal solution (not NGF)
     if (n2c <= 0) then
@@ -432,20 +467,20 @@ contains
 
       ! Save elements that need reordering
       do i = n2, npm
-        y(i) = xy(i, 1)
+        y(i) = xy(i)
       end do
 
       ! Reorder: move elements N+1:NPM to positions N1+1:...
       j = n1
       do i = jj, npm
         j = j + 1
-        xy(j, 1) = y(i)
+        xy(j) = y(i)
       end do
 
       ! Then move elements N1+1:N to follow
       do i = n2, n
         j = j + 1
-        xy(j, 1) = y(i)
+        xy(j) = y(i)
       end do
     end if
 
@@ -455,29 +490,33 @@ contains
 
     ! STEP 2: Compute E2 - C*inv(A)*E1
     ! The result goes into xy(N1C+1:N1C+N2C)
+    ! Access C(j,i) as c(j + (i-1)*n1c) in column-major order
     do i = 1, n2c
       sum_val = (0.0d0, 0.0d0)
       do j = 1, n1c
-        sum_val = sum_val + c(j, i) * xy(j, 1)
+        idx = j + (i - 1) * n1c  ! Column-major: C(j,i)
+        sum_val = sum_val + c(idx) * xy(j)
       end do
       ii = n1c + i
-      xy(ii, 1) = xy(ii, 1) - sum_val
+      xy(ii) = xy(ii) - sum_val
     end do
 
     ! STEP 3: Compute inv(D)*(E2 - C*inv(A)*E1) = I2
     ! Solve D*x = (E2 - C*inv(A)*E1) for the secondary unknowns
     jj = n1c + 1
-    call solve(n2c, d, ip(jj:), xy(jj:, 1), n2c)
+    call solve(n2c, d, ip(jj:), xy(jj:), n2c)
 
     ! STEP 4: Compute inv(A)*E1 - (inv(A)*B)*I2 = I1
     ! Update the primary solution by removing the coupling effect
+    ! Access B(i,j) as b(i + (j-1)*n1c) in column-major order
     do i = 1, n1c
       sum_val = (0.0d0, 0.0d0)
       do j = 1, n2c
         jp = n1c + j
-        sum_val = sum_val + b(i, j) * xy(jp, 1)
+        idx = i + (j - 1) * n1c  ! Column-major: B(i,j)
+        sum_val = sum_val + b(idx) * xy(jp)
       end do
-      xy(i, 1) = xy(i, 1) - sum_val
+      xy(i) = xy(i) - sum_val
     end do
 
     ! Reorder current array back if we reordered earlier
@@ -487,7 +526,7 @@ contains
 
       ! Save reordered elements
       do i = n2, npm
-        y(i) = xy(i, 1)
+        y(i) = xy(i)
       end do
 
       ! Restore original order
@@ -495,12 +534,12 @@ contains
       j = n1
       do i = jj, npm
         j = j + 1
-        xy(j, 1) = y(i)
+        xy(j) = y(i)
       end do
 
       do i = n2, n1c
         j = j + 1
-        xy(j, 1) = y(i)
+        xy(j) = y(i)
       end do
     end if
 

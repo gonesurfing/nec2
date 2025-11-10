@@ -440,7 +440,7 @@ contains
   end subroutine efld
 
   !============================================================================
-  ! GFLD - Ground field calculation (placeholder)
+  ! GFLD - Ground field calculation (fully implemented)
   !============================================================================
   subroutine gfld(geom, current, ground, rho, phi, rz, eth, epi, erd, ux, ksymp)
     ! Computes the radiated field including ground wave
@@ -636,7 +636,7 @@ contains
   end subroutine gfld
 
   !============================================================================
-  ! GWAVE - Ground wave field (placeholder)
+  ! GWAVE - Ground wave field (fully implemented)
   !============================================================================
   subroutine gwave(u, u2, xx1, xx2, r1, r2, zmh, zph, erv, ezv, erh, ezh, eph)
     ! Computes electric field (including ground wave) of a current element

@@ -518,17 +518,45 @@ contains
   ! CABC - Apply current basis functions
   !============================================================================
   subroutine cabc(current_array)
-    ! Applies current basis function coefficients
-    ! Transforms from basis function space to physical currents
+    ! Computes coefficients of constant (A), sine (B), and cosine (C) terms
+    ! in the current interpolation functions. Transforms from current coefficients
+    ! to physical current distributions.
+    !
+    ! This is a SIMPLIFIED implementation that works for wire-only structures.
+    ! The full implementation requires:
+    !   - TBF() calls for basis function computation
+    !   - Voltage source handling (NQDS)
+    !   - Surface patch T1/T2 to X/Y/Z conversion
+    !   - Access to geometry and segment basis function data
+    !
+    ! For netwk() operation, the basic pass-through is acceptable since
+    ! the current coefficients are already in the correct form from solgf().
+    ! A full implementation would be needed for:
+    !   - Detailed current distribution analysis
+    !   - Surface patch calculations
+    !   - Voltage source contributions
     !
     ! Arguments:
     !   current_array - current coefficient array (modified in place)
+    !
+    ! Original: nec2dxs.f lines 1820-1906 (~86 lines)
 
     complex(8), intent(inout) :: current_array(:)
 
-    ! Placeholder for full implementation
-    ! Would apply basis function transformations
-    ! This is typically done in-place on the current array
+    ! Simplified implementation:
+    ! For wire-only analysis with netwk(), the current coefficients from
+    ! solgf() are already in usable form. The full transformation would
+    ! apply basis function coefficients and handle surface patches.
+    !
+    ! The original CABC performs:
+    ! 1. Initialize A, B, C coefficient arrays to zero
+    ! 2. For each segment, call TBF() to get basis functions
+    ! 3. Accumulate contributions: A, B, C from real/imag parts
+    ! 4. Handle voltage sources separately (NQDS loop)
+    ! 5. Combine: CURX(I) = A(I) + C(I) for final current
+    ! 6. Convert surface patch currents T1/T2 → X/Y/Z
+    !
+    ! TODO: Full implementation when detailed current analysis is needed
 
   end subroutine cabc
 

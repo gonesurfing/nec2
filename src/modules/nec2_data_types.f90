@@ -25,8 +25,9 @@ module nec2_data_types
     real(8), allocatable :: z(:)        ! Z coordinates
     real(8), allocatable :: si(:)       ! Segment lengths
     real(8), allocatable :: bi(:)       ! Segment radii
-    real(8), allocatable :: alp(:)      ! Alpha direction cosines
-    real(8), allocatable :: bet(:)      ! Beta direction cosines
+    real(8), allocatable :: alp(:)      ! Alpha direction cosines (X component)
+    real(8), allocatable :: bet(:)      ! Beta direction cosines (Y component)
+    real(8), allocatable :: salp(:)     ! Sine of alpha (Z component direction cosine)
 
     ! Connectivity information
     ! Note: icon1/icon2/itag are integer(8) for compatibility with type-punning

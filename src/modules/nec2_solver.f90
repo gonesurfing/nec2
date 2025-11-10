@@ -383,50 +383,128 @@ contains
   ! SOLGF - Solve for numerical Green's function
   !============================================================================
   subroutine solgf(a, b, c, d, xy, ip, np, n1, n, mp, m1, m, n1c, n2c, n2cz)
-    ! Solves for numerical Green's function
-    ! Handles the special matrix structure for NGF
+    ! Solves for current in numerical Green's function procedure
+    ! This handles the block-structured system arising from NGF formulation:
+    !   [ A  B ] [ I1 ]   [ E1 ]
+    !   [ C  D ] [ I2 ] = [ E2 ]
+    ! Where A is N1C×N1C (primary), D is N2C×N2C (secondary)
+    !
+    ! Solution algorithm:
+    !   1. Solve A*I1 = E1  →  I1 = inv(A)*E1
+    !   2. Compute E2' = E2 - C*I1
+    !   3. Solve D*I2 = E2'  →  I2 = inv(D)*E2'
+    !   4. Compute I1' = I1 - inv(A)*B*I2
     !
     ! Arguments:
-    !   a, b, c, d - block matrices from NGF formulation
-    !   xy - solution array
+    !   a - primary block matrix (N1C×N1C)
+    !   b - coupling matrix A→D (N1C×N2C)
+    !   c - coupling matrix D→A (N1C×N2C)
+    !   d - secondary block matrix (N2C×N2C)
+    !   xy - excitation/solution array
     !   ip - pivot array
     !   np, n1, n - wire segment parameters
     !   mp, m1, m - patch parameters
-    !   n1c, n2c, n2cz - complex array dimensions
+    !   n1c, n2c, n2cz - array dimensions
 
     complex(8), intent(in) :: a(:,:), b(:,:), c(:,:), d(:,:)
     complex(8), intent(inout) :: xy(:,:)
     integer, intent(in) :: ip(:)
     integer, intent(in) :: np, n1, n, mp, m1, m, n1c, n2c, n2cz
 
-    complex(8), allocatable :: rhs(:), sol(:)
-    integer :: i, j, k, neq, npeq
-    integer :: n2, m2, mp2
+    complex(8), allocatable :: y(:)
+    complex(8) :: sum_val
+    integer :: i, j, ii, jj, jp, n2, npm
 
-    n2 = n - np
-    m2 = m - mp
-    mp2 = 2 * mp
-    neq = n + 2 * m
-    npeq = np + 2 * mp
+    ! Check for normal solution (not NGF)
+    if (n2c <= 0) then
+      ! Simple case: just solve the primary system
+      call solves(a, ip, xy, n1c, 1, np, n, mp, m, 13, 14)
+      return
+    end if
 
-    allocate(rhs(neq), sol(neq))
+    allocate(y(n1c + n2c))
 
-    ! TODO: Implement full numerical Green's function solution
-    ! This is a complex specialized algorithm requiring:
-    ! - Block matrix operations (A, B, C, D matrices)
-    ! - Multiple forward/backward substitutions
-    ! - Reordering of excitation and current arrays
-    ! - File I/O for out-of-core storage (units 11, 13, 14, 15, 16)
-    ! - Connection handling (NSCON, NPCON from COMMON blocks)
-    ! Original: nec2dxs.f lines 9244-9370 (~126 lines)
-    !
-    ! For now, return without solving - this blocks netwk() network analysis
-    ! Implementation priority: MEDIUM (only needed for specialized network analysis)
+    ! Reorder excitation array if needed
+    if (n1 /= n .and. m1 /= 0) then
+      n2 = n1 + 1
+      jj = n + 1
+      npm = n + 2 * m1
 
-    ! Placeholder: would solve NGF system here
-    xy = (0.0d0, 0.0d0)
+      ! Save elements that need reordering
+      do i = n2, npm
+        y(i) = xy(i, 1)
+      end do
 
-    deallocate(rhs, sol)
+      ! Reorder: move elements N+1:NPM to positions N1+1:...
+      j = n1
+      do i = jj, npm
+        j = j + 1
+        xy(j, 1) = y(i)
+      end do
+
+      ! Then move elements N1+1:N to follow
+      do i = n2, n
+        j = j + 1
+        xy(j, 1) = y(i)
+      end do
+    end if
+
+    ! STEP 1: Compute inv(A)*E1
+    ! Solve A*x = E1 where E1 is in xy(1:N1C)
+    call solves(a, ip, xy, n1c, 1, np, n1, mp, m1, 13, 14)
+
+    ! STEP 2: Compute E2 - C*inv(A)*E1
+    ! The result goes into xy(N1C+1:N1C+N2C)
+    do i = 1, n2c
+      sum_val = (0.0d0, 0.0d0)
+      do j = 1, n1c
+        sum_val = sum_val + c(j, i) * xy(j, 1)
+      end do
+      ii = n1c + i
+      xy(ii, 1) = xy(ii, 1) - sum_val
+    end do
+
+    ! STEP 3: Compute inv(D)*(E2 - C*inv(A)*E1) = I2
+    ! Solve D*x = (E2 - C*inv(A)*E1) for the secondary unknowns
+    jj = n1c + 1
+    call solve(n2c, d, ip(jj:), xy(jj:, 1), n2c)
+
+    ! STEP 4: Compute inv(A)*E1 - (inv(A)*B)*I2 = I1
+    ! Update the primary solution by removing the coupling effect
+    do i = 1, n1c
+      sum_val = (0.0d0, 0.0d0)
+      do j = 1, n2c
+        jp = n1c + j
+        sum_val = sum_val + b(i, j) * xy(jp, 1)
+      end do
+      xy(i, 1) = xy(i, 1) - sum_val
+    end do
+
+    ! Reorder current array back if we reordered earlier
+    if (n1 /= n .and. m1 /= 0) then
+      n2 = n1 + 1
+      npm = n + 2 * m1
+
+      ! Save reordered elements
+      do i = n2, npm
+        y(i) = xy(i, 1)
+      end do
+
+      ! Restore original order
+      jj = n1c + 1
+      j = n1
+      do i = jj, npm
+        j = j + 1
+        xy(j, 1) = y(i)
+      end do
+
+      do i = n2, n1c
+        j = j + 1
+        xy(j, 1) = y(i)
+      end do
+    end if
+
+    deallocate(y)
 
   end subroutine solgf
 

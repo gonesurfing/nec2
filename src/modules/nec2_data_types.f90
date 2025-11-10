@@ -186,6 +186,7 @@ module nec2_data_types
     complex(8) :: zped                  ! Impedance pedestal
     real(8) :: pin                      ! Input power
     real(8) :: pnls                     ! Power NLS
+    real(8) :: wlam                     ! Wavelength
     real(8), allocatable :: x11r(:)     ! Network parameter X11 real
     real(8), allocatable :: x11i(:)     ! Network parameter X11 imag
     real(8), allocatable :: x12r(:)     ! Network parameter X12 real
@@ -202,6 +203,8 @@ module nec2_data_types
     integer :: ntsol                    ! Network solution flag
     integer :: nprint                   ! Print flag
     integer :: masym                    ! Matrix asymmetry flag
+    integer :: np, n1, n                ! Wire segment parameters
+    integer :: mp, m1, m                ! Patch parameters
   end type network_data
 
   !============================================================================

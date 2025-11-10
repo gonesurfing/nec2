@@ -370,13 +370,11 @@ contains
 
           case (5)
             ! Wire conductivity (skin effect) - internal impedance with skin effect
-            ! TODO: Implement ZINT function for internal wire impedance
             ! ZINT calculates impedance using Bessel function approximations
-            ! Original: nec2dxs.f lines 9894-9974 (~80 lines, complex math)
-            ! For now, use simplified approximation (zero impedance)
+            ! sigl = conductivity * relative permeability
+            ! zlr = real part (resistivity), zli = imaginary part (rel. permeability)
             rolam = zlc(istep) * geom%wlam
-            zt = (0.0d0, 0.0d0)  ! Placeholder - requires ZINT implementation
-            ! zt = zint(sigl, rolam) / rolam  ! Would be called when implemented
+            zt = zint(zlr(istep), rolam) / rolam
 
           case (6)
             ! Impedance per unit length
@@ -497,5 +495,139 @@ contains
                  f4 * wx * wy
 
   end subroutine intrp
+
+  !============================================================================
+  ! ZINT - Wire internal impedance calculation
+  !============================================================================
+  function zint(sigl, rolam) result(z_internal)
+    ! Computes the internal impedance of a circular wire including skin effect
+    ! Uses Bessel function approximations for different parameter ranges
+    !
+    ! Arguments:
+    !   sigl - conductivity * relative permeability (complex if lossy)
+    !   rolam - wire radius / wavelength ratio
+    !
+    ! Returns:
+    !   z_internal - internal impedance per unit length (ohms/m)
+    !
+    ! Original: nec2dxs.f lines 9894-9974
+
+    real(8), intent(in) :: sigl, rolam
+    complex(8) :: z_internal
+
+    ! Polynomial coefficients for TH and PH functions
+    complex(8) :: cc1, cc2, cc3, cc4, cc5, cc6, cc7
+    complex(8) :: cc8, cc9, cc10, cc11, cc12, cc13, cc14
+    complex(8) :: fj, cn, br1, br2
+    real(8) :: x, y, s, ber, bei
+    real(8) :: ber2, bei2
+
+    ! Constants
+    real(8), parameter :: TPCMU = 2.368705d3  ! 2*pi*c*mu0 (CGS units)
+    real(8), parameter :: CMOTP = 60.0d0       ! 60 ohms
+    complex(8), parameter :: FJ_CONST = cmplx(0.0d0, 1.0d0, kind=8)
+    complex(8), parameter :: CN_CONST = cmplx(0.70710678d0, 0.70710678d0, kind=8)
+
+    ! Polynomial coefficients for approximations
+    cc1 = cmplx(6.0d-7, 1.9d-6, kind=8)
+    cc2 = cmplx(-3.4d-6, 5.1d-6, kind=8)
+    cc3 = cmplx(-2.52d-5, 0.0d0, kind=8)
+    cc4 = cmplx(-9.06d-5, -9.01d-5, kind=8)
+    cc5 = cmplx(0.0d0, -9.765d-4, kind=8)
+    cc6 = cmplx(0.0110486d0, -0.0110485d0, kind=8)
+    cc7 = cmplx(0.0d0, -0.3926991d0, kind=8)
+    cc8 = cmplx(1.6d-6, -3.2d-6, kind=8)
+    cc9 = cmplx(1.17d-5, -2.4d-6, kind=8)
+    cc10 = cmplx(3.46d-5, 3.38d-5, kind=8)
+    cc11 = cmplx(5.0d-7, 2.452d-4, kind=8)
+    cc12 = cmplx(-1.3813d-3, 1.3811d-3, kind=8)
+    cc13 = cmplx(-6.25001d-2, -1.0d-7, kind=8)
+    cc14 = cmplx(0.70710678d0, 0.70710678d0, kind=8)
+
+    fj = FJ_CONST
+    cn = CN_CONST
+
+    ! Compute parameter X
+    x = sqrt(TPCMU * sigl) * rolam
+
+    if (x > 110.0d0) then
+      ! Large X approximation
+      br1 = cmplx(0.70710678d0, -0.70710678d0, kind=8)
+
+    else if (x > 8.0d0) then
+      ! Medium X - use asymptotic expansion
+      br2 = fj * f_func(x, cc1, cc2, cc3, cc4, cc5, cc6, cc7, cn) / PI
+      br1 = g_func(x, cc1, cc2, cc3, cc4, cc5, cc6, cc7, cn) + br2
+      br2 = g_func(x, cc1, cc2, cc3, cc4, cc5, cc6, cc7, cn) * &
+            ph_func(8.0d0/x, cc8, cc9, cc10, cc11, cc12, cc13, cc14) - &
+            br2 * ph_func(-8.0d0/x, cc8, cc9, cc10, cc11, cc12, cc13, cc14)
+      br1 = br1 / br2
+
+    else
+      ! Small X - use power series for Bessel functions
+      y = x / 8.0d0
+      y = y * y
+      s = y * y
+
+      ! BER0 approximation
+      ber = ((((((-9.01d-6*s + 1.22552d-3)*s - 0.08349609d0)*s + 2.6419140d0) &
+            *s - 32.363456d0)*s + 113.77778d0)*s - 64.0d0)*s + 1.0d0
+
+      ! BEI0 approximation
+      bei = ((((((1.1346d-4*s - 0.01103667d0)*s + 0.52185615d0)*s - &
+            10.567658d0)*s + 72.817777d0)*s - 113.77778d0)*s + 16.0d0) * y
+
+      br1 = cmplx(ber, bei, kind=8)
+
+      ! BER1 approximation
+      ber2 = (((((((-3.94d-6*s + 4.5957d-4)*s - 0.02609253d0)*s + 0.66047849d0) &
+             *s - 6.0681481d0)*s + 14.222222d0)*s - 4.0d0) * y) * x
+
+      ! BEI1 approximation
+      bei2 = ((((((4.609d-5*s - 3.79386d-3)*s + 0.14677204d0)*s - 2.3116751d0) &
+             *s + 11.377778d0)*s - 10.666667d0)*s + 0.5d0) * x
+
+      br2 = cmplx(ber2, bei2, kind=8)
+      br1 = br1 / br2
+    end if
+
+    ! Final impedance calculation
+    z_internal = fj * sqrt(CMOTP / sigl) * br1 / rolam
+
+  contains
+
+    ! Helper function TH - polynomial approximation
+    function th_func(d, c1, c2, c3, c4, c5, c6, c7) result(th_val)
+      real(8), intent(in) :: d
+      complex(8), intent(in) :: c1, c2, c3, c4, c5, c6, c7
+      complex(8) :: th_val
+      th_val = (((((c1*d + c2)*d + c3)*d + c4)*d + c5)*d + c6)*d + c7
+    end function th_func
+
+    ! Helper function PH - polynomial approximation
+    function ph_func(d, c8, c9, c10, c11, c12, c13, c14) result(ph_val)
+      real(8), intent(in) :: d
+      complex(8), intent(in) :: c8, c9, c10, c11, c12, c13, c14
+      complex(8) :: ph_val
+      ph_val = (((((c8*d + c9)*d + c10)*d + c11)*d + c12)*d + c13)*d + c14
+    end function ph_func
+
+    ! Helper function F
+    function f_func(d, c1, c2, c3, c4, c5, c6, c7, cn) result(f_val)
+      real(8), intent(in) :: d
+      complex(8), intent(in) :: c1, c2, c3, c4, c5, c6, c7, cn
+      complex(8) :: f_val
+      f_val = sqrt(PI/2.0d0/d) * exp(-cn*d + th_func(-8.0d0/x, c1, c2, c3, c4, c5, c6, c7))
+    end function f_func
+
+    ! Helper function G
+    function g_func(d, c1, c2, c3, c4, c5, c6, c7, cn) result(g_val)
+      real(8), intent(in) :: d
+      complex(8), intent(in) :: c1, c2, c3, c4, c5, c6, c7, cn
+      complex(8) :: g_val
+      g_val = exp(cn*d + th_func(8.0d0/x, c1, c2, c3, c4, c5, c6, c7)) / sqrt(TWO_PI*d)
+    end function g_func
+
+  end function zint
 
 end module nec2_excitation

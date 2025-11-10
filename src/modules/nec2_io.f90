@@ -11,6 +11,7 @@ module nec2_io
   ! Public subroutines
   public :: readgm, readmn, parsit, prnt
   public :: gfout, rdpat, nfpat, datagn
+  public :: upcase_string
 
 contains
 
@@ -303,7 +304,7 @@ contains
     type(current_data), intent(in) :: current
     type(geometry_data), intent(in) :: geom
 
-    real(8) :: max_current, total_power
+    real(8) :: max_current, total_power, curr_mag
     integer :: i, max_loc
 
     write(*,'(A)') ' '
@@ -313,8 +314,9 @@ contains
     max_current = 0.0d0
     max_loc = 1
     do i = 1, geom%n
-      if (current%ai(i) > max_current) then
-        max_current = current%ai(i)
+      curr_mag = sqrt(current%air(i)**2 + current%aii(i)**2)
+      if (curr_mag > max_current) then
+        max_current = curr_mag
         max_loc = i
       end if
     end do

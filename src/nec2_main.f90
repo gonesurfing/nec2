@@ -117,7 +117,7 @@ program nec2_main
 
       case ('GE')  ! End geometry
         write(*,'(A)') '  GE: End of geometry input'
-        call connect_segments(geom, 0)
+        call connect_segments(geom, segj, 0)
         done_geometry = .true.
 
       case ('GN')  ! Ground parameters
@@ -316,9 +316,13 @@ contains
     type(current_data), intent(inout) :: current
 
     ! Initialize current arrays (will be allocated based on geometry)
-    current%ai(:) = 0.0d0
-    current%bi(:) = 0.0d0
-    current%ci(:) = 0.0d0
+    ! Note: Arrays must be allocated before use
+    ! current%air(:) = 0.0d0
+    ! current%aii(:) = 0.0d0
+    ! current%bir(:) = 0.0d0
+    ! current%bii(:) = 0.0d0
+    ! current%cir(:) = 0.0d0
+    ! current%cii(:) = 0.0d0
   end subroutine initialize_current
 
   !============================================================================

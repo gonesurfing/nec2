@@ -117,10 +117,15 @@ module nec2_data_types
     complex(8) :: t1, t2                ! Ground reflection coefficients
     real(8) :: cl, ch                   ! Cliff/cliff height parameters
     real(8) :: scrwl, scrwr             ! Screen wire parameters
+    real(8) :: epsr                     ! Relative permittivity
+    real(8) :: sig                      ! Conductivity (S/m)
+    real(8) :: zph                      ! Ground impedance phase
+    real(8) :: rho                      ! Ground impedance magnitude
     integer :: nradl                    ! Number of radial wires
     integer :: ksymp                    ! Symmetry parameter
     integer :: ifar                     ! Far field flag
     integer :: iperf                    ! Perfect ground flag (1=perfect, 0=real)
+    integer :: iexk                     ! Extended kernel flag
   end type ground_data
 
   !============================================================================

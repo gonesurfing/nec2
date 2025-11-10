@@ -86,11 +86,7 @@ contains
       dataj%zj = geom%z(j)
       dataj%cabj = geom%alp(j)
       dataj%sabj = geom%bet(j)
-      if (allocated(geom%salp)) then
-        dataj%salpj = geom%salp(j)
-      else
-        dataj%salpj = 0.0d0
-      end if
+      dataj%salpj = 0.0d0
 
       ! Determine extended kernel type
       ! (Simplified - full logic would check connection details)
@@ -286,7 +282,7 @@ contains
     complex(8) :: zt, tpcj, zint_val
     real(8) :: freq_factor, rolam
     integer :: istep, i, l1, l2, ichk, jump
-    integer :: ldtags, iwarn
+    integer :: ldtags, iwarn, nop
 
     complex(8), parameter :: tpcj_const = cmplx(0.0d0, 1.883698955d9, kind=8)
 

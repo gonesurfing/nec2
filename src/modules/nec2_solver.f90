@@ -193,7 +193,7 @@ contains
     integer, intent(inout) :: ip(:)
 
     complex(8), allocatable :: d(:)
-    complex(8) :: arj, pivot_val
+    complex(8) :: arj
     real(8) :: dmax, elmag
     integer :: i, j, k, r, rm1, rp1, pj, pr, jp1
     integer :: iflg, n

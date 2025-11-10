@@ -35,7 +35,7 @@ contains
     real(8), intent(in) :: thet, phi
     complex(8), intent(out) :: eth, eph
 
-    complex(8) :: cix, ciy, ciz, exa, ccx, ccy, ccz
+    complex(8) :: cix, ciy, ciz, ccx, ccy, ccz
     complex(8) :: rrv, rrh, const, ex, ey, ez, zrsin
     real(8) :: phx, phy, roz, rozs, thx, thy, thz, rox, roy
     real(8) :: omega, ar, ai, zij, rk
@@ -662,7 +662,6 @@ contains
     real(8) :: sppp, sppp2, cppp, cppp2, spp, spp2, cpp, cpp2
 
     ! Constants
-    complex(8), parameter :: fj = cmplx(0.0d0, 1.0d0, kind=8)
     complex(8), parameter :: tpj = cmplx(0.0d0, TWO_PI, kind=8)
     complex(8), parameter :: econ = cmplx(0.0d0, -188.367d0, kind=8)
 
@@ -1097,11 +1096,11 @@ contains
 
     real(8) :: xt, yt, zt, rhx, rhy, rhs, rho, phx, phy
     real(8) :: cph, sph, zph, zphs, r2s, r2, rk, sfac
-    real(8) :: r1, zmh, thet, pot
+    real(8) :: r1, zmh, thet
     complex(8) :: erv, ezv, erh, ezh, eph
     complex(8) :: xx1, xx2, u, u2
     complex(8) :: et, er, hrv, hzv, hrh
-    complex(8) :: frati, t1
+    complex(8) :: frati
 
     real(8), parameter :: PI = 3.141592654d0
     real(8), parameter :: TP = 6.283185308d0

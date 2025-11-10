@@ -433,6 +433,9 @@ contains
       end if
     end if
 
+    ! Store normal Z-component in SALP array (critical for field calculations)
+    ang%salp(mi) = znv
+
     ! Calculate second tangent vector (perpendicular to first and normal)
     ! Use TRANSFER to store real tangent components in integer arrays (type punning like F77 EQUIVALENCE)
     geom%icon1(mi) = transfer(ynv * geom%bet(mi) - znv * geom%alp(mi), 0)
@@ -468,7 +471,6 @@ contains
     real(8) :: xx, xy, xz, yx, yy, yz, zx, zy, zz
     real(8) :: xi, yi, zi
     integer :: nrp, ix, i1, k, ir, i, ldi, ii, kr
-    integer(8) :: itagi
 
     ! Update symmetry flag if rotating about X or Y
     if (abs(rox) + abs(roy) > 1.0d-10) geom%ipsym = geom%ipsym * 3

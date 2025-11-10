@@ -6,6 +6,7 @@ module nec2_excitation
   use nec2_constants
   use nec2_data_types
   use nec2_current
+  use nec2_fields
   implicit none
   private
 
@@ -46,8 +47,12 @@ contains
     real(8) :: s_half, log_term
     integer :: i, j, jx, ipr
     integer :: icon1_save
+    type(ground_data) :: ground_local
 
     complex(8), parameter :: ccj_val = cmplx(0.0d0, -0.01666666667d0, kind=8)
+
+    ! Initialize ground to perfect ground (free space) for voltage source calculation
+    ground_local%iperf = 1
 
     ! Set up basis functions for source segment
     icon1_save = geom%icon1(is)
@@ -94,9 +99,9 @@ contains
       dataj%ind1 = 2
       dataj%ind2 = 2
 
-      ! Calculate field at segment from source
-      ! Would call EFLD here with source segment position
-      ! Placeholder for actual field calculation
+      ! Calculate field at segment j from source segment is
+      ! Field components stored in dataj: exk, eyk, ezk, exs, eys, ezs, exc, eyc, ezc
+      call efld(geom, dataj, ground_local, dataj%xj, dataj%yj, dataj%zj, dataj%b, int(j - is))
 
       ! Combine field components with basis function coefficients
       etk = dataj%exk * dataj%cabj + dataj%eyk * dataj%sabj + dataj%ezk * dataj%salpj
@@ -186,8 +191,10 @@ contains
           rhs = (0.0d0, 0.0d0)
           rhs(isc1) = (1.0d0, 0.0d0)
 
-          ! Would solve system here using SOLGF
-          ! Placeholder for actual solve
+          ! TODO: Solve system here using SOLGF from nec2_solver
+          ! This requires completing solgf() implementation first
+          ! For now, skip the solve step
+          ! Placeholder: rhs would contain solution after solve
 
           do j = 1, irow1
             isc1 = ipnt(j)

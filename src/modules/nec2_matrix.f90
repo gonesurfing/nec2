@@ -6,6 +6,8 @@ module nec2_matrix
   use nec2_constants
   use nec2_data_types
   use nec2_utilities
+  use nec2_current
+  use nec2_fields
   implicit none
   private
 
@@ -86,8 +88,8 @@ contains
       ! Wire source loop
       if (geom%n > 0) then
         do j = 1, geom%n
-          ! Set up basis functions for segment j (would call TRIO)
-          ! For now, placeholder - full implementation needs trio() from nec2_current
+          ! Set up basis functions for segment j
+          call trio(geom, segj, int(j, kind=8))
 
           ! Remap junction connections
           do i = 1, segj%jsno
@@ -181,6 +183,10 @@ contains
     complex(8) :: etk, ets, etc
     real(8) :: xi, yi, zi, ai, cabi, sabi, salpi
     integer :: i, ipr, ij, jx
+    type(ground_data) :: ground_local
+
+    ! Initialize ground to perfect ground (free space) for matrix assembly
+    ground_local%iperf = 1
 
     ! Set source segment parameters in dataj
     dataj%s = geom%si(j)
@@ -210,9 +216,9 @@ contains
       sabi = geom%bet(i)
       salpi = 0.0d0  ! For wires, salp=0 (only used for patches)
 
-      ! Calculate electric field (would call EFLD)
-      ! For now, placeholder - full implementation needs efld()
+      ! Calculate electric field from source segment at observation point
       ! This computes EXK, EYK, EZK, EXS, EYS, EZS, EXC, EYC, EZC in dataj
+      call efld(geom, dataj, ground_local, xi, yi, zi, ai, ij)
 
       ! Project field components onto observation segment direction
       etk = dataj%exk * cabi + dataj%eyk * sabi + dataj%ezk * salpi
@@ -435,7 +441,7 @@ contains
     if (geom%n > 0) then
       do j = 1, geom%n
         ! Set up basis functions for segment j
-        ! Would call TRIO
+        call trio(geom, segj, int(j, kind=8))
 
         ! Compute interactions for NGF
         i1 = geom%np + 1

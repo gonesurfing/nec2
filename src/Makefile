@@ -16,9 +16,9 @@ MODULE_SOURCES = \
 	$(MODDIR)/nec2_current.f90 \
 	$(MODDIR)/nec2_kernel.f90 \
 	$(MODDIR)/nec2_sommerfeld.f90 \
-	$(MODDIR)/nec2_matrix.f90 \
-	$(MODDIR)/nec2_solver.f90 \
 	$(MODDIR)/nec2_fields.f90 \
+	$(MODDIR)/nec2_solver.f90 \
+	$(MODDIR)/nec2_matrix.f90 \
 	$(MODDIR)/nec2_excitation.f90 \
 	$(MODDIR)/nec2_io.f90
 

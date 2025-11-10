@@ -10,7 +10,7 @@ module nec2_sommerfeld
 
   ! Public subroutines and functions
   public :: evlua, saoa, gshank, rom1, rom2, lambda_param
-  public :: bessel_j0, hankel_h0, test_convergence, fbar
+  public :: bessel_j0, hankel_h0, test_convergence, fbar, intrp
 
   ! Module-level variables replacing COMMON /CNTOUR/ and /EVLCOM/
   complex(8), save :: contour_a, contour_b  ! Integration contour endpoints
@@ -978,5 +978,37 @@ contains
     end if
 
   end function fbar
+
+  !============================================================================
+  ! INTRP - Bilinear interpolation utility
+  !============================================================================
+  subroutine intrp(x_val, y_val, f1, f2, f3, f4, result_out)
+    ! Performs bilinear interpolation for field calculations
+    ! Uses 4-point interpolation scheme
+    !
+    ! Arguments:
+    !   x_val, y_val - interpolation coordinates (0 to 1)
+    !   f1, f2, f3, f4 - function values at corners
+    !   result_out - interpolated result (output)
+    !
+    ! Moved from nec2_excitation to resolve circular dependency
+
+    real(8), intent(in) :: x_val, y_val
+    complex(8), intent(in) :: f1, f2, f3, f4
+    complex(8), intent(out) :: result_out
+
+    real(8) :: wx, wy
+
+    ! Bilinear interpolation weights
+    wx = x_val
+    wy = y_val
+
+    ! Interpolate: (1-wx)(1-wy)*f1 + wx(1-wy)*f2 + (1-wx)wy*f3 + wx*wy*f4
+    result_out = f1 * (1.0d0 - wx) * (1.0d0 - wy) + &
+                 f2 * wx * (1.0d0 - wy) + &
+                 f3 * (1.0d0 - wx) * wy + &
+                 f4 * wx * wy
+
+  end subroutine intrp
 
 end module nec2_sommerfeld

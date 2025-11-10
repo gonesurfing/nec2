@@ -7,11 +7,12 @@ module nec2_excitation
   use nec2_data_types
   use nec2_current
   use nec2_fields
+  use nec2_sommerfeld, only: intrp
   implicit none
   private
 
   ! Public subroutines
-  public :: qdsrc, netwk, load_impedance, couple, cabc, etmns, intrp
+  public :: qdsrc, netwk, load_impedance, couple, cabc, etmns
 
 contains
 
@@ -580,36 +581,6 @@ contains
     e_result = (0.0d0, 0.0d0)
 
   end subroutine etmns
-
-  !============================================================================
-  ! INTRP - Interpolation utility
-  !============================================================================
-  subroutine intrp(x_val, y_val, f1, f2, f3, f4, result_out)
-    ! Performs bilinear interpolation for field calculations
-    ! Uses 4-point interpolation scheme
-    !
-    ! Arguments:
-    !   x_val, y_val - interpolation coordinates (0 to 1)
-    !   f1, f2, f3, f4 - function values at corners
-    !   result_out - interpolated result (output)
-
-    real(8), intent(in) :: x_val, y_val
-    complex(8), intent(in) :: f1, f2, f3, f4
-    complex(8), intent(out) :: result_out
-
-    real(8) :: wx, wy
-
-    ! Bilinear interpolation weights
-    wx = x_val
-    wy = y_val
-
-    ! Interpolate: (1-wx)(1-wy)*f1 + wx(1-wy)*f2 + (1-wx)wy*f3 + wx*wy*f4
-    result_out = f1 * (1.0d0 - wx) * (1.0d0 - wy) + &
-                 f2 * wx * (1.0d0 - wy) + &
-                 f3 * (1.0d0 - wx) * wy + &
-                 f4 * wx * wy
-
-  end subroutine intrp
 
   !============================================================================
   ! ZINT - Wire internal impedance calculation

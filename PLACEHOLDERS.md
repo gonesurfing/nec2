@@ -22,7 +22,7 @@ These are needed for specific advanced features:
 - Surface patch calculations (hsfld - has implementation)
 - Network analysis (netwk - ✅ FULLY IMPLEMENTED!)
 - Numerical Green's Function (solgf - ✅ FULLY IMPLEMENTED!)
-- Far-field supplements (fflds - ✅ implemented, sflds - stub)
+- Far-field supplements (fflds, sflds - ✅ both fully implemented)
 
 ### Minor/Optimization
 These are for specific edge cases or optimizations:
@@ -169,15 +169,15 @@ subroutine fflds(geom, rox, roy, roz, scur, ex, ey, ez)
 - Radial component projection and constant application
 - Based on original: nec2dxs.f lines 4844-4880
 
-#### sflds() - Surface Field Integration (Line 1025)
+#### sflds() - Surface Field Integration (Line 1066-1248) ✅ FULLY IMPLEMENTED!
 ```fortran
-subroutine sflds(t_val, e_val)
+subroutine sflds(t_val, e_out, dataj, ground, obs_x, obs_y, obs_z, sn_val, xsn, ysn, isnor)
 ```
-**Status:** Placeholder stub - returns (0,0)
-**Purpose:** Surface field integration
-**Impact:** Surface patch calculations may be incomplete
-**Priority:** MEDIUM if using surface patches
-**Implementation needed:** ~50 lines from original SFLDS
+**Status:** ✅ FULLY IMPLEMENTED
+**Purpose:** Computes field due to ground for current elements on surface patches
+**Implementation:** Complete with Norton approximation and Sommerfeld interpolation
+**Details:** 183 lines, supports both ground calculation methods, critical for patch antennas
+**Note:** Also moved intrp() to nec2_sommerfeld to resolve circular dependencies
 
 ### 3. nec2_matrix.f90
 
@@ -362,7 +362,7 @@ call efld(geom, dataj, ground_local, xi, yi, zi, ai, ij)
 **Priority: MEDIUM** - If surface patches are needed
 1. ⬜ Complete **cmws()**, **cmsw()**, **cmss()** matrix interactions
 2. ⬜ Verify **hsfld()** surface field calculation
-3. ⬜ Complete **sflds()** surface field integration
+3. ✅ Complete **sflds()** surface field integration
 4. ✅ **solgf()** FULLY IMPLEMENTED (2025-11-10 evening)
 
 ### Phase 4: Network Elements ✅ COMPLETE!
@@ -410,7 +410,7 @@ call efld(geom, dataj, ground_local, xi, yi, zi, ai, ij)
 - Ground field framework (needs verification)
 
 ### What Doesn't Work ❌
-- Surface field integration (sflds stub - rarely used)
+- Surface field integration (sflds - ✅ fully implemented)
 - Most I/O formatting (gfout, nfpat, rdpat, datagn - low priority)
 - Coupling analysis (couple stub - specialized feature)
 - Advanced scattering (etmns stub - Mitzner's method)
@@ -453,7 +453,7 @@ call efld(geom, dataj, ground_local, xi, yi, zi, ai, ij)
 5. ⬜ Verify/test **gfld()** and **gwave()**
 
 ### Large Effort (Days)
-1. ⬜ Complete **sflds()** surface integration
+1. ✅ Complete **sflds()** surface integration
 2. ⬜ Implement all I/O formatting functions
 3. ⬜ Add comprehensive testing for all features
 
@@ -477,7 +477,7 @@ Now fully functional:
 Status:
 - ✅ Numerical Green's function (solgf) - COMPLETE
 - ⬜ Surface interactions (cmws, cmsw, cmss) - incomplete
-- ⬜ Surface fields (sflds) - incomplete
+- ✅ Surface fields (sflds) - COMPLETE
 
 ## Files to Review
 

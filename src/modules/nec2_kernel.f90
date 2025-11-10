@@ -10,7 +10,7 @@ module nec2_kernel
   private
 
   ! Public subroutines
-  public :: eksc, ekscx, pcint, hfk, gh
+  public :: eksc, ekscx, pcint, hfk, gh, unere
 
   ! Module-level variables for kernel calculations (replaces COMMON /TMI/)
   real(8), save :: zpk_mod, rkb2_mod

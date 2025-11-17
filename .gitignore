@@ -1,0 +1,17 @@
+# Fortran compiled files
+*.o
+*.mod
+
+# Backup files
+*.bak
+*.backup
+
+# Executables
+nec2d
+nec2dxs
+a.out
+
+# Editor temporary files
+*~
+.*.swp
+.*.swo

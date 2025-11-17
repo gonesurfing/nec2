@@ -19,7 +19,7 @@ C     Complex type declarations for variables in COMMON blocks
       COMPLEX*16 VQD,VSANT,VQDS
       COMPLEX*16 ZPED
       COMPLEX*16 U,U2,XX1,XX2
-      COMPLEX*16 EPSCF
+      COMPLEX*16 AR1,AR2,AR3,EPSCF
 C
 C     COMMON blocks used in main program (from nec2dxs.f lines 33-61)
 C     Note: /DATA/ excluded because it uses EQUIVALENCE in main program

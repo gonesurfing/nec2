@@ -4,3 +4,6 @@
 
 # Executable
 nec2dxs
+
+# Test output files
+*.out

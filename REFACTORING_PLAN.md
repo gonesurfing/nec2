@@ -1,16 +1,17 @@
 # Refactoring Plan for nec2dxs.f
 
-## Current Status: Steps 1-3 Complete ✓
+## Current Status: Steps 1-4 Complete ✓
 
 **Completed modules:**
 - ✅ nec2_common.f (parameters only)
 - ✅ nec2_io.f (I/O utilities, 8 subroutines)
 - ✅ nec2_geometry.f (geometry routines, 11 subroutines)
-- 🔄 nec2dxs.f (main program, reduced from 9925 → 7528 lines)
+- ✅ nec2_greens.f (Green's functions, 12 subroutines)
+- 🔄 nec2dxs.f (main program, reduced from 9925 → 6517 lines)
 
-**Build configuration:** `nec2_common.o nec2_io.o nec2_geometry.o nec2dxs.o` → `nec2dxs`
+**Build configuration:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2dxs.o` → `nec2dxs`
 
-**Next step:** Step 4 - Extract Green's functions (nec2_greens.f)
+**Next step:** Step 5 - Extract solver routines (nec2_solve.f)
 
 ---
 
@@ -213,17 +214,31 @@ Network and coupling routines:
 
 ---
 
-### 📋 PENDING STEPS
+#### Step 4: Green's Functions Module (494cef5) ✓
+**Implementation:**
+- Created `nec2_greens.f` with 12 special function/quadrature subroutines (1029 lines):
+  * SOM2D - Sommerfeld integral grid generation
+  * BESSEL, HANKEL - Bessel and Hankel special functions
+  * ETMNS - Electric field incident calculation
+  * GF, GH, GX, GXX - Green's function components
+  * HFK, HINTG, HSFLX, INTX - Integration kernels for field calculations
+- Removed these subroutines from nec2dxs.f (1011 lines removed)
+- Each subroutine uses `USE NEC2_COMMON` for parameters only
+- Each subroutine declares its own COMMON blocks locally (/EVLCOM/, /GGRID/)
+- Removed redundant `INCLUDE 'NEC2DPAR.INC'` (already in NEC2_COMMON)
+- Updated Makefile: `OBJS = nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2dxs.o`
+- File size: nec2dxs.f reduced from 7528 → 6517 lines
 
-#### Step 4: Green's Functions Module
-- [ ] Create `nec2_greens.f` with special functions/quadrature routines:
-  * SOM2D, BESSEL, HANKEL, GH, GF, GX, GXX
-  * ETMNS, HSFLX, HFK, INTX, HINTG
-- [ ] Follow parameters-only pattern (USE NEC2_COMMON, local COMMON blocks)
-- [ ] Remove these subroutines from nec2dxs.f
-- [ ] Update Makefile to add nec2_greens.o
-- [ ] Build and test
-- [ ] Commit
+**Testing:**
+- Build: ✅ `make clean && make` successful
+- Functionality: ✅ Numerical results identical to Step 3
+- Output: 247 lines, power budget values match exactly
+
+**Result:** nec2_greens.f extracted and working
+
+---
+
+### 📋 PENDING STEPS
 
 #### Step 5: Solver Module
 - [ ] Create `nec2_solve.f` with matrix/solver routines:

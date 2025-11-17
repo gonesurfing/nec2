@@ -11,6 +11,11 @@
 - **nec2d_utils.f90** - Utility functions (ATGN2, CANG, DB10, CPUSEC, STOPWTCH)
 - Compiles successfully with minor warnings
 
+### ✅ Standalone Functions (Committed)
+- **nec2d_isegno.f90** - Segment number lookup function
+- Successfully converted to free-form Fortran 90
+- Demonstrates successful approach for simple standalone functions
+
 ## In Progress
 
 ### ⚠️ Phase 2b: I/O Module (BLOCKED)

@@ -37,10 +37,27 @@ Skip I/O module for now and continue with simpler standalone function modules:
 - Other small utility functions
 - Build up gradually to more complex modules
 
+## Strategy Pivot
+
+**Decision**: Switched from .f90 modules to .f fixed-form splitting
+
+### Why:
+- Converting 10,000 lines of F77 to F90 is time-consuming and error-prone
+- Original goal was "minimal changes" for incremental testing
+- Fixed-form/free-form mixing caused compilation issues
+
+### New Approach (See REFACTORING_PLAN_V2.md):
+- Keep all code as Fortran 77 fixed-form (.f files)
+- Split by functional area (I/O, geometry, matrix, solver, etc.)
+- Preserve COMMON blocks and INCLUDE statements
+- Compile with `gfortran -ffixed-form`
+- Much simpler and less risky
+
 ## Lessons Learned
 
-1. Simple utility functions work well in modules
-2. Large subroutines with COMMON blocks need careful handling
-3. Fixed-form/free-form mixing is problematic
-4. Need to remove COMMON blocks AND their declarations
-5. Frequent commits are essential!
+1. ✅ Simple utility functions work well in .f90 modules
+2. ⚠️ Large subroutines with COMMON blocks problematic in modules
+3. ❌ Fixed-form/free-form mixing doesn't work well
+4. ✅ Need to remove COMMON blocks if using modules
+5. ✅ Frequent commits are essential!
+6. ✅ **Use .f for minimal changes, .f90 only when modernizing**

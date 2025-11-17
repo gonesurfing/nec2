@@ -2,8 +2,7 @@ FC = gfortran
 FFLAGS = -O0 -std=legacy -ffixed-form -ffixed-line-length-none
 
 # Module objects will be added here as we refactor
-# nec2_geometry.o removed temporarily during MODULE variables conversion
-OBJS = nec2_common.o nec2_io.o nec2dxs.o
+OBJS = nec2_common.o nec2_io.o nec2_geometry.o nec2dxs.o
 
 all: nec2dxs
 

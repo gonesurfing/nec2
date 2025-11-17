@@ -86,11 +86,14 @@ Network and coupling routines:
 - [x] Build and commit
 - Commit: f1630c1
 
-### Step 3: Geometry
-- [ ] Move DATAGN + geometry helpers into `nec2_geometry`
-- [ ] Replace their local COMMONs with `use nec2_common`
-- [ ] Add `use nec2_geometry` in callers
-- [ ] Build and commit
+### Step 3: Geometry ⚠️ REVERTED
+- **ATTEMPT FAILED** - Extraction broke calculations catastrophically
+- Issue: Moving geometry subroutines (ARC, DATAGN, HELIX, LOAD, MOVE, PATCH, PCINT, REFLC, SBF, TBF, WIRE) to separate module broke COMMON block data sharing
+- Symptom: Impedance calculation dropped from 82.7+j46.3Ω to 0.042+j429Ω (~2000x error)
+- Root cause: Complex interaction between USE statements and local COMMON blocks with EQUIVALENCE
+- Decision: **Keep geometry subroutines in main nec2dxs.f file**
+- Commits reverted: 75817e1, 546a016
+- Branch reset to: e8c32f2 (Step 2 completion)
 
 ### Step 4: Greens Functions
 - [ ] Move special-function helpers into `nec2_greens`

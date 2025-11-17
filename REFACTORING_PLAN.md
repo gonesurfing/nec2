@@ -1,17 +1,18 @@
 # Refactoring Plan for nec2dxs.f
 
-## Current Status: Steps 1-4 Complete ✓
+## Current Status: Steps 1-5 Complete ✓
 
 **Completed modules:**
 - ✅ nec2_common.f (parameters only)
 - ✅ nec2_io.f (I/O utilities, 8 subroutines)
 - ✅ nec2_geometry.f (geometry routines, 11 subroutines)
 - ✅ nec2_greens.f (Green's functions, 12 subroutines)
-- 🔄 nec2dxs.f (main program, reduced from 9925 → 6517 lines)
+- ✅ nec2_solve.f (matrix/solver routines, 17 subroutines)
+- 🔄 nec2dxs.f (main program, reduced from 9925 → 4800 lines)
 
-**Build configuration:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2dxs.o` → `nec2dxs`
+**Build configuration:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2_solve.o nec2dxs.o` → `nec2dxs`
 
-**Next step:** Step 5 - Extract solver routines (nec2_solve.f)
+**Next step:** Step 6 - Extract field calculation routines (nec2_fields.f)
 
 ---
 
@@ -238,18 +239,30 @@ Network and coupling routines:
 
 ---
 
-### 📋 PENDING STEPS
+#### Step 5: Solver Module (005a9c1) ✓
+**Implementation:**
+- Created `nec2_solve.f` with 17 matrix/solver subroutines (1729 lines):
+  * Matrix fill: CMNGF, CMSET, CMSS, CMSW, CMWS, CMWW (813 lines)
+  * Factorization: FACTR, FACTRS, FACGF, LFACTR (381 lines)
+  * Solvers: SOLVE, SOLVES, LTSOLV, LUNSCR (308 lines)
+  * Blocking: FBLOCK, FBNGF, REBLK (215 lines)
+- Removed these subroutines from nec2dxs.f (1717 lines removed)
+- Most subroutines use `USE NEC2_COMMON` for parameters
+- **Exception**: FBNGF has IRESRV as argument → conflicts with PARAMETER IRESRV
+  * Solution: FBNGF does NOT use NEC2_COMMON (includes its own declarations)
+- Updated Makefile: `OBJS = ... nec2_greens.o nec2_solve.o nec2dxs.o`
+- File size: nec2dxs.f reduced from 6517 → 4800 lines
 
-#### Step 5: Solver Module
-- [ ] Create `nec2_solve.f` with matrix/solver routines:
-  * FACTR, FACTRS, SOLVE, SOLVES, LFACTR, LTSOLV, LUNSCR
-  * FACGF, FBLOCK, FBNGF, REBLK
-  * CM* helpers: CMNGF, CMSET, CMSS, CMSW, CMWS, CMWW
-- [ ] Follow parameters-only pattern
-- [ ] Remove from nec2dxs.f
-- [ ] Update Makefile
-- [ ] Build and test
-- [ ] Commit
+**Testing:**
+- Build: ✅ `make clean && make` successful
+- Functionality: ✅ Output identical to Step 4
+- Power budget values match exactly
+
+**Result:** nec2_solve.f extracted and working
+
+---
+
+### 📋 PENDING STEPS
 
 #### Step 6: Fields Module
 - [ ] Create `nec2_fields.f` with field calculation routines:

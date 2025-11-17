@@ -10,11 +10,11 @@ Refactor nec2dxs.f (fixed-form Fortran) into modules with minimal changes.
 
 ## Proposed Module Layout
 
-### nec2_common
-Parameters from `NEC2D*.INC`; all COMMON blocks:
-- `/DATA/`, `/SEGJ/`, `/CRNT/`, `/GND/`, `/GWAV/`, `/ZLOAD/`, `/VSORC/`, `/NETCX/`
-- `/FPAT/`, `/GGRID/`, `/MATPAR/`, `/PLOT/`, `/SCRATM/`, `/CNTOUR/`, `/ANGL/`
-- `/SMAT/`, `/TMH/`, `/TMI/`, `/EVLCOM/`, `/NGFNAM/`
+### nec2_common (PARAMETERS ONLY)
+**Contains ONLY parameter definitions, NOT COMMON blocks**:
+- `INCLUDE 'NEC2DPAR.INC'` - MAXSEG, MAXMAT, LOADMX, NSMAX, NETMX, JMAX
+- `PARAMETER (IRESRV=MAXMAT**2)`
+- **Each .f file declares its own COMMON blocks locally** (standard Fortran 77 practice)
 - Shared via `use nec2_common`
 
 ### nec2_io
@@ -86,14 +86,29 @@ Network and coupling routines:
 - [x] Build and commit
 - Commit: f1630c1
 
-### Step 3: Geometry ⚠️ REVERTED
-- **ATTEMPT FAILED** - Extraction broke calculations catastrophically
-- Issue: Moving geometry subroutines (ARC, DATAGN, HELIX, LOAD, MOVE, PATCH, PCINT, REFLC, SBF, TBF, WIRE) to separate module broke COMMON block data sharing
-- Symptom: Impedance calculation dropped from 82.7+j46.3Ω to 0.042+j429Ω (~2000x error)
-- Root cause: Complex interaction between USE statements and local COMMON blocks with EQUIVALENCE
-- Decision: **Keep geometry subroutines in main nec2dxs.f file**
-- Commits reverted: 75817e1, 546a016
-- Branch reset to: e8c32f2 (Step 2 completion)
+### Step 3: Geometry - COMMON Block Incompatibility Discovery ⚠️
+- **MULTIPLE ATTEMPTS FAILED** - Discovered fundamental Fortran COMMON/module incompatibility
+- **Issue**: When COMMON blocks are declared inside a MODULE and that module is USEd, local redeclaration of those COMMON blocks in subroutines causes compiler errors:
+  - Error: "Symbol 'xyz' at (1) is USE associated from module 'nec2_common' and cannot occur in COMMON"
+  - This prevents splitting code across multiple files when using modules
+
+- **Root Cause**: Fortran 90+ modules make COMMON blocks "owned" by the module, preventing the traditional F77 practice of redeclaring COMMON blocks in each compilation unit
+
+- **Solutions Attempted**:
+  1. **COMMON blocks in module (Step 1-2)**: Works for single-file, fails for multi-file ❌
+  2. **MODULE variables**: Requires rewriting all ~60 subroutines, too error-prone ❌
+  3. **Parameters-only module**: Simple, works for multi-file ✓
+
+### Step 1-2 (REVISED): Parameters-Only Approach ✓
+- **SOLUTION**: Keep ONLY parameters in nec2_common module (not COMMON blocks)
+- Each compilation unit declares its own COMMON blocks locally (standard F77 practice)
+- This allows multi-file organization while avoiding USE/COMMON conflicts
+- **Changes made**:
+  - [x] nec2_common.f: Contains ONLY `INCLUDE 'NEC2DPAR.INC'` and `PARAMETER (IRESRV=MAXMAT**2)`
+  - [x] nec2_io.f: Subroutines PARSIT, GFIL, GFOUT declare local COMMON blocks
+  - [x] nec2dxs.f: Main program declares all needed COMMON blocks locally
+- [x] Build successful, test output identical to baseline
+- Commits: [TBD]
 
 ### Step 4: Greens Functions
 - [ ] Move special-function helpers into `nec2_greens`

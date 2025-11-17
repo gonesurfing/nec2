@@ -65,20 +65,26 @@ Network and coupling routines:
 
 ## Incremental Commit Steps
 
-### Baseline
+### Baseline ✓
 - [x] Tag current tree
 - [x] Update Makefile to allow multiple objects but still build the monolith
 - [x] No code moved yet
+- Commit: 17b8600
 
-### Step 1: Common Module
+### Step 1: Common Module ✓
 - [x] Add `nec2_common.f` with includes and COMMONs
 - [x] Add `use nec2_common` only in the main program unit to prove it builds
 - [x] Build and commit
+- [x] Fixed /GGRID/ COMMON block size warning
+- Commits: e6d24e3, d650409
 
-### Step 2: I/O Utilities
-- [ ] Move UPCASE/PARSIT/READMN/READGM/PRNT/CPUSEC into `nec2_io` module
-- [ ] Add `use nec2_io` where called
-- [ ] Build and commit
+### Step 2: I/O Utilities ✓
+- [x] Move UPCASE/PARSIT/READMN/READGM/PRNT/CPUSEC into `nec2_io` module
+- [x] Move BLCKOT/GFIL/GFOUT/stopwtch into `nec2_io` module
+- [x] Add `use nec2_io` to main program
+- [x] Added /ANGL/ and /NGFNAM/ to nec2_common
+- [x] Build and commit
+- Commit: f1630c1
 
 ### Step 3: Geometry
 - [ ] Move DATAGN + geometry helpers into `nec2_geometry`

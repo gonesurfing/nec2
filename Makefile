@@ -1,6 +1,7 @@
 FC = gfortran
-FFLAGS = -O0 -std=legacy
+FFLAGS = -O0 -std=legacy -ffixed-form -ffixed-line-length-none
 
+# Module objects will be added here as we refactor
 OBJS = nec2dxs.o
 
 all: nec2dxs

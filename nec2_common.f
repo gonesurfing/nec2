@@ -77,4 +77,11 @@ C
 C     /PLOT/ - Plot control flags
       COMMON /PLOT/ IPLP1,IPLP2,IPLP3,IPLP4
 C
+C     /ANGL/ - Segment angles (used by geometry and I/O routines)
+      COMMON /ANGL/ SALP(MAXSEG)
+C
+C     /NGFNAM/ - NGF filename (used by I/O routines)
+      CHARACTER NGFNAM*80
+      COMMON /NGFNAM/NGFNAM
+C
       END MODULE NEC2_COMMON

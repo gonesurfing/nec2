@@ -108,7 +108,23 @@ Network and coupling routines:
   - [x] nec2_io.f: Subroutines PARSIT, GFIL, GFOUT declare local COMMON blocks
   - [x] nec2dxs.f: Main program declares all needed COMMON blocks locally
 - [x] Build successful, test output identical to baseline
-- Commits: [TBD]
+- Commits: 19079ba, 67fa3dd
+
+### Step 3: Geometry Module ✓
+- **COMPLETED**: Successfully extracted geometry routines using parameters-only approach
+- **Files created**: nec2_geometry.f already existed from previous session attempt
+- **Changes made**:
+  - [x] Removed 11 geometry subroutines from nec2dxs.f (1565 lines removed):
+    * ARC, DATAGN, HELIX, LOAD, MOVE, PATCH, PCINT, REFLC, SBF, TBF, WIRE
+  - [x] Each subroutine in nec2_geometry.f follows parameters-only pattern:
+    * USE NEC2_COMMON for parameters only
+    * Declares needed COMMON blocks locally
+    * Original F77 code preserved unchanged
+  - [x] Updated Makefile: Added nec2_geometry.o to OBJS
+  - [x] File size reduced: nec2dxs.f from 9093 to 7528 lines
+- [x] Build successful: make clean && make with no errors
+- [x] Test successful: numerical results identical (only formatting differences)
+- Commit: e557021
 
 ### Step 4: Greens Functions
 - [ ] Move special-function helpers into `nec2_greens`

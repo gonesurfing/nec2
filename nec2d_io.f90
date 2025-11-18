@@ -543,7 +543,10 @@ end subroutine gfout
 
 
 subroutine blckot(ar,nunit,ix1,ix2,nblks,neof)
-  ! BLCKOT controls writing of matrix blocks.
+  ! blckot controls writing of matrix blocks.
+  ! note: nblks and neof are intentionally unused here but kept for
+  ! interface consistency with blckin (these subroutines were originally
+  ! a single routine with an entry point)
   implicit real*8(a-h,o-z)
   complex*16 ar
   dimension ar(1)

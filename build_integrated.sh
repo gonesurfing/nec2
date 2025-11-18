@@ -6,6 +6,18 @@ set -e  # Exit on error
 echo "=== Building Integrated NEC2D with Modernized I/O Module ==="
 echo
 
+# Check if nec2dxs_no_io.f exists, if not generate it
+if [ ! -f nec2dxs_no_io.f ]; then
+    echo "Step 0: Generating nec2dxs_no_io.f (removing I/O subroutines)"
+    python3 remove_io_subroutines.py
+    if [ $? -ne 0 ]; then
+        echo "✗ Failed to generate nec2dxs_no_io.f"
+        exit 1
+    fi
+    echo "✓ nec2dxs_no_io.f generated successfully"
+    echo
+fi
+
 echo "Step 1: Compile modernized I/O module (nec2d_io.f90)"
 # Use -std=legacy to allow REAL*8, COMPLEX*16 (GNU extensions)
 gfortran -c -O0 -std=legacy nec2d_io.f90 -o nec2d_io.o

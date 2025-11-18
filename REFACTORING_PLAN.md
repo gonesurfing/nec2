@@ -373,3 +373,89 @@ C     MODULE NEC2_<NAME>
 - Maintain minimal changes to preserve original code behavior
 - **CRITICAL:** Never put COMMON blocks in nec2_common module - parameters only!
 - Each new .f file must declare its own COMMON blocks locally
+
+---
+
+## Next Steps: Converting to Free-Form Fortran 90+ (.f90)
+
+Once the modular architecture is complete (as it now is), the next phase would be converting from fixed-form (.f) to free-form (.f90) format. This should be done incrementally, one module at a time:
+
+### Conversion Strategy
+
+**Phase 1: Format Conversion (Mechanical)**
+1. **Convert fixed-form to free-form syntax:**
+   - Remove column-based formatting (lines no longer start at column 7)
+   - Replace continuation markers (& instead of column 6 character)
+   - Convert comments from `C` to `!`
+   - Remove line length restrictions (no 72-column limit)
+   - Update compiler flags: `-std=legacy -ffixed-form` → `-std=f2008 -ffree-form`
+
+2. **Modernize declarations:**
+   - `IMPLICIT REAL*8(A-H,O-Z)` → explicit type declarations
+   - `REAL*8` → `REAL(KIND=8)` or `REAL(DP)` with parameter
+   - `COMPLEX*16` → `COMPLEX(KIND=8)` or `COMPLEX(DP)`
+   - `INTEGER` → explicit `INTEGER(KIND=4)` if needed
+
+3. **Replace obsolete constructs:**
+   - Arithmetic IF: `IF (X) 1,2,3` → modern IF-THEN-ELSE
+   - Computed GOTO: `GO TO (10,20,30) I` → SELECT CASE
+   - Statement labels: replace with named blocks where possible
+   - ENTRY statements: refactor into separate procedures
+
+**Phase 2: COMMON Block Elimination (Structural)**
+4. **Convert COMMON blocks to MODULE variables:**
+   - Move COMMON block contents into nec2_common module as module variables
+   - Replace all COMMON declarations with `USE NEC2_COMMON` statements
+   - This is now safe because files are already modularized!
+   - Each COMMON block becomes a separate scope within nec2_common
+
+5. **Modernize I/O:**
+   - Replace unit numbers with proper file handles
+   - Use ISO_FORTRAN_ENV for standard units
+   - Modernize FORMAT statements to use free-form syntax
+
+**Phase 3: Modern Fortran Features (Enhancement)**
+6. **Add explicit interfaces:**
+   - Wrap all procedures in proper MODULE...CONTAINS blocks
+   - Remove need for EXTERNAL declarations
+   - Enable compile-time checking of arguments
+
+7. **Use allocatable arrays:**
+   - Replace fixed-size arrays (MAXSEG, MAXMAT) with allocatable arrays
+   - Remove parameter limits, read geometry to determine sizes
+   - Modernize memory management
+
+8. **Add error handling:**
+   - Replace STOP statements with proper error returns
+   - Use IOSTAT for I/O error checking
+   - Implement graceful error recovery
+
+### Recommended Order
+
+Convert modules from smallest to largest to minimize risk:
+
+1. **nec2_common.f** → nec2_common.f90 (easiest, just parameters)
+2. **nec2_network.f** → nec2_network.f90 (smallest module, 689 lines)
+3. **nec2_io.f** → nec2_io.f90 (I/O modernization most beneficial)
+4. **nec2_greens.f** → nec2_greens.f90
+5. **nec2_fields.f** → nec2_fields.f90
+6. **nec2_solve.f** → nec2_solve.f90
+7. **nec2_geometry.f** → nec2_geometry.f90 (largest, most complex)
+8. **nec2dxs.f** → nec2dxs.f90 (main program last)
+
+### Testing Strategy
+
+- After each module conversion, rebuild and run example1.nec
+- Verify numerical output remains **bit-identical** to original
+- Once format conversion is stable, THEN tackle COMMON block elimination
+- Keep .f files as backup until all tests pass
+- Consider using automated tools (e.g., `convert.py` from fortran90.org) for initial mechanical conversion
+
+### Key Benefits After Conversion
+
+- No 72-column line limits (improved readability)
+- Compile-time argument checking via interfaces
+- Better error messages from compiler
+- Memory efficiency (allocatable arrays)
+- Foundation for further modernization (object-oriented design, etc.)
+- Easier integration with modern Fortran libraries

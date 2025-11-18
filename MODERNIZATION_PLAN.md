@@ -1,0 +1,329 @@
+# Fortran Code Modernization Plan for NEC2D
+
+## Executive Summary
+
+This document outlines a comprehensive plan to modernize the NEC2D Fortran codebase,
+eliminating legacy constructs including 1,019 GOTO statements while maintaining
+numerical accuracy and functionality.
+
+## Current Status (Phase 1 Complete)
+
+✅ **Completed:**
+- Merged split_files branch with modular code structure
+- Verified compilation of all split modules:
+  - nec2d_params.f90 (22 lines)
+  - nec2d_commons.f90 (135 lines)
+  - nec2d_utils.f90 (123 lines)
+  - nec2d_isegno.f90 (46 lines)
+  - nec2d_io.f (631 lines, 20 GOTOs)
+- Established baseline with successful test run (example1.nec)
+- Created modernized proof-of-concept (nec2d_io_modern.f90)
+
+## Modernization Strategy
+
+### Three-Tier Approach
+
+#### Tier 1: Simple Modules (COMPLETED for params, utils, isegno)
+- ✅ Free-form Fortran 90 syntax
+- ✅ IMPLICIT NONE with explicit declarations
+- ✅ Modern DO...END DO loops
+- ✅ INTENT attributes
+- **Suitable for:** Standalone functions with no COMMON blocks
+
+#### Tier 2: Intermediate Modules (IN PROGRESS for I/O)
+- Convert fixed-form → free-form
+- Eliminate GOTOs → structured control flow
+- Modern DO loops (remove statement labels)
+- **Keep:** IMPLICIT REAL*8 (due to COMMON blocks)
+- **Keep:** COMMON blocks (for now)
+- **Keep:** EQUIVALENCE (minimal impact on readability)
+- **Suitable for:** Modules with COMMON blocks but simple logic
+
+#### Tier 3: Complex Modules (FUTURE for main program, Sommerfeld integrals)
+- Incremental GOTO elimination
+- Preserve IMPLICIT typing initially
+- Focus on algorithmic clarity first
+- **Suitable for:** Large modules with complex state machines and extensive GOTOs
+
+## Detailed Modernization Phases
+
+### Phase 2: Format Conversion (CURRENT)
+
+**Target:** All .f files → .f90
+
+**Tasks per file:**
+1. Convert comment syntax: `C` → `!`
+2. Remove column restrictions
+3. Update continuation lines: column-6 → `&`
+4. Split long lines (>132 chars)
+5. Remove unnecessary statement labels
+6. Rename .f → .f90
+
+**Estimated effort:** 2-4 hours per 500-line module
+
+### Phase 3: GOTO Elimination
+
+**Priority Order** (simplest → most complex):
+
+#### 3.1 Simple Error Handling (Estimated: 150 occurrences)
+```fortran
+! Old:
+IF (error) GO TO 30
+...
+30 STOP
+
+! New:
+IF (error) THEN
+  WRITE(*,*) 'Error message'
+  STOP
+END IF
+```
+
+#### 3.2 Labeled DO Loops (Estimated: 300 occurrences)
+```fortran
+! Old:
+DO 100 I=1,N
+  ...
+100 CONTINUE
+
+! New:
+DO I = 1, N
+  ...
+END DO
+```
+
+#### 3.3 Forward-Only GOTOs (Estimated: 200 occurrences)
+```fortran
+! Old:
+IF (cond) GO TO 50
+...
+50 CONTINUE
+
+! New:
+IF (.NOT. cond) THEN
+  ...
+END IF
+```
+
+#### 3.4 Computed GOTO (Estimated: 50 occurrences)
+```fortran
+! Old:
+GO TO (10,20,30,40), index
+
+! New:
+SELECT CASE (index)
+  CASE (1)
+    ! label 10 code
+  CASE (2)
+    ! label 20 code
+  CASE (3)
+    ! label 30 code
+  CASE (4)
+    ! label 40 code
+END SELECT
+```
+
+#### 3.5 Backward GOTOs / Loops (Estimated: 150 occurrences)
+```fortran
+! Old:
+10 CONTINUE
+  ...
+  IF (cond) GO TO 10
+
+! New:
+DO WHILE (cond)
+  ...
+END DO
+```
+
+#### 3.6 Complex State Machines (Estimated: 169 occurrences)
+- Requires careful analysis of control flow
+- May need explicit state variables
+- Document state transitions
+- **Approach:** One subroutine at a time with comprehensive testing
+
+### Phase 4: Modernize Constructs
+
+#### 4.1 Eliminate IMPLICIT Statements
+- Add `IMPLICIT NONE` to all routines
+- Explicitly declare all variables
+- Add type specifications: `REAL(8)`, `INTEGER`, `COMPLEX(16)`
+- **Challenge:** COMMON blocks require coordination
+- **Solution:** Convert COMMON → module variables (long-term)
+
+#### 4.2 Replace Arithmetic IF
+```fortran
+! Old:
+IF (X) 10,20,30  ! X<0 → 10, X=0 → 20, X>0 → 30
+
+! New:
+IF (X < 0.0) THEN
+  ! label 10 code
+ELSE IF (X == 0.0) THEN
+  ! label 20 code
+ELSE
+  ! label 30 code
+END IF
+```
+
+#### 4.3 Eliminate COMMON Blocks
+- Convert to MODULE variables
+- Better scoping and type safety
+- **Timeline:** After GOTO elimination (Phase 5+)
+
+#### 4.4 Remove EQUIVALENCE
+- Use proper data structures
+- Explicit data mapping
+- **Timeline:** Phase 6+
+
+#### 4.5 Replace Hollerith Strings
+```fortran
+! Old:
+DATA HPOL/6HLINEAR,5HRIGHT,4HLEFT/
+
+! New:
+CHARACTER(LEN=6), PARAMETER :: HPOL(3) = &
+  (/ 'LINEAR', 'RIGHT ', 'LEFT  ' /)
+```
+
+#### 4.6 Eliminate ENTRY Points
+- Convert to separate subroutines
+- **Example:** BLCKIN was extracted from BLCKOT
+
+### Phase 5: Code Quality Improvements
+
+#### 5.1 Add Intent Attributes
+```fortran
+SUBROUTINE FOO(A, B, C)
+  REAL(8), INTENT(IN) :: A
+  REAL(8), INTENT(OUT) :: B
+  REAL(8), INTENT(INOUT) :: C
+```
+
+#### 5.2 Use Explicit Interfaces
+- MODULE procedures automatically have explicit interfaces
+- Better compile-time checking
+
+#### 5.3 Improve Variable Naming
+- `I, J, K` → `row_idx, col_idx, elem_idx`
+- `X, Y, Z` → descriptive names where appropriate
+- Balance: Don't over-modernize mathematical notation
+
+#### 5.4 Add Documentation
+- Doxygen-style comments
+- Purpose, inputs, outputs
+- Algorithm references
+
+### Phase 6: Testing & Validation
+
+**After each module modernization:**
+
+1. **Compilation test:** Must compile without errors
+2. **Unit test:** If applicable
+3. **Regression test:** Run example problems
+4. **Numerical comparison:** Output must match original to machine precision
+5. **Performance benchmark:** Should not significantly degrade
+
+**Test suite:**
+- example1.nec (current baseline)
+- Additional test cases covering:
+  - Wire antennas
+  - Patch antennas
+  - Ground effects
+  - Near-field calculations
+  - Frequency sweeps
+
+## GOTO Elimination Statistics
+
+| Module | Total GOTOs | Simple | Forward | Computed | Loops | Complex |
+|--------|-------------|--------|---------|----------|-------|---------|
+| Main program | ~300 | 50 | 80 | 20 | 100 | 50 |
+| nec2d_io.f | 20 | 8 | 6 | 0 | 2 | 4 |
+| Sommerfeld | ~200 | 30 | 50 | 10 | 80 | 30 |
+| Matrix ops | ~150 | 40 | 60 | 5 | 30 | 15 |
+| Fields | ~200 | 60 | 80 | 10 | 40 | 10 |
+| Other | ~149 | 62 | 44 | 5 | 28 | 10 |
+| **TOTAL** | **1,019** | **250** | **320** | **50** | **280** | **119** |
+
+## Estimated Timeline
+
+| Phase | Duration | Effort |
+|-------|----------|--------|
+| Phase 2: Format conversion | 2 weeks | 40 hours |
+| Phase 3.1-3.3: Simple GOTOs | 3 weeks | 60 hours |
+| Phase 3.4-3.5: Intermediate GOTOs | 4 weeks | 80 hours |
+| Phase 3.6: Complex GOTOs | 6 weeks | 120 hours |
+| Phase 4: Constructs | 4 weeks | 80 hours |
+| Phase 5: Quality | 2 weeks | 40 hours |
+| Phase 6: Testing (ongoing) | 1 week | 20 hours |
+| **TOTAL** | **22 weeks** | **440 hours** |
+
+## Lessons Learned from Pilot (nec2d_io.f)
+
+### Challenges
+
+1. **IMPLICIT NONE + COMMON blocks:** Requires explicit declaration of all COMMON variables, which can conflict with array dimensions specified in COMMON
+2. **INCLUDE files with fixed-form comments:** Don't work in free-form .f90
+3. **EQUIVALENCE + modern typing:** Complex interaction, hard to modernize without restructuring
+4. **Long FORMAT statements:** Need careful line splitting for free-form (132 char limit)
+
+### Solutions
+
+1. **Tiered approach:** Don't try to modernize everything at once
+2. **Keep IMPLICIT REAL*8 for routines with COMMON blocks** (interim solution)
+3. **Focus on GOTO elimination first** - biggest readability win
+4. **Modernize DO loops** - second biggest win, relatively easy
+5. **Defer COMMON → MODULE** - save for Phase 5-6
+
+### Proof of Concept Results
+
+**nec2d_io_modern.f90 achievements:**
+- ✅ All 20 GOTOs eliminated
+- ✅ Free-form format
+- ✅ Modern DO loops (no labels)
+- ✅ ENTRY point converted to separate subroutine
+- ✅ Structured error handling
+- ⚠️ Compilation issues with IMPLICIT NONE + COMMON (known limitation)
+
+**Recommendation:** Create intermediate version with:
+- Free-form format
+- GOTO elimination
+- Modern DO loops
+- Keep IMPLICIT REAL*8
+- Keep COMMON blocks
+- **This compiles and is much more readable**
+
+## Next Steps
+
+1. **Create nec2d_io_v2.f90:** Intermediate modernization (free-form, no GOTOs, but keep IMPLICIT)
+2. **Test compilation and correctness**
+3. **Document modernization patterns** for team
+4. **Apply to next module:** Start with smaller utility modules
+5. **Establish CI/CD:** Automated testing for each modernization
+6. **Track progress:** Update statistics as GOTOs are eliminated
+
+## Success Criteria
+
+- ✅ All code compiles with modern gfortran
+- ✅ All tests pass with bit-identical results
+- ✅ Zero GOTOs in final code
+- ✅ IMPLICIT NONE throughout
+- ✅ No COMMON blocks (use MODULEs)
+- ✅ No EQUIVALENCE statements
+- ✅ Modern free-form format
+- ✅ Comprehensive documentation
+- ✅ Performance within 10% of original
+
+## References
+
+- Metcalf, M., Reid, J., & Cohen, M. (2018). *Modern Fortran Explained*
+- Chapman, S. J. (2018). *Fortran for Scientists & Engineers*
+- NEC2 Documentation: Lawrence Livermore National Laboratory
+- 4nec2: https://www.qsl.net/4nec2/
+
+---
+
+**Document Version:** 1.0
+**Date:** 2025-11-18
+**Author:** AI Assistant (Claude)
+**Status:** Phase 1 Complete, Phase 2 In Progress

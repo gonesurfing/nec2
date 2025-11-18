@@ -8,11 +8,17 @@
 
 set -e  # Exit on error
 
+# Compiler flags
+FFLAGS="-O0 -std=legacy -Wall -Wno-unused-parameter"
+# -std=legacy: Accept REAL*8, COMPLEX*16, Hollerith formats
+# -Wall: Enable all warnings
+# -Wno-unused-parameter: Suppress warnings for unused PARAMETERs (common in legacy code)
+
 echo "=== Building Integrated NEC2D with Modernized Modules ==="
 echo
 
 echo "Step 1: Compile modernized I/O module (nec2d_io.f90)"
-gfortran -c -O0 -std=legacy nec2d_io.f90 -o nec2d_io.o
+gfortran -c $FFLAGS nec2d_io.f90 -o nec2d_io.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2d_io.f90 compiled successfully"
 else
@@ -22,7 +28,7 @@ fi
 echo
 
 echo "Step 2: Compile modernized geometry module (nec2d_geometry.f90)"
-gfortran -c -O0 -std=legacy nec2d_geometry.f90 -o nec2d_geometry.o
+gfortran -c $FFLAGS nec2d_geometry.f90 -o nec2d_geometry.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2d_geometry.f90 compiled successfully"
 else
@@ -32,7 +38,7 @@ fi
 echo
 
 echo "Step 3: Compile modernized math utilities module (nec2d_mathutil.f90)"
-gfortran -c -O0 -std=legacy nec2d_mathutil.f90 -o nec2d_mathutil.o
+gfortran -c $FFLAGS nec2d_mathutil.f90 -o nec2d_mathutil.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2d_mathutil.f90 compiled successfully"
 else
@@ -42,7 +48,7 @@ fi
 echo
 
 echo "Step 4: Compile integrated main program (nec2dxs_integrated.f)"
-gfortran -c -O0 -std=legacy nec2dxs_integrated.f -o nec2dxs_integrated.o
+gfortran -c $FFLAGS nec2dxs_integrated.f -o nec2dxs_integrated.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2dxs_integrated.f compiled successfully"
 else

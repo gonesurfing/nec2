@@ -4,15 +4,15 @@
 
 **Completed modules (7):**
 - ✅ nec2_common.f (parameters only, 19 lines)
-- ✅ nec2_io.f (I/O utilities, 8 subroutines, 869 lines)
-- ✅ nec2_geometry.f (geometry + helpers, 14 subroutines, 2094 lines)
-- ✅ nec2_greens.f (Green's functions + integration, 18 subroutines, 1436 lines)
+- ✅ nec2_io.f (I/O + utility functions, 8 subroutines + 4 functions, 931 lines)
+- ✅ nec2_geometry.f (geometry + helpers, 14 subroutines + 1 function, 2130 lines)
+- ✅ nec2_greens.f (Green's functions + integration, 18 subroutines + 1 function, 1486 lines)
 - ✅ nec2_solve.f (solver + helpers, 19 subroutines, 1908 lines)
 - ✅ nec2_fields.f (fields + helpers, 15 subroutines, 1866 lines)
-- ✅ nec2_network.f (network/coupling, 4 subroutines, 632 lines)
-- ✅ nec2dxs.f (main program ONLY, 1230 lines, **87.6% reduction**)
+- ✅ nec2_network.f (network/coupling + impedance, 4 subroutines + 1 function, 689 lines)
+- ✅ nec2dxs.f (main program ONLY, 1026 lines, **89.7% reduction**)
 
-**Total:** 78 subroutines extracted from 9925-line monolith into 7 specialized modules
+**Total:** 78 subroutines + 7 functions = 85 procedures extracted from 9925-line monolith into 7 specialized modules
 
 **Build:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2_solve.o nec2_fields.o nec2_network.o nec2dxs.o` → `nec2dxs`
 
@@ -290,6 +290,48 @@ Moved all 15 remaining helper subroutines to their logical modules:
 - Build successful, output identical to Step 7
 
 **REFACTORING COMPLETE** ✅
+
+---
+
+#### Step 9: Final Cleanup - Distribute Remaining Functions ✓
+**Implementation:**
+After Step 8, it was discovered that nec2dxs.f still contained 7 FUNCTION definitions after the main program END (line 1026). Moved all remaining functions to their logical modules:
+
+**nec2_io.f (+4 utility functions, 62 lines):**
+- ATGN2 - Arctangent function modified to return 0 when X=Y=0
+- CANG - Returns phase angle of complex number in degrees (uses ATGN2)
+- DB10/DB20 - Decibel conversion for magnitude/power (entry point)
+- ENF - End-of-file check (marked as not used on VAX)
+
+**nec2_greens.f (+1 function, 50 lines):**
+- FBAR - Sommerfeld attenuation function for numerical distance P
+- Uses series expansion for |Z|≤3, asymptotic expansion for |Z|>3
+
+**nec2_geometry.f (+1 function, 36 lines):**
+- ISEGNO - Returns segment number of Mth segment with tag ITAGI
+- Uses /DATA/ COMMON block for segment lookup
+
+**nec2_network.f (+1 function, 57 lines):**
+- ZINT - Computes internal impedance of circular wire
+- Uses Bessel function approximations for different argument ranges
+
+**Final result:**
+- nec2dxs.f: 1230 → 1026 lines (89.7% reduction from original 9925)
+- Main program is now TRULY only control logic, no subroutines OR functions
+- All 85 procedures (78 subroutines + 7 functions) distributed across 7 specialized modules
+- Build successful, output identical to Step 8
+
+**Module size summary:**
+- nec2_common.f: 19 lines
+- nec2_network.f: 689 lines (4 subroutines + 1 function)
+- nec2_io.f: 931 lines (8 subroutines + 4 functions)
+- nec2_greens.f: 1486 lines (18 subroutines + 1 function)
+- nec2_fields.f: 1866 lines (15 subroutines)
+- nec2_solve.f: 1908 lines (19 subroutines)
+- nec2_geometry.f: 2130 lines (14 subroutines + 1 function)
+- nec2dxs.f: 1026 lines (main program only)
+
+**REFACTORING TRULY COMPLETE** ✅
 
 ---
 ## Key Lessons Learned

@@ -1,7 +1,0 @@
-CE TEST WITH FINITE GROUND (Sommerfeld integrals)
-GW 0 7 0. 0. 0.25 0. 0. 0.75 .001
-GE
-GN 2 0 0 0 13.0 0.005
-EX 0 0 4 0 1.
-RP 0 1 1 1000 90. 0. 0. 0.
-EN

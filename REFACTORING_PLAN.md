@@ -1,6 +1,4 @@
-# Refactoring Plan for nec2dxs.f
-
-## Current Status: Steps 1-6 Complete ✓
+## Current Status: Steps 1-7 Complete ✓
 
 **Completed modules:**
 - ✅ nec2_common.f (parameters only)
@@ -9,11 +7,12 @@
 - ✅ nec2_greens.f (Green's functions, 12 subroutines)
 - ✅ nec2_solve.f (matrix/solver routines, 17 subroutines)
 - ✅ nec2_fields.f (field calculations, 11 subroutines)
-- 🔄 nec2dxs.f (main program, reduced from 9925 → 3441 lines, 65% reduction)
+- ✅ nec2_network.f (network/coupling, 3 subroutines)
+- 🔄 nec2dxs.f (main program + 16 helpers, 2902 lines, 71% reduction)
 
-**Build configuration:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2_solve.o nec2_fields.o nec2dxs.o` → `nec2dxs`
+**Build:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2_solve.o nec2_fields.o nec2_network.o nec2dxs.o` → `nec2dxs`
 
-**Next step:** Step 7 - Extract network/coupling routines (nec2_network.f)
+**Next:** Step 8 - Final cleanup (review remaining helpers, documentation)
 
 ---
 
@@ -263,36 +262,40 @@ Network and coupling routines:
 
 ---
 
-### 📋 PENDING STEPS
 
-#### Step 6: Fields Module (7316140) ✓
+
+#### Step 7: Network Module
+
+#### Step 7: Network Module (3074d26) ✓
 **Implementation:**
-- Created `nec2_fields.f` with 11 field calculation subroutines (1371 lines):
-  * Far field: FFLD, FFLDS, NFPAT, RDPAT (629 lines)
-  * Near field: NEFLD, NHFLD (237 lines)
-  * Ground/surface: GWAVE, SFLDS, HSFLD (311 lines)
-  * Evaluation: EVLUA, UNERE (182 lines)
-- Removed these subroutines from nec2dxs.f (1359 lines removed)
+- Created `nec2_network.f` with 3 network/coupling subroutines (546 lines):
+  * NETWK - Network analysis and impedance loading (335 lines)
+  * COUPLE - Mutual coupling calculation (75 lines)
+  * QDSRC - Quadrilateral patch current source (129 lines)
+- Removed these subroutines from nec2dxs.f (539 lines removed)
 - All subroutines use `USE NEC2_COMMON` for parameters
-- Each subroutine declares its own COMMON blocks locally
-- Updated Makefile: `OBJS = ... nec2_fields.o nec2dxs.o`
-- File size: nec2dxs.f reduced from 4800 → 3441 lines (65% total reduction)
+- Each declares needed COMMON blocks locally (/NETCX/, /DATA/, /CRNT/, etc.)
+- Updated Makefile: `OBJS = ... nec2_network.o nec2dxs.o`
+- File size: nec2dxs.f reduced from 3441 → 2902 lines (71% total reduction)
+
+**Remaining in nec2dxs.f (16 helper subroutines):**
+- Integration: GSHANK, LAMBDA, ROM1, ROM2, SAOA, TEST
+- Field helpers: EFLD, EKSC, EKSCX, GFLD
+- Solver helpers: FACIO, SOLGF
+- Geometry: CABC, CONECT, INTRP, TRIO
 
 **Testing:**
 - Build: ✅ `make clean && make` successful
-- Functionality: ✅ Numerical results identical to Step 5 (only timing differs)
+- Functionality: ✅ Numerical results identical (only timing differs)
 - Power budget values match exactly
 
-**Result:** nec2_fields.f extracted and working
+**Result:** nec2_network.f extracted; main refactoring complete
 
 ---
 
-### 📋 PENDING STEPS
+### 📋 FINAL STEP
 
-#### Step 7: Network Module
-
-
-#### Step 7: Network Module
+#### Step 8: Final Cleanup
 - [ ] Create `nec2_network.f` with network/coupling routines:
   * NETWK, COUPLE, QDSRC
   * GFOUT variants, VSORC, NETCX, port-related helpers

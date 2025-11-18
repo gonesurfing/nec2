@@ -1,10 +1,13 @@
 #!/bin/bash
-# Build integrated version with modernized I/O module
-# This builds nec2dxs_integrated.f (legacy code with I/O removed) + nec2d_io.f90 (modernized I/O)
+# Build integrated version with modernized modules
+# This builds:
+#   - nec2dxs_integrated.f (legacy code with I/O and geometry removed)
+#   - nec2d_io.f90 (modernized I/O - 0 GOTOs)
+#   - nec2d_geometry.f90 (modernized geometry - 0 GOTOs)
 
 set -e  # Exit on error
 
-echo "=== Building Integrated NEC2D with Modernized I/O Module ==="
+echo "=== Building Integrated NEC2D with Modernized Modules ==="
 echo
 
 echo "Step 1: Compile modernized I/O module (nec2d_io.f90)"
@@ -17,7 +20,17 @@ else
 fi
 echo
 
-echo "Step 2: Compile integrated main program (nec2dxs_integrated.f)"
+echo "Step 2: Compile modernized geometry module (nec2d_geometry.f90)"
+gfortran -c -O0 -std=legacy nec2d_geometry.f90 -o nec2d_geometry.o
+if [ $? -eq 0 ]; then
+    echo "✓ nec2d_geometry.f90 compiled successfully"
+else
+    echo "✗ Compilation failed"
+    exit 1
+fi
+echo
+
+echo "Step 3: Compile integrated main program (nec2dxs_integrated.f)"
 gfortran -c -O0 -std=legacy nec2dxs_integrated.f -o nec2dxs_integrated.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2dxs_integrated.f compiled successfully"
@@ -27,8 +40,8 @@ else
 fi
 echo
 
-echo "Step 3: Link to create executable"
-gfortran -O0 nec2dxs_integrated.o nec2d_io.o -o nec2dxs_integrated
+echo "Step 4: Link to create executable"
+gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o -o nec2dxs_integrated
 if [ $? -eq 0 ]; then
     echo "✓ Linking successful"
 else

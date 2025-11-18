@@ -1,6 +1,6 @@
 # Refactoring Plan for nec2dxs.f
 
-## Current Status: Steps 1-5 Complete ✓
+## Current Status: Steps 1-6 Complete ✓
 
 **Completed modules:**
 - ✅ nec2_common.f (parameters only)
@@ -8,11 +8,12 @@
 - ✅ nec2_geometry.f (geometry routines, 11 subroutines)
 - ✅ nec2_greens.f (Green's functions, 12 subroutines)
 - ✅ nec2_solve.f (matrix/solver routines, 17 subroutines)
-- 🔄 nec2dxs.f (main program, reduced from 9925 → 4800 lines)
+- ✅ nec2_fields.f (field calculations, 11 subroutines)
+- 🔄 nec2dxs.f (main program, reduced from 9925 → 3441 lines, 65% reduction)
 
-**Build configuration:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2_solve.o nec2dxs.o` → `nec2dxs`
+**Build configuration:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2_solve.o nec2_fields.o nec2dxs.o` → `nec2dxs`
 
-**Next step:** Step 6 - Extract field calculation routines (nec2_fields.f)
+**Next step:** Step 7 - Extract network/coupling routines (nec2_network.f)
 
 ---
 
@@ -264,16 +265,32 @@ Network and coupling routines:
 
 ### 📋 PENDING STEPS
 
-#### Step 6: Fields Module
-- [ ] Create `nec2_fields.f` with field calculation routines:
-  * GWAVE, FFLD, FFLDS, NFPAT, RDPAT
-  * NEFLD, NHFLD, UNERE
-  * SFLDS, HSFLD, EVLUA
-- [ ] Follow parameters-only pattern
-- [ ] Remove from nec2dxs.f
-- [ ] Update Makefile
-- [ ] Build and test
-- [ ] Commit
+#### Step 6: Fields Module (7316140) ✓
+**Implementation:**
+- Created `nec2_fields.f` with 11 field calculation subroutines (1371 lines):
+  * Far field: FFLD, FFLDS, NFPAT, RDPAT (629 lines)
+  * Near field: NEFLD, NHFLD (237 lines)
+  * Ground/surface: GWAVE, SFLDS, HSFLD (311 lines)
+  * Evaluation: EVLUA, UNERE (182 lines)
+- Removed these subroutines from nec2dxs.f (1359 lines removed)
+- All subroutines use `USE NEC2_COMMON` for parameters
+- Each subroutine declares its own COMMON blocks locally
+- Updated Makefile: `OBJS = ... nec2_fields.o nec2dxs.o`
+- File size: nec2dxs.f reduced from 4800 → 3441 lines (65% total reduction)
+
+**Testing:**
+- Build: ✅ `make clean && make` successful
+- Functionality: ✅ Numerical results identical to Step 5 (only timing differs)
+- Power budget values match exactly
+
+**Result:** nec2_fields.f extracted and working
+
+---
+
+### 📋 PENDING STEPS
+
+#### Step 7: Network Module
+
 
 #### Step 7: Network Module
 - [ ] Create `nec2_network.f` with network/coupling routines:

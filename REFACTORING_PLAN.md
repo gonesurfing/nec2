@@ -8,7 +8,7 @@
 - ✅ nec2_solve.f (matrix/solver routines, 17 subroutines)
 - ✅ nec2_fields.f (field calculations, 11 subroutines)
 - ✅ nec2_network.f (network/coupling, 3 subroutines)
-- 🔄 nec2dxs.f (main program + 16 helpers, 2902 lines, 71% reduction)
+- 🔄 nec2dxs.f (main program + 15 helpers, 2815 lines, 72% reduction)
 
 **Build:** `nec2_common.o nec2_io.o nec2_geometry.o nec2_greens.o nec2_solve.o nec2_fields.o nec2_network.o nec2dxs.o` → `nec2dxs`
 
@@ -175,10 +175,14 @@ Network and coupling routines:
 **Result:** nec2_common.f is now a pure parameters-only module
 
 ---
-
+- Created `nec2_network.f` with 4 network/coupling subroutines (632 lines):
 #### Step 2: I/O Utilities Module (f1630c1) ✓
-- Created `nec2_io.f` with 8 subroutines:
-  * UPCASE, PARSIT, READMN, READGM, PRNT, CPUSEC
+  * COUPLE - Mutual coupling calculation (75 lines)
+  * QDSRC - Quadrilateral patch current source (129 lines)
+  * CABC - Cable/transmission line loading (87 lines)
+  * COUPLE - Mutual coupling calculation (75 lines)
+  * QDSRC - Quadrilateral patch current source (129 lines)
+  * CABC - Cable/transmission line loading (87 lines)
   * BLCKOT, GFIL, GFOUT, stopwatch helpers
 - Each subroutine follows parameters-only pattern:
   * `USE NEC2_COMMON` for parameters
@@ -202,15 +206,6 @@ Network and coupling routines:
   * ARC, DATAGN, HELIX, LOAD, MOVE, PATCH, PCINT, REFLC, SBF, TBF, WIRE
 - Removed those subroutines from nec2dxs.f (1565 lines removed)
 - Each subroutine uses `USE NEC2_COMMON` for parameters only
-- Each subroutine declares its own COMMON blocks locally
-- Updated Makefile: `OBJS = nec2_common.o nec2_io.o nec2_geometry.o nec2dxs.o`
-- File size: nec2dxs.f reduced from 9925 → 9093 → 7528 lines
-
-**Testing:**
-- Build: ✅ `make clean && make` successful
-- Functionality: ✅ Numerical results identical to baseline
-- Only minor formatting differences in output (leading zeros)
-
 **Result:** nec2_geometry.f extracted and working; parameters-only pattern validated
 
 ---
@@ -268,21 +263,22 @@ Network and coupling routines:
 
 #### Step 7: Network Module (3074d26) ✓
 **Implementation:**
-- Created `nec2_network.f` with 3 network/coupling subroutines (546 lines):
+- Created `nec2_network.f` with 4 network/coupling subroutines (632 lines):
   * NETWK - Network analysis and impedance loading (335 lines)
   * COUPLE - Mutual coupling calculation (75 lines)
   * QDSRC - Quadrilateral patch current source (129 lines)
-- Removed these subroutines from nec2dxs.f (539 lines removed)
+  * CABC - Cable/transmission line loading (87 lines)
+- Removed these subroutines from nec2dxs.f (626 lines removed)
 - All subroutines use `USE NEC2_COMMON` for parameters
 - Each declares needed COMMON blocks locally (/NETCX/, /DATA/, /CRNT/, etc.)
 - Updated Makefile: `OBJS = ... nec2_network.o nec2dxs.o`
-- File size: nec2dxs.f reduced from 3441 → 2902 lines (71% total reduction)
+- File size: nec2dxs.f reduced from 3441 → 2815 lines (72% total reduction)
 
-**Remaining in nec2dxs.f (16 helper subroutines):**
+**Remaining in nec2dxs.f (15 helper subroutines):**
 - Integration: GSHANK, LAMBDA, ROM1, ROM2, SAOA, TEST
 - Field helpers: EFLD, EKSC, EKSCX, GFLD
 - Solver helpers: FACIO, SOLGF
-- Geometry: CABC, CONECT, INTRP, TRIO
+- Geometry: CONECT, INTRP, TRIO
 
 **Testing:**
 - Build: ✅ `make clean && make` successful

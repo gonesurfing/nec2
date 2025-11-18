@@ -337,13 +337,40 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 999 - 13 = **986 GOTOs**
 **Total GOTOs Eliminated:** 33 / 1,019 (3.2% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_mathutil.f90 (COMPLETED)
+
+**Date:** 2025-11-18
+
+**Modernization Results:**
+- **Routines:** 11 mathematical utility subroutines and functions
+  - Subroutines: GH, GX, GXX, LAMBDA, GWAVE, PCINT, FFLDS, CPUSEC (8)
+  - Functions: CANG, ATGN2, DB10/DB20 (3)
+- **Lines:** 375 → 424 (13% increase through modern formatting)
+- **GOTOs Eliminated:** 4 → 0 ✅
+  - GXX: 2 GOTOs eliminated (early returns → structured IF/ELSE)
+  - DB10/DB20: 2 GOTOs eliminated (ENTRY point handling → structured IF)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile with gfortran ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- 9 routines had 0 GOTOs (GH, GX, LAMBDA, GWAVE, PCINT, FFLDS, CPUSEC, CANG, ATGN2)
+- 2 routines had simple GOTOs (GXX with 2, DB10 with 2)
+- All GOTOs were simple early returns or conditional branches
+
+**Remaining GOTOs in Codebase:** 986 - 4 = **982 GOTOs**
+**Total GOTOs Eliminated:** 37 / 1,019 (3.6% complete)
+
 ## Next Steps
 
-1. ✅ **Create nec2d_io.f90:** Intermediate modernization COMPLETE
-2. ✅ **Create nec2d_geometry.f90:** Geometry module modernization COMPLETE
-3. ✅ **Test with full program:** Integration tests passing with bit-identical output
-4. **Continue with next module:** TBF/SBF, PATCH, or other medium-complexity modules
-5. **Track progress:** Continue eliminating GOTOs module-by-module (986 remaining)
+1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
+2. ✅ **Create nec2d_geometry.f90:** Geometry module modernization COMPLETE (13 GOTOs eliminated)
+3. ✅ **Create nec2d_mathutil.f90:** Math utilities modernization COMPLETE (4 GOTOs eliminated)
+4. ✅ **Test with full program:** Integration tests passing with bit-identical output
+5. **Continue with next module:** TBF/SBF, PATCH, or other medium-complexity modules (982 GOTOs remaining)
 
 ## Success Criteria
 
@@ -366,7 +393,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 1.1
+**Document Version:** 1.2
 **Last Updated:** 2025-11-18
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 2 modules complete (I/O, Geometry), 33/1,019 GOTOs eliminated (3.2%)
+**Status:** Phase 2 In Progress - 3 modules complete (I/O, Geometry, Math Utils), 37/1,019 GOTOs eliminated (3.6%)

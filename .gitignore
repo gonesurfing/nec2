@@ -9,10 +9,14 @@
 # Executables
 nec2d
 nec2dxs
+nec2dxs_integrated
 a.out
 
 # Editor temporary files
 *~
 .*.swp
 .*.swo
+
+# Test and generated files
 test_output.txt
+nec2dxs_no_io.f

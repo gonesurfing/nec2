@@ -1,25 +1,13 @@
 #!/bin/bash
 # Build integrated version with modernized I/O module
+# This builds nec2dxs_integrated.f (legacy code with I/O removed) + nec2d_io.f90 (modernized I/O)
 
 set -e  # Exit on error
 
 echo "=== Building Integrated NEC2D with Modernized I/O Module ==="
 echo
 
-# Check if nec2dxs_no_io.f exists, if not generate it
-if [ ! -f nec2dxs_no_io.f ]; then
-    echo "Step 0: Generating nec2dxs_no_io.f (removing I/O subroutines)"
-    python3 remove_io_subroutines.py
-    if [ $? -ne 0 ]; then
-        echo "✗ Failed to generate nec2dxs_no_io.f"
-        exit 1
-    fi
-    echo "✓ nec2dxs_no_io.f generated successfully"
-    echo
-fi
-
 echo "Step 1: Compile modernized I/O module (nec2d_io.f90)"
-# Use -std=legacy to allow REAL*8, COMPLEX*16 (GNU extensions)
 gfortran -c -O0 -std=legacy nec2d_io.f90 -o nec2d_io.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2d_io.f90 compiled successfully"
@@ -29,10 +17,10 @@ else
 fi
 echo
 
-echo "Step 2: Compile main program without I/O (nec2dxs_no_io.f)"
-gfortran -c -O0 -std=legacy nec2dxs_no_io.f -o nec2dxs_no_io.o
+echo "Step 2: Compile integrated main program (nec2dxs_integrated.f)"
+gfortran -c -O0 -std=legacy nec2dxs_integrated.f -o nec2dxs_integrated.o
 if [ $? -eq 0 ]; then
-    echo "✓ nec2dxs_no_io.f compiled successfully"
+    echo "✓ nec2dxs_integrated.f compiled successfully"
 else
     echo "✗ Compilation failed"
     exit 1
@@ -40,7 +28,7 @@ fi
 echo
 
 echo "Step 3: Link to create executable"
-gfortran -O0 nec2dxs_no_io.o nec2d_io.o -o nec2dxs_integrated
+gfortran -O0 nec2dxs_integrated.o nec2d_io.o -o nec2dxs_integrated
 if [ $? -eq 0 ]; then
     echo "✓ Linking successful"
 else

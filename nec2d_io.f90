@@ -14,606 +14,606 @@
 !
 !***********************************************************************
 
-SUBROUTINE READGM(INUNIT,CODE,I1,I2,R1,R2,R3,R4,R5,R6,R7)
+subroutine readgm(inunit,code,i1,i2,r1,r2,r3,r4,r5,r6,r7)
   ! READGM reads a geometry record and parses it.
-  IMPLICIT REAL*8(A-H,O-Z)
-  CHARACTER*(*) CODE
-  DIMENSION INTVAL(2), REAVAL(7)
+  implicit real*8(a-h,o-z)
+  character*(*) code
+  dimension intval(2), reaval(7)
 
-  CALL PARSIT(INUNIT,2,7,CODE,INTVAL,REAVAL,IEOF)
+  call parsit(inunit,2,7,code,intval,reaval,ieof)
 
-  IF (IEOF < 0) CODE = 'GE'
-  I1 = INTVAL(1)
-  I2 = INTVAL(2)
-  R1 = REAVAL(1)
-  R2 = REAVAL(2)
-  R3 = REAVAL(3)
-  R4 = REAVAL(4)
-  R5 = REAVAL(5)
-  R6 = REAVAL(6)
-  R7 = REAVAL(7)
+  if (ieof < 0) code = 'GE'
+  i1 = intval(1)
+  i2 = intval(2)
+  r1 = reaval(1)
+  r2 = reaval(2)
+  r3 = reaval(3)
+  r4 = reaval(4)
+  r5 = reaval(5)
+  r6 = reaval(6)
+  r7 = reaval(7)
 
-END SUBROUTINE READGM
+end subroutine readgm
 
 
-SUBROUTINE READMN(INUNIT,CODE,I1,I2,I3,I4,F1,F2,F3,F4,F5,F6)
+subroutine readmn(inunit,code,i1,i2,i3,i4,f1,f2,f3,f4,f5,f6)
   ! READMN reads a control record and parses it.
-  IMPLICIT REAL*8(A-H,O-Z)
-  CHARACTER*(*) CODE
-  DIMENSION INTVAL(4), REAVAL(6)
+  implicit real*8(a-h,o-z)
+  character*(*) code
+  dimension intval(4), reaval(6)
 
-  CALL PARSIT(INUNIT,4,6,CODE,INTVAL,REAVAL,IEOF)
+  call parsit(inunit,4,6,code,intval,reaval,ieof)
 
-  IF (IEOF < 0) CODE = 'EN'
-  I1 = INTVAL(1)
-  I2 = INTVAL(2)
-  I3 = INTVAL(3)
-  I4 = INTVAL(4)
-  F1 = REAVAL(1)
-  F2 = REAVAL(2)
-  F3 = REAVAL(3)
-  F4 = REAVAL(4)
-  F5 = REAVAL(5)
-  F6 = REAVAL(6)
+  if (ieof < 0) code = 'EN'
+  i1 = intval(1)
+  i2 = intval(2)
+  i3 = intval(3)
+  i4 = intval(4)
+  f1 = reaval(1)
+  f2 = reaval(2)
+  f3 = reaval(3)
+  f4 = reaval(4)
+  f5 = reaval(5)
+  f6 = reaval(6)
 
-END SUBROUTINE READMN
+end subroutine readmn
 
 
-SUBROUTINE PARSIT(INUNIT,MAXINT,MAXREA,CMND,INTFLD,REAFLD,IEOF)
+subroutine parsit(inunit,maxint,maxrea,cmnd,intfld,reafld,ieof)
   ! PARSIT reads an input record and parses it.
   ! MODERNIZED: Eliminated 3 GOTOs (143, 175, 190)
-  IMPLICIT REAL*8(A-H,O-Z)
-  CHARACTER NGFNAM*80
-  COMMON /NGFNAM/NGFNAM
-  CHARACTER CMND*2, BUFFER*20, REC*80
-  INTEGER INTFLD(MAXINT)
-  INTEGER BGNFLD(12), ENDFLD(12), TOTCOL, TOTFLD
-  LOGICAL FLDTRM
-  DIMENSION REAFLD(MAXREA)
+  implicit real*8(a-h,o-z)
+  character ngfnam*80
+  common /ngfnam/ngfnam
+  character cmnd*2, buffer*20, rec*80
+  integer intfld(maxint)
+  integer bgnfld(12), endfld(12), totcol, totfld
+  logical fldtrm
+  dimension reafld(maxrea)
 
-  READ(INUNIT, 8000, IOSTAT=IEOF) REC
-  CALL UPCASE(REC, REC, TOTCOL)
+  read(inunit, 8000, iostat=ieof) rec
+  call upcase(rec, rec, totcol)
 
   ! Store opcode and clear field arrays
-  CMND = REC(1:2)
-  DO I = 1, MAXINT
-    INTFLD(I) = 0
-  END DO
-  DO I = 1, MAXREA
-    REAFLD(I) = 0.0D0
-  END DO
-  DO I = 1, 12
-    BGNFLD(I) = 0
-    ENDFLD(I) = 0
-  END DO
+  cmnd = rec(1:2)
+  do i = 1, maxint
+    intfld(i) = 0
+  end do
+  do i = 1, maxrea
+    reafld(i) = 0.0d0
+  end do
+  do i = 1, 12
+    bgnfld(i) = 0
+    endfld(i) = 0
+  end do
 
   ! Find field boundaries
-  TOTFLD = 0
-  FLDTRM = .FALSE.
-  LAST = MAXREA + MAXINT
-  DO J = 3, TOTCOL
-    K = ICHAR(REC(J:J))
+  totfld = 0
+  fldtrm = .false.
+  last = maxrea + maxint
+  do j = 3, totcol
+    k = ichar(rec(j:j))
     
-    IF (K == 33) THEN  ! End of line comment '!'
-      IF (FLDTRM) ENDFLD(TOTFLD) = J - 1
-      EXIT  ! ELIMINATED GO TO 5000
-    ELSE IF (K == 32 .OR. K == 44) THEN  ! Space or comma
-      IF (FLDTRM) THEN
-        ENDFLD(TOTFLD) = J - 1
-        FLDTRM = .FALSE.
-      END IF
-    ELSE IF (.NOT. FLDTRM) THEN
-      TOTFLD = TOTFLD + 1
-      FLDTRM = .TRUE.
-      BGNFLD(TOTFLD) = J
-    END IF
-  END DO
+    if (k == 33) then  ! End of line comment '!'
+      if (fldtrm) endfld(totfld) = j - 1
+      exit  ! ELIMINATED GO TO 5000
+    else if (k == 32 .or. k == 44) then  ! Space or comma
+      if (fldtrm) then
+        endfld(totfld) = j - 1
+        fldtrm = .false.
+      end if
+    else if (.not. fldtrm) then
+      totfld = totfld + 1
+      fldtrm = .true.
+      bgnfld(totfld) = j
+    end if
+  end do
 
-  IF (FLDTRM) ENDFLD(TOTFLD) = TOTCOL
+  if (fldtrm) endfld(totfld) = totcol
 
   ! Check field limits
-  IF ((CMND == 'WG') .OR. (CMND == 'GF')) THEN
-    NGFNAM = 'NGF2D.NEC'
-  END IF
+  if ((cmnd == 'WG') .or. (cmnd == 'GF')) then
+    ngfnam = 'NGF2D.NEC'
+  end if
 
-  IF (TOTFLD == 0) THEN
-    RETURN
-  ELSE IF (TOTFLD > LAST) THEN
-    WRITE(*,8001)
-    WRITE(*,8004) REC
-    STOP 'CARD ERROR'  ! ELIMINATED GO TO 9010
-  END IF
+  if (totfld == 0) then
+    return
+  else if (totfld > last) then
+    write(*,8001)
+    write(*,8004) rec
+    stop 'CARD ERROR'  ! ELIMINATED GO TO 9010
+  end if
 
-  J = MIN(TOTFLD, MAXINT)
+  j = min(totfld, maxint)
 
   ! Parse integers
-  DO I = 1, J
-    LENGTH = ENDFLD(I) - BGNFLD(I) + 1
-    BUFFER = REC(BGNFLD(I):ENDFLD(I))
-    IF (((CMND == 'WG') .OR. (CMND == 'GF')) .AND. &
-        (BUFFER(1:1) /= '0') .AND. (BUFFER(1:1) /= '1')) THEN
-      NGFNAM = REC(BGNFLD(I):ENDFLD(I))
-      RETURN
-    END IF
-    IND = INDEX(BUFFER(1:LENGTH), '.')
-    IF (IND > 0 .AND. IND < LENGTH) THEN  ! ELIMINATED GO TO 9000
-      WRITE(*,8002) I
-      WRITE(*,8004) REC
-      STOP 'CARD ERROR'
-    END IF
-    IF (IND == LENGTH) LENGTH = LENGTH - 1
-    READ(BUFFER(1:LENGTH), *, ERR=9000) INTFLD(I)
-  END DO
+  do i = 1, j
+    length = endfld(i) - bgnfld(i) + 1
+    buffer = rec(bgnfld(i):endfld(i))
+    if (((cmnd == 'WG') .or. (cmnd == 'GF')) .and. &
+        (buffer(1:1) /= '0') .and. (buffer(1:1) /= '1')) then
+      ngfnam = rec(bgnfld(i):endfld(i))
+      return
+    end if
+    ind = index(buffer(1:length), '.')
+    if (ind > 0 .and. ind < length) then  ! ELIMINATED GO TO 9000
+      write(*,8002) i
+      write(*,8004) rec
+      stop 'CARD ERROR'
+    end if
+    if (ind == length) length = length - 1
+    read(buffer(1:length), *, err=9000) intfld(i)
+  end do
 
   ! Parse reals  
-  IF (TOTFLD > MAXINT) THEN
-    J = MAXINT + 1
-    DO I = J, TOTFLD
-      LENGTH = ENDFLD(I) - BGNFLD(I) + 1
-      BUFFER = REC(BGNFLD(I):ENDFLD(I))
-      IND = INDEX(BUFFER(1:LENGTH), '.')
-      IF (IND == 0) THEN
-        INDE = INDEX(BUFFER(1:LENGTH), 'E')
-        LENGTH = LENGTH + 1
-        IF (INDE == 0) THEN
-          BUFFER(LENGTH:LENGTH) = '.'
-        ELSE
-          BUFFER = BUFFER(1:INDE-1) // '.' // BUFFER(INDE:LENGTH-1)
-        END IF
-      END IF
-      READ(BUFFER(1:LENGTH), *, ERR=9100) REAFLD(I-MAXINT)
-    END DO
-  END IF
-  RETURN
+  if (totfld > maxint) then
+    j = maxint + 1
+    do i = j, totfld
+      length = endfld(i) - bgnfld(i) + 1
+      buffer = rec(bgnfld(i):endfld(i))
+      ind = index(buffer(1:length), '.')
+      if (ind == 0) then
+        inde = index(buffer(1:length), 'E')
+        length = length + 1
+        if (inde == 0) then
+          buffer(length:length) = '.'
+        else
+          buffer = buffer(1:inde-1) // '.' // buffer(inde:length-1)
+        end if
+      end if
+      read(buffer(1:length), *, err=9100) reafld(i-maxint)
+    end do
+  end if
+  return
 
   ! Error handling
-9000 WRITE(*,8002) I
-  WRITE(*,8004) REC
-  STOP 'CARD ERROR'
+9000 write(*,8002) i
+  write(*,8004) rec
+  stop 'CARD ERROR'
 
-9100 I = I - MAXINT
-  WRITE(*,8003) I
-  WRITE(*,8004) REC
-  STOP 'CARD ERROR'
+9100 i = i - maxint
+  write(*,8003) i
+  write(*,8004) rec
+  stop 'CARD ERROR'
 
-8000 FORMAT (A80)
-8001 FORMAT (//,' ***** CARD ERROR - TOO MANY FIELDS IN RECORD')
-8002 FORMAT (//,' ***** CARD ERROR - INVALID NUMBER AT INTEGER POSITION ',I1)
-8003 FORMAT (//,' ***** CARD ERROR - INVALID NUMBER AT REAL POSITION ',I1)
-8004 FORMAT (' ***** TEXT -->  ',A80)
+8000 format (a80)
+8001 format (//,' ***** CARD ERROR - TOO MANY FIELDS IN RECORD')
+8002 format (//,' ***** CARD ERROR - INVALID NUMBER AT INTEGER POSITION ',i1)
+8003 format (//,' ***** CARD ERROR - INVALID NUMBER AT REAL POSITION ',i1)
+8004 format (' ***** TEXT -->  ',a80)
 
-END SUBROUTINE PARSIT
+end subroutine parsit
 
 
-SUBROUTINE UPCASE(INTEXT, OUTTXT, LENGTH)
+subroutine upcase(intext, outtxt, length)
   ! UPCASE converts text to upper case.
-  IMPLICIT REAL*8(A-H,O-Z)
-  CHARACTER*(*) INTEXT, OUTTXT
+  implicit real*8(a-h,o-z)
+  character*(*) intext, outtxt
 
-  LENGTH = LEN(INTEXT)
-  DO I = 1, LENGTH
-    J = ICHAR(INTEXT(I:I))
-    IF (J >= 96) J = J - 32
-    OUTTXT(I:I) = CHAR(J)
-  END DO
+  length = len(intext)
+  do i = 1, length
+    j = ichar(intext(i:i))
+    if (j >= 96) j = j - 32
+    outtxt(i:i) = char(j)
+  end do
 
-END SUBROUTINE UPCASE
+end subroutine upcase
 
 
-SUBROUTINE PRNT(IN1,IN2,IN3,FL1,FL2,FL3,FL4,FL5,FL6,CTYPE)
+subroutine prnt(in1,in2,in3,fl1,fl2,fl3,fl4,fl5,fl6,ctype)
   ! PRNT prints impedance loading data.
-  IMPLICIT REAL*8(A-H,O-Z)
-  CHARACTER CTYPE*(*), CINT(3)*5, CFLT(6)*13
+  implicit real*8(a-h,o-z)
+  character ctype*(*), cint(3)*5, cflt(6)*13
 
-  DO I = 1, 3
-    CINT(I) = '     '
-  END DO
+  do i = 1, 3
+    cint(i) = '     '
+  end do
 
-  IF (IN1 == 0 .AND. IN2 == 0 .AND. IN3 == 0) THEN
-    CINT(1) = '  ALL'
-  ELSE
-    IF (IN1 /= 0) WRITE(CINT(1),90) IN1
-    IF (IN2 /= 0) WRITE(CINT(2),90) IN2
-    IF (IN3 /= 0) WRITE(CINT(3),90) IN3
-  END IF
+  if (in1 == 0 .and. in2 == 0 .and. in3 == 0) then
+    cint(1) = '  ALL'
+  else
+    if (in1 /= 0) write(cint(1),90) in1
+    if (in2 /= 0) write(cint(2),90) in2
+    if (in3 /= 0) write(cint(3),90) in3
+  end if
 
-  DO I = 1, 6
-    CFLT(I) = '     '
-  END DO
+  do i = 1, 6
+    cflt(i) = '     '
+  end do
 
-  IF (ABS(FL1) > 1.E-30) WRITE(CFLT(1),91) FL1
-  IF (ABS(FL2) > 1.E-30) WRITE(CFLT(2),91) FL2
-  IF (ABS(FL3) > 1.E-30) WRITE(CFLT(3),91) FL3
-  IF (ABS(FL4) > 1.E-30) WRITE(CFLT(4),91) FL4
-  IF (ABS(FL5) > 1.E-30) WRITE(CFLT(5),91) FL5
-  IF (ABS(FL6) > 1.E-30) WRITE(CFLT(6),91) FL6
-  WRITE(*,92) (CINT(I),I=1,3), (CFLT(I),I=1,6), CTYPE
+  if (abs(fl1) > 1.e-30) write(cflt(1),91) fl1
+  if (abs(fl2) > 1.e-30) write(cflt(2),91) fl2
+  if (abs(fl3) > 1.e-30) write(cflt(3),91) fl3
+  if (abs(fl4) > 1.e-30) write(cflt(4),91) fl4
+  if (abs(fl5) > 1.e-30) write(cflt(5),91) fl5
+  if (abs(fl6) > 1.e-30) write(cflt(6),91) fl6
+  write(*,92) (cint(i),i=1,3), (cflt(i),i=1,6), ctype
 
-90 FORMAT(I5)
-91 FORMAT(1P,E13.4)
-92 FORMAT(/,3X,3A,3X,6A,3X,A)
+90 format(i5)
+91 format(1p,e13.4)
+92 format(/,3x,3a,3x,6a,3x,a)
 
-END SUBROUTINE PRNT
+end subroutine prnt
 
 
-SUBROUTINE GFIL(IPRT)
+subroutine gfil(iprt)
   ! GFIL reads the N.G.F. file.
   ! MODERNIZED: Eliminated 8 GOTOs (30/31, 337, 358, 385/388, 390, 395, 402, 412)
-  IMPLICIT REAL*8(A-H,O-Z)
-  PARAMETER (MAXSEG=3000, MAXMAT=3000)
-  PARAMETER (LOADMX=MAXSEG/10)
-  PARAMETER (NSMAX=120)
-  PARAMETER (NETMX=240)
-  PARAMETER (JMAX=60)
-  PARAMETER (IRESRV=MAXMAT**2)
-  COMPLEX*16 CM,SSX,ZRATI,ZRATI2,T1,ZARRAY,AR1,AR2,AR3,EPSCF,FRATI
-  COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
-    ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG), &
-    ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-  COMMON /CMB/ CM(IRESRV)
-  COMMON /ANGL/ SALP(MAXSEG)
-  COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL, &
-    KSYMP,IFAR,IPERF
-  COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DYA(3), &
-    XSA(3),YSA(3),NXA(3),NYA(3)
-  COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT, &
-    ICASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  COMMON /SMAT/ SSX(16,16)
-  COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
-  COMMON/SAVE/EPSR,SIG,SCRWLT,SCRWRT,FMHZ,IP(2*MAXSEG),KCOM
-  COMMON/CSAVE/COM(19,5)
-  CHARACTER NGFNAM*80
-  COMMON /NGFNAM/NGFNAM
-  DIMENSION T2X(1),T2Y(1),T2Z(1)
-  EQUIVALENCE (T2X,ICON1),(T2Y,ICON2),(T2Z,ITAG)
-  DATA IGFL/20/
-  LOGICAL FILE_EXISTS
+  implicit real*8(a-h,o-z)
+  parameter (maxseg=3000, maxmat=3000)
+  parameter (loadmx=maxseg/10)
+  parameter (nsmax=120)
+  parameter (netmx=240)
+  parameter (jmax=60)
+  parameter (iresrv=maxmat**2)
+  complex*16 cm,ssx,zrati,zrati2,t1,zarray,ar1,ar2,ar3,epscf,frati
+  common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &
+    alp(maxseg),bet(maxseg),wlam,icon1(2*maxseg),icon2(2*maxseg), &
+    itag(2*maxseg),iconx(maxseg),ld,n1,n2,n,np,m1,m2,m,mp,ipsym
+  common /cmb/ cm(iresrv)
+  common /angl/ salp(maxseg)
+  common /gnd/zrati,zrati2,frati,t1,t2,cl,ch,scrwl,scrwr,nradl, &
+    ksymp,ifar,iperf
+  common /ggrid/ ar1(11,10,4),ar2(17,5,4),ar3(9,8,4),epscf,dxa(3),dya(3), &
+    xsa(3),ysa(3),nxa(3),nya(3)
+  common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat, &
+    icasx,nbbx,npbx,nlbx,nbbl,npbl,nlbl
+  common /smat/ ssx(16,16)
+  common /zload/ zarray(maxseg),nload,nlodf
+  common/save/epsr,sig,scrwlt,scrwrt,fmhz,ip(2*maxseg),kcom
+  common/csave/com(19,5)
+  character ngfnam*80
+  common /ngfnam/ngfnam
+  dimension t2x(1),t2y(1),t2z(1)
+  equivalence (t2x,icon1),(t2y,icon2),(t2z,itag)
+  data igfl/20/
+  logical file_exists
 
   ! Check file exists (ELIMINATED GO TO 30/31)
-  INQUIRE(FILE=NGFNAM, EXIST=FILE_EXISTS)
-  IF (.NOT. FILE_EXISTS) THEN
-    WRITE(*,*) 'ERROR: Cannot open NGF file'
-    STOP
-  END IF
-  OPEN(UNIT=IGFL,FILE=NGFNAM,FORM='UNFORMATTED',STATUS='OLD')
-  REWIND IGFL
+  inquire(file=ngfnam, exist=file_exists)
+  if (.not. file_exists) then
+    write(*,*) 'ERROR: Cannot open NGF file'
+    stop
+  end if
+  open(unit=igfl,file=ngfnam,form='UNFORMATTED',status='OLD')
+  rewind igfl
 
-  READ (IGFL) N1,NP,M1,MP,WLAM,FMHZ,IPSYM,KSYMP,IPERF,NRADL,EPSR,SIG, &
-              SCRWLT,SCRWRT,NLODF,KCOM
-  N = N1
-  M = M1
-  N2 = N1 + 1
-  M2 = M1 + 1
+  read (igfl) n1,np,m1,mp,wlam,fmhz,ipsym,ksymp,iperf,nradl,epsr,sig, &
+              scrwlt,scrwrt,nlodf,kcom
+  n = n1
+  m = m1
+  n2 = n1 + 1
+  m2 = m1 + 1
 
   ! Read segment data (ELIMINATED GO TO 2)
-  IF (N1 > 0) THEN
-    READ (IGFL) (X(I),I=1,N1),(Y(I),I=1,N1),(Z(I),I=1,N1)
-    READ (IGFL) (SI(I),I=1,N1),(BI(I),I=1,N1),(ALP(I),I=1,N1)
-    READ (IGFL) (BET(I),I=1,N1),(SALP(I),I=1,N1)
-    READ (IGFL) (ICON1(I),I=1,N1),(ICON2(I),I=1,N1)
-    READ (IGFL) (ITAG(I),I=1,N1)
-    IF (NLODF /= 0) READ (IGFL) (ZARRAY(I),I=1,N1)
-    DO I = 1, N1
-      XI = X(I)*WLAM
-      YI = Y(I)*WLAM
-      ZI = Z(I)*WLAM
-      DX = SI(I)*0.5D0*WLAM
-      X(I) = XI - ALP(I)*DX
-      Y(I) = YI - BET(I)*DX
-      Z(I) = ZI - SALP(I)*DX
-      SI(I) = XI + ALP(I)*DX
-      ALP(I) = YI + BET(I)*DX
-      BET(I) = ZI + SALP(I)*DX
-      BI(I) = BI(I)*WLAM
-    END DO
-  END IF
+  if (n1 > 0) then
+    read (igfl) (x(i),i=1,n1),(y(i),i=1,n1),(z(i),i=1,n1)
+    read (igfl) (si(i),i=1,n1),(bi(i),i=1,n1),(alp(i),i=1,n1)
+    read (igfl) (bet(i),i=1,n1),(salp(i),i=1,n1)
+    read (igfl) (icon1(i),i=1,n1),(icon2(i),i=1,n1)
+    read (igfl) (itag(i),i=1,n1)
+    if (nlodf /= 0) read (igfl) (zarray(i),i=1,n1)
+    do i = 1, n1
+      xi = x(i)*wlam
+      yi = y(i)*wlam
+      zi = z(i)*wlam
+      dx = si(i)*0.5d0*wlam
+      x(i) = xi - alp(i)*dx
+      y(i) = yi - bet(i)*dx
+      z(i) = zi - salp(i)*dx
+      si(i) = xi + alp(i)*dx
+      alp(i) = yi + bet(i)*dx
+      bet(i) = zi + salp(i)*dx
+      bi(i) = bi(i)*wlam
+    end do
+  end if
 
   ! Read patch data (ELIMINATED GO TO 4)
-  IF (M1 > 0) THEN
-    J = LD - M1 + 1
-    READ (IGFL) (X(I),I=J,LD),(Y(I),I=J,LD),(Z(I),I=J,LD)
-    READ (IGFL) (SI(I),I=J,LD),(BI(I),I=J,LD),(ALP(I),I=J,LD)
-    READ (IGFL) (BET(I),I=J,LD),(SALP(I),I=J,LD)
-    READ (IGFL) (T2X(I),I=J,LD),(T2Y(I),I=J,LD)
-    READ (IGFL) (T2Z(I),I=J,LD)
-    DX = WLAM*WLAM
-    DO I = J, LD
-      X(I) = X(I)*WLAM
-      Y(I) = Y(I)*WLAM
-      Z(I) = Z(I)*WLAM
-      BI(I) = BI(I)*DX
-    END DO
-  END IF
+  if (m1 > 0) then
+    j = ld - m1 + 1
+    read (igfl) (x(i),i=j,ld),(y(i),i=j,ld),(z(i),i=j,ld)
+    read (igfl) (si(i),i=j,ld),(bi(i),i=j,ld),(alp(i),i=j,ld)
+    read (igfl) (bet(i),i=j,ld),(salp(i),i=j,ld)
+    read (igfl) (t2x(i),i=j,ld),(t2y(i),i=j,ld)
+    read (igfl) (t2z(i),i=j,ld)
+    dx = wlam*wlam
+    do i = j, ld
+      x(i) = x(i)*wlam
+      y(i) = y(i)*wlam
+      z(i) = z(i)*wlam
+      bi(i) = bi(i)*dx
+    end do
+  end if
 
-  READ (IGFL) ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT
-  IF (IPERF == 2) READ (IGFL) AR1,AR2,AR3,EPSCF,DXA,DYA,XSA,YSA,NXA,NYA
-  NEQ = N1 + 2*M1
-  NPEQ = NP + 2*MP
-  NOP = NEQ/NPEQ
-  IF (NOP > 1) READ (IGFL) ((SSX(I,J),I=1,NOP),J=1,NOP)
-  READ (IGFL) (IP(I),I=1,NEQ),COM
+  read (igfl) icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat
+  if (iperf == 2) read (igfl) ar1,ar2,ar3,epscf,dxa,dya,xsa,ysa,nxa,nya
+  neq = n1 + 2*m1
+  npeq = np + 2*mp
+  nop = neq/npeq
+  if (nop > 1) read (igfl) ((ssx(i,j),i=1,nop),j=1,nop)
+  read (igfl) (ip(i),i=1,neq),com
 
   ! Read matrix (ELIMINATED GO TO 5/10 and computed GO TO)
-  IF (ICASE <= 2) THEN
-    IOUT = NEQ*NPEQ
-    READ (IGFL) (CM(I),I=1,IOUT)
-  ELSE
-    REWIND 13
-    IF (ICASE == 4) THEN
-      IOUT = NPEQ*NPEQ
-      DO K = 1, NOP
-        READ (IGFL) (CM(J),J=1,IOUT)
-        WRITE (13) (CM(J),J=1,IOUT)
-      END DO
-    ELSE
-      IOUT = NPSYM*NPEQ*2
-      NBL2 = 2*NBLSYM
-      DO IOP = 1, NOP
-        DO I = 1, NBL2
-          CALL BLCKIN(CM,IGFL,1,IOUT,1,206)
-          CALL BLCKOT(CM,13,1,IOUT,1,205)
-        END DO
-      END DO
-    END IF
-    REWIND 13
-  END IF
+  if (icase <= 2) then
+    iout = neq*npeq
+    read (igfl) (cm(i),i=1,iout)
+  else
+    rewind 13
+    if (icase == 4) then
+      iout = npeq*npeq
+      do k = 1, nop
+        read (igfl) (cm(j),j=1,iout)
+        write (13) (cm(j),j=1,iout)
+      end do
+    else
+      iout = npsym*npeq*2
+      nbl2 = 2*nblsym
+      do iop = 1, nop
+        do i = 1, nbl2
+          call blckin(cm,igfl,1,iout,1,206)
+          call blckot(cm,13,1,iout,1,205)
+        end do
+      end do
+    end if
+    rewind 13
+  end if
 
-  REWIND IGFL
+  rewind igfl
 
   ! Write heading
-  WRITE(*,16)
-  WRITE(*,14)
-  WRITE(*,14)
-  WRITE(*,17)
-  WRITE(*,18) N1, M1
-  IF (NOP > 1) WRITE(*,19) NOP
-  WRITE(*,20) IMAT, ICASE
+  write(*,16)
+  write(*,14)
+  write(*,14)
+  write(*,17)
+  write(*,18) n1, m1
+  if (nop > 1) write(*,19) nop
+  write(*,20) imat, icase
 
   ! (ELIMINATED GO TO 11)
-  IF (ICASE >= 3) THEN
-    NBL2 = NEQ*NPEQ
-    WRITE(*,21) NBL2
-  END IF
+  if (icase >= 3) then
+    nbl2 = neq*npeq
+    write(*,21) nbl2
+  end if
 
-  WRITE(*,22) FMHZ
-  IF (KSYMP == 2 .AND. IPERF == 1) WRITE(*,23)
-  IF (KSYMP == 2 .AND. IPERF == 0) WRITE(*,27)
-  IF (KSYMP == 2 .AND. IPERF == 2) WRITE(*,28)
-  IF (KSYMP == 2 .AND. IPERF /= 1) WRITE(*,24) EPSR, SIG
-  WRITE(*,17)
+  write(*,22) fmhz
+  if (ksymp == 2 .and. iperf == 1) write(*,23)
+  if (ksymp == 2 .and. iperf == 0) write(*,27)
+  if (ksymp == 2 .and. iperf == 2) write(*,28)
+  if (ksymp == 2 .and. iperf /= 1) write(*,24) epsr, sig
+  write(*,17)
 
-  DO J = 1, KCOM
-    WRITE(*,15) (COM(I,J),I=1,19)
-  END DO
+  do j = 1, kcom
+    write(*,15) (com(i,j),i=1,19)
+  end do
 
-  WRITE(*,17)
-  WRITE(*,14)
-  WRITE(*,14)
-  WRITE(*,16)
+  write(*,17)
+  write(*,14)
+  write(*,14)
+  write(*,16)
 
-  IF (IPRT == 0) RETURN
+  if (iprt == 0) return
 
-  WRITE(*,25)
-  DO I = 1, N1
-    WRITE(*,26) I,X(I),Y(I),Z(I),SI(I),ALP(I),BET(I)
-  END DO
+  write(*,25)
+  do i = 1, n1
+    write(*,26) i,x(i),y(i),z(i),si(i),alp(i),bet(i)
+  end do
 
-14 FORMAT (5X,50H**************************************************, &
-           34H**********************************)
-15 FORMAT (5X,3H** ,19A4,3H **)
-16 FORMAT (////)
-17 FORMAT (5X,2H**,80X,2H**)
-18 FORMAT (5X,29H** NUMERICAL GREEN'S FUNCTION,53X,2H**,/, &
-           5X,17H** NO. SEGMENTS =,I4,10X,13HNO. PATCHES =,I4,34X,2H**)
-19 FORMAT (5X,27H** NO. SYMMETRIC SECTIONS =,I4,51X,2H**)
-20 FORMAT (5X,34H** N.G.F. MATRIX -  CORE STORAGE =,I7, &
-           23H COMPLEX NUMBERS,  CASE,I2,16X,2H**)
-21 FORMAT (5X,2H**,19X,13HMATRIX SIZE =,I7,16H COMPLEX NUMBERS,25X,2H**)
-22 FORMAT (5X,14H** FREQUENCY =,1P,E12.5,5H MHZ.,51X,2H**)
-23 FORMAT (5X,17H** PERFECT GROUND,65X,2H**)
-24 FORMAT (5X,44H** GROUND PARAMETERS - DIELECTRIC CONSTANT =,1P, &
-           E12.5,26X,2H**,/,5X,2H**,21X,14HCONDUCTIVITY =,E12.5, &
-           8H MHOS/M.,25X,2H**)
-25 FORMAT (39X,31HNUMERICAL GREEN'S FUNCTION DATA,/, &
-           41X,27HCOORDINATES OF SEGMENT ENDS,/,51X,8H(METERS),/, &
-           5X,4HSEG.,11X,19H- - - END ONE - - -,26X, &
-           19H- - - END TWO - - -,/,6X,3HNO.,6X,1HX,14X,1HY,14X,1HZ, &
-           14X,1HX,14X,1HY,14X,1HZ)
-26 FORMAT (1X,I7,1P,6E15.6)
-27 FORMAT (5X,55H** FINITE GROUND.  REFLECTION COEFFICIENT APPROXIMATION, &
-           27X,2H**)
-28 FORMAT (5X,38H** FINITE GROUND.  SOMMERFELD SOLUTION,44X,2H**)
+14 format (5x,50h**************************************************, &
+           34h**********************************)
+15 format (5x,3h** ,19a4,3h **)
+16 format (////)
+17 format (5x,2h**,80x,2h**)
+18 format (5x,29h** numerical green'S FUNCTION,53X,2H**,/, &
+           5x,17h** no. segments =,i4,10x,13hno. patches =,i4,34x,2h**)
+19 format (5x,27h** no. symmetric sections =,i4,51x,2h**)
+20 format (5x,34h** n.g.f. matrix -  core storage =,i7, &
+           23h complex numbers,  case,i2,16x,2h**)
+21 format (5x,2h**,19x,13hmatrix size =,i7,16h complex numbers,25x,2h**)
+22 format (5x,14h** frequency =,1p,e12.5,5h mhz.,51x,2h**)
+23 format (5x,17h** perfect ground,65x,2h**)
+24 format (5x,44h** ground parameters - dielectric constant =,1p, &
+           e12.5,26x,2h**,/,5x,2h**,21x,14hconductivity =,e12.5, &
+           8h mhos/m.,25x,2h**)
+25 format (39x,31hnumerical green'S FUNCTION DATA,/, &
+           41x,27hcoordinates of segment ends,/,51x,8h(meters),/, &
+           5x,4hseg.,11x,19h- - - end one - - -,26x, &
+           19h- - - end two - - -,/,6x,3hno.,6x,1hx,14x,1hy,14x,1hz, &
+           14x,1hx,14x,1hy,14x,1hz)
+26 format (1x,i7,1p,6e15.6)
+27 format (5x,55h** finite ground.  reflection coefficient approximation, &
+           27x,2h**)
+28 format (5x,38h** finite ground.  sommerfeld solution,44x,2h**)
 
-END SUBROUTINE GFIL
+end subroutine gfil
 
 
-SUBROUTINE GFOUT
+subroutine gfout
   ! GFOUT writes the N.G.F. file.
   ! MODERNIZED: Eliminated 8 GOTOs (500/507, 525/528, 529/536, 539/547)
-  IMPLICIT REAL*8(A-H,O-Z)
-  PARAMETER (MAXSEG=3000, MAXMAT=3000)
-  PARAMETER (LOADMX=MAXSEG/10)
-  PARAMETER (NSMAX=120)
-  PARAMETER (NETMX=240)
-  PARAMETER (JMAX=60)
-  PARAMETER (IRESRV=MAXMAT**2)
-  COMPLEX*16 CM,SSX,ZRATI,ZRATI2,T1,ZARRAY,AR1,AR2,AR3,EPSCF,FRATI
-  COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
-    ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG), &
-    ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-  COMMON /CMB/ CM(IRESRV)
-  COMMON /ANGL/ SALP(MAXSEG)
-  COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL, &
-    KSYMP,IFAR,IPERF
-  COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DYA(3), &
-    XSA(3),YSA(3),NXA(3),NYA(3)
-  COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT, &
-    ICASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  COMMON /SMAT/ SSX(16,16)
-  COMMON /ZLOAD/ ZARRAY(MAXSEG),NLOAD,NLODF
-  COMMON/SAVE/EPSR,SIG,SCRWLT,SCRWRT,FMHZ,IP(2*MAXSEG),KCOM
-  COMMON/CSAVE/COM(19,5)
-  CHARACTER NGFNAM*80
-  COMMON /NGFNAM/NGFNAM
-  DIMENSION T2X(1),T2Y(1),T2Z(1)
-  EQUIVALENCE (T2X,ICON1),(T2Y,ICON2),(T2Z,ITAG)
-  DATA IGFL/20/
+  implicit real*8(a-h,o-z)
+  parameter (maxseg=3000, maxmat=3000)
+  parameter (loadmx=maxseg/10)
+  parameter (nsmax=120)
+  parameter (netmx=240)
+  parameter (jmax=60)
+  parameter (iresrv=maxmat**2)
+  complex*16 cm,ssx,zrati,zrati2,t1,zarray,ar1,ar2,ar3,epscf,frati
+  common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &
+    alp(maxseg),bet(maxseg),wlam,icon1(2*maxseg),icon2(2*maxseg), &
+    itag(2*maxseg),iconx(maxseg),ld,n1,n2,n,np,m1,m2,m,mp,ipsym
+  common /cmb/ cm(iresrv)
+  common /angl/ salp(maxseg)
+  common /gnd/zrati,zrati2,frati,t1,t2,cl,ch,scrwl,scrwr,nradl, &
+    ksymp,ifar,iperf
+  common /ggrid/ ar1(11,10,4),ar2(17,5,4),ar3(9,8,4),epscf,dxa(3),dya(3), &
+    xsa(3),ysa(3),nxa(3),nya(3)
+  common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat, &
+    icasx,nbbx,npbx,nlbx,nbbl,npbl,nlbl
+  common /smat/ ssx(16,16)
+  common /zload/ zarray(maxseg),nload,nlodf
+  common/save/epsr,sig,scrwlt,scrwrt,fmhz,ip(2*maxseg),kcom
+  common/csave/com(19,5)
+  character ngfnam*80
+  common /ngfnam/ngfnam
+  dimension t2x(1),t2y(1),t2z(1)
+  equivalence (t2x,icon1),(t2y,icon2),(t2z,itag)
+  data igfl/20/
 
-  OPEN(UNIT=IGFL,FILE=NGFNAM,FORM='UNFORMATTED',STATUS='UNKNOWN')
-  NEQ = N + 2*M
-  NPEQ = NP + 2*MP
-  NOP = NEQ/NPEQ
-  WRITE (IGFL) N,NP,M,MP,WLAM,FMHZ,IPSYM,KSYMP,IPERF,NRADL,EPSR, &
-               SIG,SCRWLT,SCRWRT,NLOAD,KCOM
+  open(unit=igfl,file=ngfnam,form='UNFORMATTED',status='UNKNOWN')
+  neq = n + 2*m
+  npeq = np + 2*mp
+  nop = neq/npeq
+  write (igfl) n,np,m,mp,wlam,fmhz,ipsym,ksymp,iperf,nradl,epsr, &
+               sig,scrwlt,scrwrt,nload,kcom
 
   ! Write segment data (ELIMINATED GO TO 1)
-  IF (N > 0) THEN
-    WRITE (IGFL) (X(I),I=1,N),(Y(I),I=1,N),(Z(I),I=1,N)
-    WRITE (IGFL) (SI(I),I=1,N),(BI(I),I=1,N),(ALP(I),I=1,N)
-    WRITE (IGFL) (BET(I),I=1,N),(SALP(I),I=1,N)
-    WRITE (IGFL) (ICON1(I),I=1,N),(ICON2(I),I=1,N)
-    WRITE (IGFL) (ITAG(I),I=1,N)
-    IF (NLOAD > 0) WRITE (IGFL) (ZARRAY(I),I=1,N)
-  END IF
+  if (n > 0) then
+    write (igfl) (x(i),i=1,n),(y(i),i=1,n),(z(i),i=1,n)
+    write (igfl) (si(i),i=1,n),(bi(i),i=1,n),(alp(i),i=1,n)
+    write (igfl) (bet(i),i=1,n),(salp(i),i=1,n)
+    write (igfl) (icon1(i),i=1,n),(icon2(i),i=1,n)
+    write (igfl) (itag(i),i=1,n)
+    if (nload > 0) write (igfl) (zarray(i),i=1,n)
+  end if
 
   ! Write patch data (ELIMINATED GO TO 2)
-  IF (M > 0) THEN
-    J = LD - M + 1
-    WRITE (IGFL) (X(I),I=J,LD),(Y(I),I=J,LD),(Z(I),I=J,LD)
-    WRITE (IGFL) (SI(I),I=J,LD),(BI(I),I=J,LD),(ALP(I),I=J,LD)
-    WRITE (IGFL) (BET(I),I=J,LD),(SALP(I),I=J,LD)
-    WRITE (IGFL) (T2X(I),I=J,LD),(T2Y(I),I=J,LD)
-    WRITE (IGFL) (T2Z(I),I=J,LD)
-  END IF
+  if (m > 0) then
+    j = ld - m + 1
+    write (igfl) (x(i),i=j,ld),(y(i),i=j,ld),(z(i),i=j,ld)
+    write (igfl) (si(i),i=j,ld),(bi(i),i=j,ld),(alp(i),i=j,ld)
+    write (igfl) (bet(i),i=j,ld),(salp(i),i=j,ld)
+    write (igfl) (t2x(i),i=j,ld),(t2y(i),i=j,ld)
+    write (igfl) (t2z(i),i=j,ld)
+  end if
 
-  WRITE (IGFL) ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT
-  IF (IPERF == 2) WRITE (IGFL) AR1,AR2,AR3,EPSCF,DXA,DYA,XSA,YSA,NXA,NYA
-  IF (NOP > 1) WRITE (IGFL) ((SSX(I,J),I=1,NOP),J=1,NOP)
-  WRITE (IGFL) (IP(I),I=1,NEQ),COM
+  write (igfl) icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat
+  if (iperf == 2) write (igfl) ar1,ar2,ar3,epscf,dxa,dya,xsa,ysa,nxa,nya
+  if (nop > 1) write (igfl) ((ssx(i,j),i=1,nop),j=1,nop)
+  write (igfl) (ip(i),i=1,neq),com
 
   ! Write matrix (ELIMINATED GO TO 3/12 and computed GO TO)
-  IF (ICASE <= 2) THEN
-    IOUT = NEQ*NPEQ
-    WRITE (IGFL) (CM(I),I=1,IOUT)
-  ELSE IF (ICASE == 4) THEN
-    REWIND 13
-    I = NPEQ*NPEQ
-    DO K = 1, NOP
-      READ (13) (CM(J),J=1,I)
-      WRITE (IGFL) (CM(J),J=1,I)
-    END DO
-    REWIND 13
-  ELSE
-    REWIND 13
-    REWIND 14
-    IF (ICASE /= 5) THEN
-      IOUT = NPBLK*NEQ*2
-      DO I = 1, NBLOKS
-        CALL BLCKIN(CM,13,1,IOUT,1,201)
-        CALL BLCKOT(CM,IGFL,1,IOUT,1,202)
-      END DO
-      DO I = 1, NBLOKS
-        CALL BLCKIN(CM,14,1,IOUT,1,203)
-        CALL BLCKOT(CM,IGFL,1,IOUT,1,204)
-      END DO
-    ELSE
-      IOUT = NPSYM*NPEQ*2
-      DO IOP = 1, NOP
-        DO I = 1, NBLSYM
-          CALL BLCKIN(CM,13,1,IOUT,1,205)
-          CALL BLCKOT(CM,IGFL,1,IOUT,1,206)
-        END DO
-        DO I = 1, NBLSYM
-          CALL BLCKIN(CM,14,1,IOUT,1,207)
-          CALL BLCKOT(CM,IGFL,1,IOUT,1,208)
-        END DO
-      END DO
-    END IF
-    REWIND 13
-    REWIND 14
-  END IF
+  if (icase <= 2) then
+    iout = neq*npeq
+    write (igfl) (cm(i),i=1,iout)
+  else if (icase == 4) then
+    rewind 13
+    i = npeq*npeq
+    do k = 1, nop
+      read (13) (cm(j),j=1,i)
+      write (igfl) (cm(j),j=1,i)
+    end do
+    rewind 13
+  else
+    rewind 13
+    rewind 14
+    if (icase /= 5) then
+      iout = npblk*neq*2
+      do i = 1, nbloks
+        call blckin(cm,13,1,iout,1,201)
+        call blckot(cm,igfl,1,iout,1,202)
+      end do
+      do i = 1, nbloks
+        call blckin(cm,14,1,iout,1,203)
+        call blckot(cm,igfl,1,iout,1,204)
+      end do
+    else
+      iout = npsym*npeq*2
+      do iop = 1, nop
+        do i = 1, nblsym
+          call blckin(cm,13,1,iout,1,205)
+          call blckot(cm,igfl,1,iout,1,206)
+        end do
+        do i = 1, nblsym
+          call blckin(cm,14,1,iout,1,207)
+          call blckot(cm,igfl,1,iout,1,208)
+        end do
+      end do
+    end if
+    rewind 13
+    rewind 14
+  end if
 
-  REWIND IGFL
-  WRITE(*,13) IGFL, IMAT
+  rewind igfl
+  write(*,13) igfl, imat
 
-13 FORMAT (///,44H ****NUMERICAL GREEN'S FUNCTION FILE ON TAPE,I3, &
-           5H****,/,5X,16HMATRIX STORAGE -,I7,16H COMPLEX NUMBERS,///)
+13 format (///,44h ****numerical green'S FUNCTION FILE ON TAPE,I3, &
+           5h****,/,5x,16hmatrix storage -,i7,16h complex numbers,///)
 
-END SUBROUTINE GFOUT
+end subroutine gfout
 
 
-SUBROUTINE BLCKOT(AR,NUNIT,IX1,IX2,NBLKS,NEOF)
+subroutine blckot(ar,nunit,ix1,ix2,nblks,neof)
   ! BLCKOT controls writing of matrix blocks.
-  IMPLICIT REAL*8(A-H,O-Z)
-  COMPLEX*16 AR
-  DIMENSION AR(1)
+  implicit real*8(a-h,o-z)
+  complex*16 ar
+  dimension ar(1)
 
-  I1 = (IX1 + 1) / 2
-  I2 = (IX2 + 1) / 2
-  WRITE (NUNIT) (AR(J),J=I1,I2)
+  i1 = (ix1 + 1) / 2
+  i2 = (ix2 + 1) / 2
+  write (nunit) (ar(j),j=i1,i2)
 
-END SUBROUTINE BLCKOT
+end subroutine blckot
 
 
-SUBROUTINE BLCKIN(AR,NUNIT,IX1,IX2,NBLKS,NEOF)
+subroutine blckin(ar,nunit,ix1,ix2,nblks,neof)
   ! BLCKIN controls reading of matrix blocks.
   ! MODERNIZED: Converted from ENTRY to separate subroutine, eliminated label-sharing
-  IMPLICIT REAL*8(A-H,O-Z)
-  COMPLEX*16 AR
-  DIMENSION AR(1)
+  implicit real*8(a-h,o-z)
+  complex*16 ar
+  dimension ar(1)
 
-  I1 = (IX1 + 1) / 2
-  I2 = (IX2 + 1) / 2
+  i1 = (ix1 + 1) / 2
+  i2 = (ix2 + 1) / 2
 
-  DO I = 1, NBLKS
-    READ (NUNIT,END=3) (AR(J),J=I1,I2)
-  END DO
-  RETURN
+  do i = 1, nblks
+    read (nunit,end=3) (ar(j),j=i1,i2)
+  end do
+  return
 
-3 WRITE(*,4) NUNIT, NBLKS, NEOF
-  IF (NEOF /= 777) STOP
-  NEOF = 0
+3 write(*,4) nunit, nblks, neof
+  if (neof /= 777) stop
+  neof = 0
 
-4 FORMAT (13H  EOF ON UNIT,I3,9H  NBLKS= ,I3,8H  NEOF= ,I5)
+4 format (13h  eof on unit,i3,9h  nblks= ,i3,8h  neof= ,i5)
 
-END SUBROUTINE BLCKIN
+end subroutine blckin
 
 
-SUBROUTINE REBLK(B,BX,NB,NBX,N2C)
+subroutine reblk(b,bx,nb,nbx,n2c)
   ! REBLK reblocks array in N.G.F. solution.
-  IMPLICIT REAL*8(A-H,O-Z)
-  COMPLEX*16 B,BX
-  COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT, &
-    ICASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  DIMENSION B(NB,1), BX(NBX,1)
+  implicit real*8(a-h,o-z)
+  complex*16 b,bx
+  common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat, &
+    icasx,nbbx,npbx,nlbx,nbbl,npbl,nlbl
+  dimension b(nb,1), bx(nbx,1)
 
-  REWIND 16
-  NIB = 0
-  NPB = NPBL
+  rewind 16
+  nib = 0
+  npb = npbl
 
-  DO IB = 1, NBBL
-    IF (IB == NBBL) NPB = NLBL
-    REWIND 14
-    NIX = 0
-    NPX = NPBX
+  do ib = 1, nbbl
+    if (ib == nbbl) npb = nlbl
+    rewind 14
+    nix = 0
+    npx = npbx
 
-    DO IBX = 1, NBBX
-      IF (IBX == NBBX) NPX = NLBX
-      READ (14) ((BX(I,J),I=1,NPX),J=1,N2C)
-      DO I = 1, NPX
-        IX = I + NIX
-        DO J = 1, NPB
-          B(IX,J) = BX(I,J+NIB)
-        END DO
-      END DO
-      NIX = NIX + NPBX
-    END DO
+    do ibx = 1, nbbx
+      if (ibx == nbbx) npx = nlbx
+      read (14) ((bx(i,j),i=1,npx),j=1,n2c)
+      do i = 1, npx
+        ix = i + nix
+        do j = 1, npb
+          b(ix,j) = bx(i,j+nib)
+        end do
+      end do
+      nix = nix + npbx
+    end do
 
-    WRITE (16) ((B(I,J),I=1,NB),J=1,NPB)
-    NIB = NIB + NPBL
-  END DO
+    write (16) ((b(i,j),i=1,nb),j=1,npb)
+    nib = nib + npbl
+  end do
 
-  REWIND 14
-  REWIND 16
+  rewind 14
+  rewind 16
 
-END SUBROUTINE REBLK
+end subroutine reblk

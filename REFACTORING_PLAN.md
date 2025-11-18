@@ -1,3 +1,5 @@
+# Refactoring Plan for nec2dxs.f
+
 ## Current Status: REFACTORING COMPLETE ✅
 
 **Completed modules (7):**
@@ -25,7 +27,6 @@ Refactor nec2dxs.f (fixed-form Fortran) into modules with minimal changes.
 - Keep fixed form even with modules
 - Makefile flags: `FFLAGS = -O0 -std=legacy -ffixed-form -ffixed-line-length-none`
 - File naming: Create new module/source files with `.f` extension (not `.f90`)
-
 ## CRITICAL: COMMON Block/Module Incompatibility Issue & Resolution
 
 ### The Problem (Discovered in Step 3 attempts)
@@ -104,60 +105,6 @@ END SUBROUTINE
 **Key insight:** By keeping the module interface minimal (parameters only), we can organize code into multiple files while preserving traditional F77 COMMON block behavior.
 
 ## Proposed Module Layout
-
-### nec2_common (PARAMETERS ONLY)
-**Contains ONLY parameter definitions, NOT COMMON blocks**:
-- `INCLUDE 'NEC2DPAR.INC'` - MAXSEG, MAXMAT, LOADMX, NSMAX, NETMX, JMAX
-- `PARAMETER (IRESRV=MAXMAT**2)`
-- **Each .f file declares its own COMMON blocks locally** (standard Fortran 77 practice)
-- Shared via `use nec2_common`
-
-### nec2_io
-I/O utilities and helpers:
-- UPCASE, PARSIT
-- READMN/READGM
-- PRNT
-- BLCKOT/GFOUT/GFIL
-- CPUSEC/stopwatch helpers
-- Main driver I/O helpers
-
-### nec2_geometry
-Geometry build/mutation routines:
-- DATAGN
-- REFLC
-- WIRE, HELIX, PATCH, ARC
-- MOVE
-- LOAD
-- PCINT
-- SBF/TBF helpers
-
-### nec2_greens
-Special functions/quadrature for Green's functions:
-- SOM2D
-- BESSEL/HANKEL/GH/GF/GX/GXX
-- ETMNS
-- HSFLX/HFK/INTX/HINTG
-
-### nec2_solve
-Matrix build/factor routines:
-- FACTR/FACTRS/SOLVE/SOLVES/LFACTR/LTSOLV/LUNSCR
-- FACGF/FBLOCK/FBNGF/REBLK
-- CM* helpers (CMNGF, CMSET, CMSS, CMSW, CMWS, CMWW)
-
-### nec2_fields
-Near/far field evaluation and reporting:
-- GWAVE/FFLD/FFLDS/NFPAT/RDPAT
-- NEFLD/NHFLD
-- UNERE
-- SFLDS/HSFLD/EVLUA
-
-### nec2_network
-Network and coupling routines:
-- NETWK/COUPLE
-- QDSRC
-- GFOUT variants
-- VSORC/NETCX/port-related helpers
-
 ## Implementation Progress
 
 ### ✅ COMPLETED STEPS
@@ -177,14 +124,10 @@ Network and coupling routines:
 **Result:** nec2_common.f is now a pure parameters-only module
 
 ---
-- Created `nec2_network.f` with 4 network/coupling subroutines (632 lines):
+
 #### Step 2: I/O Utilities Module (f1630c1) ✓
-  * COUPLE - Mutual coupling calculation (75 lines)
-  * QDSRC - Quadrilateral patch current source (129 lines)
-  * CABC - Cable/transmission line loading (87 lines)
-  * COUPLE - Mutual coupling calculation (75 lines)
-  * QDSRC - Quadrilateral patch current source (129 lines)
-  * CABC - Cable/transmission line loading (87 lines)
+- Created `nec2_io.f` with 8 subroutines:
+  * UPCASE, PARSIT, READMN, READGM, PRNT, CPUSEC
   * BLCKOT, GFIL, GFOUT, stopwatch helpers
 - Each subroutine follows parameters-only pattern:
   * `USE NEC2_COMMON` for parameters
@@ -208,6 +151,15 @@ Network and coupling routines:
   * ARC, DATAGN, HELIX, LOAD, MOVE, PATCH, PCINT, REFLC, SBF, TBF, WIRE
 - Removed those subroutines from nec2dxs.f (1565 lines removed)
 - Each subroutine uses `USE NEC2_COMMON` for parameters only
+- Each subroutine declares its own COMMON blocks locally
+- Updated Makefile: `OBJS = nec2_common.o nec2_io.o nec2_geometry.o nec2dxs.o`
+- File size: nec2dxs.f reduced from 9925 → 9093 → 7528 lines
+
+**Testing:**
+- Build: ✅ `make clean && make` successful
+- Functionality: ✅ Numerical results identical to baseline
+- Only minor formatting differences in output (leading zeros)
+
 **Result:** nec2_geometry.f extracted and working; parameters-only pattern validated
 
 ---
@@ -259,11 +211,29 @@ Network and coupling routines:
 
 ---
 
+#### Step 6: Fields Module (7316140) ✓
+**Implementation:**
+- Created `nec2_fields.f` with 11 field calculation subroutines (1371 lines):
+  * Far field: FFLD, FFLDS, NFPAT, RDPAT (629 lines)
+  * Near field: NEFLD, NHFLD (237 lines)
+  * Ground/surface: GWAVE, SFLDS, HSFLD (311 lines)
+  * Evaluation: EVLUA, UNERE (182 lines)
+- Removed these subroutines from nec2dxs.f (1359 lines removed)
+- All subroutines use `USE NEC2_COMMON` for parameters
+- Each subroutine declares its own COMMON blocks locally
+- Updated Makefile: `OBJS = ... nec2_fields.o nec2dxs.o`
+- File size: nec2dxs.f reduced from 4800 → 3441 lines (65% total reduction)
 
+**Testing:**
+- Build: ✅ `make clean && make` successful
+- Functionality: ✅ Numerical results identical to Step 5 (only timing differs)
+- Power budget values match exactly
 
-#### Step 7: Network Module
+**Result:** nec2_fields.f extracted and working
 
-#### Step 7: Network Module (3074d26) ✓
+---
+
+#### Step 7: Network Module (3074d26, bf7779c) ✓
 **Implementation:**
 - Created `nec2_network.f` with 4 network/coupling subroutines (632 lines):
   * NETWK - Network analysis and impedance loading (335 lines)
@@ -290,7 +260,6 @@ Network and coupling routines:
 **Result:** nec2_network.f extracted; main refactoring complete
 
 ---
-
 
 #### Step 8: Final Cleanup - Distribute Helpers (0a15dbb) ✓
 **Implementation:**

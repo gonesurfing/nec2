@@ -420,6 +420,34 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 974 - 10 = **964 GOTOs**
 **Total GOTOs Eliminated:** 55 / 1,019 (5.4% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_kernels.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 3 electromagnetic kernel and solver routines
+  - EKSC, GF, SOLVE
+- **Lines:** 123 → 127 (3% increase through modern formatting)
+- **GOTOs Eliminated:** 4 → 0 ✅
+  - EKSC: 1 GOTO eliminated (small rh check → IF/ELSE)
+  - GF: 1 GOTO eliminated (series expansion selection → nested IF)
+  - SOLVE: 2 GOTOs eliminated (loop guards → IF conditions)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, warnings only in legacy code ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- EKSC: Computes E field of current filaments by thin wire approximation
+- GF: Computes integrand exp(jkr)/(kr) for numerical integration
+- SOLVE: Solves matrix equation LU*x=b with forward/backward substitution
+- All GOTOs were simple conditional branches and loop guards
+
+**Remaining GOTOs in Codebase:** 964 - 4 = **960 GOTOs**
+**Total GOTOs Eliminated:** 59 / 1,019 (5.8% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
@@ -427,8 +455,9 @@ SUBROUTINE FOO(A, B, C)
 3. ✅ **Create nec2d_mathutil.f90:** Math utilities modernization COMPLETE (4 GOTOs eliminated)
 4. ✅ **Create nec2d_simple.f90:** Simple routines modernization COMPLETE (8 GOTOs eliminated)
 5. ✅ **Create nec2d_bessel.f90:** Bessel functions modernization COMPLETE (10 GOTOs eliminated)
-6. ✅ **Test with full program:** Integration tests passing with bit-identical output
-7. **Continue with next module:** Medium-complexity modules (964 GOTOs remaining)
+6. ✅ **Create nec2d_kernels.f90:** Kernels/solvers modernization COMPLETE (4 GOTOs eliminated)
+7. ✅ **Test with full program:** Integration tests passing with bit-identical output
+8. **Continue with next module:** Medium-complexity modules (960 GOTOs remaining)
 
 ## Success Criteria
 
@@ -451,7 +480,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 1.4
+**Document Version:** 1.5
 **Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 5 modules complete (I/O, Geometry, Math Utils, Simple, Bessel), 55/1,019 GOTOs eliminated (5.4%)
+**Status:** Phase 2 In Progress - 6 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels), 59/1,019 GOTOs eliminated (5.8%)

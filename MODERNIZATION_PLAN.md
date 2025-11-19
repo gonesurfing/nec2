@@ -448,6 +448,34 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 964 - 4 = **960 GOTOs**
 **Total GOTOs Eliminated:** 59 / 1,019 (5.8% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_matrix.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 2 matrix and coupling routines
+  - FACTRS, COUPLE
+- **Lines:** 171 → 202 (18% increase through modern formatting and structured logic)
+- **GOTOs Eliminated:** 9 → 0 ✅
+  - FACTRS: 4 GOTOs eliminated (multi-way branch based on ICASE → nested IF/ELSE)
+  - COUPLE: 5 GOTOs eliminated (loop continue + conditional branches → IF/ELSE)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, warnings only in legacy code ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+- **Hollerith Strings:** Converted to character strings in FORMAT statements
+
+**Details:**
+- FACTRS: Matrix factorization for symmetric antenna structures
+- COUPLE: Computes maximum coupling between segment pairs
+- Complex multi-way branching modernized with nested IF blocks
+- Hollerith FORMAT statements converted to modern character strings
+
+**Remaining GOTOs in Codebase:** 960 - 9 = **951 GOTOs**
+**Total GOTOs Eliminated:** 68 / 1,019 (6.7% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
@@ -456,8 +484,9 @@ SUBROUTINE FOO(A, B, C)
 4. ✅ **Create nec2d_simple.f90:** Simple routines modernization COMPLETE (8 GOTOs eliminated)
 5. ✅ **Create nec2d_bessel.f90:** Bessel functions modernization COMPLETE (10 GOTOs eliminated)
 6. ✅ **Create nec2d_kernels.f90:** Kernels/solvers modernization COMPLETE (4 GOTOs eliminated)
-7. ✅ **Test with full program:** Integration tests passing with bit-identical output
-8. **Continue with next module:** Medium-complexity modules (960 GOTOs remaining)
+7. ✅ **Create nec2d_matrix.f90:** Matrix/coupling modernization COMPLETE (9 GOTOs eliminated)
+8. ✅ **Test with full program:** Integration tests passing with bit-identical output
+9. **Continue with next module:** Medium-complexity modules (951 GOTOs remaining)
 
 ## Success Criteria
 
@@ -480,7 +509,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 1.5
+**Document Version:** 1.6
 **Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 6 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels), 59/1,019 GOTOs eliminated (5.8%)
+**Status:** Phase 2 In Progress - 7 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix), 68/1,019 GOTOs eliminated (6.7%)

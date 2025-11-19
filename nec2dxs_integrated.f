@@ -181,34 +181,56 @@ C
       MPCNT=MPCNT+1
       WRITE(*,137) MPCNT,AIN,ITMP1,ITMP2,ITMP3,ITMP4,TMP1,TMP2,TMP3,
      1TMP4,TMP5,TMP6
-      IF (AIN.EQ.ATST(2)) GO TO 16
-      IF (AIN.EQ.ATST(3)) GO TO 17
-      IF (AIN.EQ.ATST(4)) GO TO 21
-      IF (AIN.EQ.ATST(5)) GO TO 24
-      IF (AIN.EQ.ATST(6)) GO TO 28
-      IF (AIN.EQ.ATST(14)) GO TO 28
-      IF (AIN.EQ.ATST(15)) GO TO 31
-      IF (AIN.EQ.ATST(18)) GO TO 319
-      IF (AIN.EQ.ATST(7)) GO TO 37
-      IF (AIN.EQ.ATST(8)) GO TO 32
-      IF (AIN.EQ.ATST(17)) GO TO 208
-      IF (AIN.EQ.ATST(9)) GO TO 34
-      IF (AIN.EQ.ATST(10)) GO TO 36
-      IF (AIN.EQ.ATST(16)) GO TO 305
-      IF (AIN.EQ.ATST(19)) GO TO 320
-      IF (AIN.EQ.ATST(12)) GO TO 1
-      IF (AIN.EQ.ATST(20)) GO TO 322
-      IF (AIN.EQ.ATST(21)) GO TO 304
-C***
-      IF (AIN.EQ.ATST(22)) GO TO 330
-C***
-      IF (AIN.NE.ATST(13)) GO TO 15
-      CALL CPUSEC(TMP1)
-      TMP1=TMP1-EXTIM
-      WRITE(*,201) TMP1
-      STOP
-15    WRITE(*,138)
-      STOP
+C
+C     DISPATCHER - MODERNIZED: IF chain replaced with SELECT CASE
+C     Batch 13: Eliminates 21 GOTOs from dispatcher logic
+C
+      SELECT CASE (AIN)
+        CASE ('FR')
+          GO TO 16
+        CASE ('LD')
+          GO TO 17
+        CASE ('GN')
+          GO TO 21
+        CASE ('EX')
+          GO TO 24
+        CASE ('NT', 'TL')
+          GO TO 28
+        CASE ('PT')
+          GO TO 31
+        CASE ('PQ')
+          GO TO 319
+        CASE ('XQ')
+          GO TO 37
+        CASE ('NE')
+          GO TO 32
+        CASE ('NH')
+          GO TO 208
+        CASE ('GD')
+          GO TO 34
+        CASE ('RP')
+          GO TO 36
+        CASE ('KH')
+          GO TO 305
+        CASE ('EK')
+          GO TO 320
+        CASE ('NX')
+          GO TO 1
+        CASE ('WG')
+          GO TO 322
+        CASE ('CP')
+          GO TO 304
+        CASE ('PL')
+          GO TO 330
+        CASE ('EN')
+          CALL CPUSEC(TMP1)
+          TMP1=TMP1-EXTIM
+          WRITE(*,201) TMP1
+          STOP
+        CASE DEFAULT
+          WRITE(*,138)
+          STOP
+      END SELECT
 C
 C     FREQUENCY PARAMETERS
 C

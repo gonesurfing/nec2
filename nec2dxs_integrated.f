@@ -566,14 +566,20 @@ C     SAVE ORIGINAL GEOMETRY (FIRST TIME ONLY)
 C***
 C     CORE ALLOCATION FOR PRIMARY INTERACTON MATRIX.  (A)
       IF(IMAT.EQ.0)CALL FBLOCK(NPEQ,NEQ,IRESRV,IRNGF,IPSYM)
-42    IF (MHZ.EQ.1) GO TO 44
-      IF (IFRQ.EQ.1) GO TO 43
-C      FMHZ=FMHZ+DELFRQ
-C***
-      FMHZ=FMHZ1+(MHZ-1)*DELFRQ
-      GO TO 44
-43    FMHZ=FMHZ*DELFRQ
-44    FR=FMHZ/CVEL
+C
+C     FREQUENCY CALCULATION - MODERNIZED (label 42 must remain for loop)
+42    IF (MHZ.EQ.1) THEN
+C       First frequency - use base value
+        FMHZ=FMHZ1
+      ELSE IF (IFRQ.EQ.1) THEN
+C       Multiplicative stepping
+        FMHZ=FMHZ*DELFRQ
+      ELSE
+C       Additive stepping
+        FMHZ=FMHZ1+(MHZ-1)*DELFRQ
+      END IF
+
+      FR=FMHZ/CVEL
 C***
       WLAM=CVEL/FMHZ
       WRITE(*,145)  FMHZ,WLAM
@@ -581,27 +587,31 @@ C***
       IF(IEXK.EQ.1)WRITE(*,321)
 C     FREQUENCY SCALING OF GEOMETRIC PARAMETERS
 C***      FMHZS=FMHZ
-      IF(N.EQ.0)GO TO 306
-      DO 45 I=1,N
-C***
-      X(I)=XTEMP(I)*FR
-      Y(I)=YTEMP(I)*FR
-      Z(I)=ZTEMP(I)*FR
-      SI(I)=SITEMP(I)*FR
-45    BI(I)=BITEMP(I)*FR
-C***
-306   IF(M.EQ.0)GO TO 307
-      FR2=FR*FR
-      J=LD+1
-      DO 245 I=1,M
-      J=J-1
-C***
-      X(J)=XTEMP(J)*FR
-      Y(J)=YTEMP(J)*FR
-      Z(J)=ZTEMP(J)*FR
-245   BI(J)=BITEMP(J)*FR2
-C***
-307   IGO=2
+C     SCALE WIRE SEGMENTS
+      IF (N.NE.0) THEN
+        DO I=1,N
+          X(I)=XTEMP(I)*FR
+          Y(I)=YTEMP(I)*FR
+          Z(I)=ZTEMP(I)*FR
+          SI(I)=SITEMP(I)*FR
+          BI(I)=BITEMP(I)*FR
+        END DO
+      END IF
+
+C     SCALE PATCH SURFACES
+      IF (M.NE.0) THEN
+        FR2=FR*FR
+        J=LD+1
+        DO I=1,M
+          J=J-1
+          X(J)=XTEMP(J)*FR
+          Y(J)=YTEMP(J)*FR
+          Z(J)=ZTEMP(J)*FR
+          BI(J)=BITEMP(J)*FR2
+        END DO
+      END IF
+
+      IGO=2
 C     STRUCTURE SEGMENT LOADING
 46    WRITE(*,146)
       IF(NLOAD.NE.0) CALL LOAD(LDTYP,LDTAG,LDTAGF,LDTAGT,ZLR,ZLI,ZLC)

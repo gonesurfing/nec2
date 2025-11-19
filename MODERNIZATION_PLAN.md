@@ -964,3 +964,54 @@ SUBROUTINE FOO(A, B, C)
 - Remaining: 478 GOTOs
 - Modules created: 25 total
 - Main file size: 3,249 lines (down from 3,285)
+
+### ✅ Batch 10: Radiation Pattern Output (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutine:** RDPAT - Radiation pattern computation and output
+- **Lines:** Created nec2d_rdpat.f90 (432 lines)
+- **GOTOs Eliminated:** 44 → 0 ✅
+  - Section 1 (Ground parameters): 3 GOTOs (labels 1, 2) → structured IF-THEN-ELSE
+  - Section 2 (Header output): 4 GOTOs (labels 3, 4, 5) → structured IF-THEN-ELSE
+  - Section 3 (Gain initialization): 3 GOTOs (labels 6, 7, 8) → nested IF-THEN-ELSE
+  - Section 4 (Main loop): 1 GOTO (to label 29) → CYCLE
+  - Section 5 (Field computation): 2 GOTOs (labels 9, 10) → IF-THEN-ELSE
+  - Section 6 (Polarization): 8 GOTOs (labels 11-16) → nested IF-THEN-ELSE
+  - Section 7 (Gain normalization): 7 GOTOs (labels 17-23, computed GOTO) → SELECT CASE
+  - Section 8 (Output preparation): 6 GOTOs (labels 24-27) → structured IF-THEN
+  - Section 9 (Plot output): 4 GOTOs (labels 28, 290, 299) → nested IF-THEN-ELSE
+  - Section 10 (Summary): 6 GOTOs (labels 30-34) → structured IF with EXIT
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** Labeled DO 29 → Modern DO...END DO ✅
+- **Compilation:** Clean compile with gfortran ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+- **Hollerith Formats:** Converted all 12 FORMAT statements to quoted strings
+- **Character Arrays:** Explicit CHARACTER*6 and CHARACTER*1 declarations
+
+**Details:**
+- RDPAT: Computes far-field and near-field radiation patterns
+- Large output routine with complex formatting (280 lines original)
+- 44 GOTOs eliminated using comprehensive structured control flow
+- Computed GOTO (line 2702) converted to SELECT CASE
+- Multiple output paths (near-field vs far-field, plot data, summaries)
+- Elliptical polarization calculation with nested conditionals
+- Ground parameter and gain normalization sections
+- Physics calculations delegated to FFLD and GFLD (not modernized)
+
+**Integration Results:**
+- Module created: nec2d_rdpat.f90 (432 lines)
+- Lines removed: 281 lines from nec2dxs_integrated.f
+- Build: ✅ Success (added Step 22 to build script)
+- Testing: ✅ Bit-identical output
+- Type issues: Fixed CHARACTER array declarations (required explicit types before IMPLICIT)
+
+**Overall Progress:**
+- GOTOs eliminated this batch: 44
+- Total progress: 585/1,019 GOTOs (57.4% complete)
+- Remaining: 434 GOTOs
+- Modules created: 26 total
+- Main file size: 2,968 lines (down from 3,249)

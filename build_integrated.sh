@@ -265,7 +265,17 @@ else
 fi
 echo
 
-echo "Step 24: Compile integrated main program (nec2dxs_integrated.f)"
+echo "Step 24: Compile matrix NGF filling module (nec2d_cmngf.f90)"
+gfortran -c $FFLAGS nec2d_cmngf.f90 -o nec2d_cmngf.o
+if [ $? -eq 0 ]; then
+    echo "✓ nec2d_cmngf.f90 compiled successfully"
+else
+    echo "✗ Compilation failed"
+    exit 1
+fi
+echo
+
+echo "Step 25: Compile integrated main program (nec2dxs_integrated.f)"
 gfortran -c $FFLAGS nec2dxs_integrated.f -o nec2dxs_integrated.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2dxs_integrated.f compiled successfully"
@@ -275,8 +285,8 @@ else
 fi
 echo
 
-echo "Step 25: Link to create executable"
-gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o nec2d_fields.o nec2d_integration.o nec2d_nearfield.o nec2d_matrix2.o nec2d_utilities.o nec2d_sommerfeld.o nec2d_dataproc.o nec2d_numint.o nec2d_geomproc.o nec2d_solver.o nec2d_fields2.o nec2d_fields3.o nec2d_segment.o nec2d_rdpat.o nec2d_conect.o nec2d_matrix3.o -o nec2dxs_integrated
+echo "Step 26: Link to create executable"
+gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o nec2d_fields.o nec2d_integration.o nec2d_nearfield.o nec2d_matrix2.o nec2d_utilities.o nec2d_sommerfeld.o nec2d_dataproc.o nec2d_numint.o nec2d_geomproc.o nec2d_solver.o nec2d_fields2.o nec2d_fields3.o nec2d_segment.o nec2d_rdpat.o nec2d_conect.o nec2d_cmngf.o nec2d_matrix3.o -o nec2dxs_integrated
 if [ $? -eq 0 ]; then
     echo "✓ Linking successful"
 else

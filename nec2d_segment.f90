@@ -1,4 +1,8 @@
 FUNCTION ISEGNO(ITAGI, MX)
+  USE nec2d_params
+  USE nec2d_commons, ONLY: &
+    ! /DATA/ - Only variables actually used: ITAG, N
+    ITAG, N
   ! ***
   ! DOUBLE PRECISION 6/4/85
   !
@@ -6,15 +10,9 @@ FUNCTION ISEGNO(ITAGI, MX)
   ! tag number ITAGI. If ITAGI=0, segment number M is returned.
   !
   ! Modernized: Eliminated 5 GOTOs using structured control flow
+  ! COMMON blocks: Converted to USE...ONLY (2025-11-19)
   !
   IMPLICIT REAL*8(A-H,O-Z)
-
-  ! Parameter from NEC2DPAR.INC
-  INTEGER, PARAMETER :: MAXSEG = 3000
-
-  COMMON /DATA/ X(MAXSEG), Y(MAXSEG), Z(MAXSEG), SI(MAXSEG), BI(MAXSEG), &
-                ALP(MAXSEG), BET(MAXSEG), WLAM, ICON1(2*MAXSEG), ICON2(2*MAXSEG), &
-                ITAG(2*MAXSEG), ICONX(MAXSEG), LD, N1, N2, N, NP, M1, M2, M, MP, IPSYM
 
   ! Validate MX parameter (GOTO 1 eliminated)
   IF (MX .LE. 0) THEN

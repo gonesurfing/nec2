@@ -77,14 +77,18 @@ subroutine hsflx(s,rh,zpx,hpk,hps,hpc)
 end subroutine hsflx
 
 subroutine ekscx(bx,s,z,rhx,xk,ij,inx1,inx2,ezs,ers,ezc,erc,ezk,erk)
+  use nec2d_params
+  use nec2d_commons, only: &
+    ! /TMI/ - TM mode integration variables (with aliases for original names)
+    zpk => ZPK_TMI, rkb2 => RKB2, ijx => IJX_TMI
 !
 ! ekscx computes e field of sine, cosine, and constant current filaments
 ! by extended thin wire approximation.
+! COMMON blocks: Converted to USE...ONLY with aliasing (2025-11-19)
 !
   implicit real*8(a-h,o-z)
   complex*16 con,gz1,gz2,gzp1,gzp2,gr1,gr2,grp1,grp2,ezs,ezc,ers,erc, &
        grk1,grk2,ezk,erk,gzz1,gzz2
-  common /tmi/ zpk,rkb2,ijx
   dimension conx(2)
   equivalence (conx,con)
   data conx/0.d0,4.771341189d0/

@@ -669,6 +669,42 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 846 - 60 = **786 GOTOs**
 **Total GOTOs Eliminated:** 233 / 1,019 (22.9% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_sommerfeld.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 3 Sommerfeld integral evaluation routines
+  - EVLUA, GSHANK, SAOA
+- **Lines:** 257 → 414 (61% increase through modern formatting and structured logic)
+- **GOTOs Eliminated:** 33 → 0 ✅
+  - EVLUA: 9 GOTOs eliminated (Bessel/Hankel paths → top-level IF/ELSE)
+  - GSHANK: 14 GOTOs eliminated (break point handling → named loops with CYCLE/EXIT)
+  - SAOA: 10 GOTOs eliminated (form selection & special cases → nested IF/ELSE)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, warnings only in legacy code ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- EVLUA: Controls complex lambda plane integration contour for Sommerfeld integrals
+- GSHANK: Integrates 6 Sommerfeld integrals using Shanks convergence acceleration
+- SAOA: Computes integrand for 6 integrals with source/observer above ground
+- Bessel vs Hankel function form selection cleanly separated with top-level IF/ELSE
+- Complex integration path logic (9 original labels) restructured into nested IF/ELSE blocks
+- Break point handling in GSHANK modernized with named loops and CYCLE/EXIT
+- Shanks transformation convergence checking with named CONVERGENCE_CHECK loop
+
+**Parallel Agent Acceleration:**
+- Used 3 parallel agents to modernize simultaneously
+- Reduced modernization time while maintaining quality
+- Each agent successfully eliminated all GOTOs in assigned subroutine
+
+**Remaining GOTOs in Codebase:** 786 - 33 = **753 GOTOs**
+**Total GOTOs Eliminated:** 266 / 1,019 (26.1% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
@@ -684,8 +720,9 @@ SUBROUTINE FOO(A, B, C)
 11. ✅ **Create nec2d_matrix2.f90:** Matrix computation modernization COMPLETE (22 GOTOs eliminated)
 12. ✅ **Create nec2d_utilities.f90:** Utilities and computation modernization COMPLETE (32 GOTOs eliminated)
 13. ✅ **Create nec2d_matrix3.f90:** Wire/surface interactions modernization COMPLETE (60 GOTOs eliminated)
-14. ✅ **Test with full program:** Integration tests passing with bit-identical output
-15. **Continue with next module:** Medium-complexity modules (786 GOTOs remaining)
+14. ✅ **Create nec2d_sommerfeld.f90:** Sommerfeld integrals modernization COMPLETE (33 GOTOs eliminated)
+15. ✅ **Test with full program:** Integration tests passing with bit-identical output
+16. **Continue with next module:** Medium-complexity modules (753 GOTOs remaining)
 
 ## Success Criteria
 
@@ -708,7 +745,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 4.0
+**Document Version:** 5.0
 **Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 13 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields, Integration, Near Field, Matrix2, Utilities, Matrix3), 233/1,019 GOTOs eliminated (22.9%)
+**Status:** Phase 2 In Progress - 14 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields, Integration, Near Field, Matrix2, Utilities, Matrix3, Sommerfeld), 266/1,019 GOTOs eliminated (26.1%)

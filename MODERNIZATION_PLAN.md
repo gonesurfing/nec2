@@ -393,14 +393,42 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 982 - 8 = **974 GOTOs**
 **Total GOTOs Eliminated:** 45 / 1,019 (4.4% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_bessel.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 2 special mathematical functions
+  - BESSEL, HANKEL
+- **Lines:** 161 → 167 (4% increase through modern formatting)
+- **GOTOs Eliminated:** 10 → 0 ✅
+  - BESSEL: 5 GOTOs eliminated (initialization + expansion method selection)
+  - HANKEL: 5 GOTOs eliminated (initialization + expansion method selection)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, zero warnings ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- Both functions had initialization-on-first-call pattern via backward GOTO
+- Converted to structured IF block for initialization
+- Multiple expansion methods selected via GOTOs → structured IF/ELSE
+- Complex special function calculations for electromagnetic field computation
+
+**Remaining GOTOs in Codebase:** 974 - 10 = **964 GOTOs**
+**Total GOTOs Eliminated:** 55 / 1,019 (5.4% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
 2. ✅ **Create nec2d_geometry.f90:** Geometry module modernization COMPLETE (13 GOTOs eliminated)
 3. ✅ **Create nec2d_mathutil.f90:** Math utilities modernization COMPLETE (4 GOTOs eliminated)
 4. ✅ **Create nec2d_simple.f90:** Simple routines modernization COMPLETE (8 GOTOs eliminated)
-5. ✅ **Test with full program:** Integration tests passing with bit-identical output
-6. **Continue with next module:** Medium-complexity modules (974 GOTOs remaining)
+5. ✅ **Create nec2d_bessel.f90:** Bessel functions modernization COMPLETE (10 GOTOs eliminated)
+6. ✅ **Test with full program:** Integration tests passing with bit-identical output
+7. **Continue with next module:** Medium-complexity modules (964 GOTOs remaining)
 
 ## Success Criteria
 
@@ -423,7 +451,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 1.3
-**Last Updated:** 2025-11-18
+**Document Version:** 1.4
+**Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 4 modules complete (I/O, Geometry, Math Utils, Simple), 45/1,019 GOTOs eliminated (4.4%)
+**Status:** Phase 2 In Progress - 5 modules complete (I/O, Geometry, Math Utils, Simple, Bessel), 55/1,019 GOTOs eliminated (5.4%)

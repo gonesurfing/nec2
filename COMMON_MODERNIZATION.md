@@ -124,24 +124,67 @@ Error: Name 'mp' at (1) is an ambiguous reference to 'mp' from current program u
 
 3. **No Functional Benefit**: COMMON blocks work correctly and produce bit-identical output. Conversion to MODULEs is cosmetic only.
 
-## Conclusion
+## SUCCESSFUL SOLUTION: USE with ONLY Clause (2025-11-19)
 
-**RECOMMENDATION: Keep COMMON blocks as-is**
+### Discovery
+**ONLY clauses completely solve the name conflict issue!**
 
-The existing COMMON block approach is:
-- ✅ **Proven**: 28 modernized modules work correctly with COMMON blocks
-- ✅ **Safe**: No name conflicts with subroutine parameters
-- ✅ **Tested**: MD5 checksum validates bit-identical output
-- ✅ **Standard**: COMMON blocks are valid Fortran 90/95/2003/2008
+By using `USE nec2d_commons, ONLY: var1, var2, ...`, we can:
+- Import only the COMMON variables actually needed
+- Avoid conflicts with subroutine parameters
+- Maintain bit-identical output (MD5 verified)
 
-**Alternative modernization** would require:
-- ❌ Renaming ~1000+ instances of conflicting parameter names
-- ❌ High risk of introducing bugs in EM physics calculations
-- ❌ Extensive testing of every subroutine
-- ❌ No measurable benefit to code performance or correctness
+### Example: CMNGF Conversion
+```fortran
+SUBROUTINE CMNGF (CB,CC,CD,NB,NC,ND,RKHX,IEXKX)
+  USE nec2d_params
+  USE nec2d_commons, ONLY: &
+    ! /DATA/ - geometry and segment data (22 variables)
+    X, Y, Z, SI, BI, ALP, BET, WLAM, ICON1, ICON2, ITAG, ICONX, &
+    LD, N1, N2, N, NP, M1, M2, M, MP, IPSYM, &
+    ! /ZLOAD/ - load impedances (3 variables)
+    ZARRAY, NLOAD, NLODF, &
+    ! ... (73 total variables explicitly listed)
+```
+
+### Verification
+✅ **Compiled successfully**
+✅ **MD5 checksum matches**: `7c45f1e15ba34584728075e0cf6402c1`
+✅ **No parameter conflicts**: Only imports needed variables
+
+### Benefits of ONLY Clause Approach
+1. **Explicit dependencies**: Documents exactly which COMMON variables each subroutine uses
+2. **No name conflicts**: Excludes conflicting variables from import
+3. **Modern Fortran best practice**: Explicit imports are preferred over implicit
+4. **Compile-time checking**: Missing variables cause immediate compilation errors
+5. **Better maintainability**: Clear documentation of data dependencies
+
+## Updated Conclusion
+
+**RECOMMENDATION: USE with ONLY clauses is viable**
+
+Two valid approaches exist:
+
+### Option A: Keep COMMON blocks (current approach)
+- ✅ **Simple**: No changes needed
+- ✅ **Proven**: 28 modules working
+- ✅ **Standard**: Valid Fortran 90/95/2003/2008
+
+### Option B: Convert to USE with ONLY clauses (new option)
+- ✅ **Modern**: Best practice Fortran 90
+- ✅ **Explicit**: Documents dependencies
+- ✅ **Safe**: Tested with bit-identical output
+- ⚠️  **Tedious**: Requires analyzing each module's COMMON usage
+- ⚠️  **Time-consuming**: Need custom ONLY list for each subroutine
+
+### Recommendation
+**For new modules**: Use `USE nec2d_commons, ONLY: ...` approach
+**For existing modules**: Keep COMMON blocks unless refactoring for other reasons
+
+Both approaches are valid and safe. The ONLY clause approach provides better documentation but requires more initial effort.
 
 ## Notes
-- Keep IMPLICIT REAL*8(A-H,O-Z) (needed for COMMON compatibility)
-- Do NOT attempt IMPLICIT NONE conversion (would require explicit typing of all COMMON variables)
-- Focus modernization efforts on GOTO elimination, not COMMON block replacement
-- The nec2d_commons.f90 and nec2d_params.f90 modules exist but are not used in production builds
+- Keep IMPLICIT REAL*8(A-H,O-Z) (needed for compatibility)
+- Module aliasing works: `Y => SCRATM_CPLX` for renamed variables
+- EQUIVALENCE on USE ASSOCIATED variables fails - use aliasing instead
+- Focus modernization efforts on GOTO elimination remains primary goal

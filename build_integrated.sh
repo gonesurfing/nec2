@@ -33,6 +33,26 @@ FFLAGS="-O0 -std=legacy -Wall -Wno-unused-parameter"
 echo "=== Building Integrated NEC2D with Modernized Modules ==="
 echo
 
+echo "Step 0a: Compile parameter module (nec2d_params.f90)"
+gfortran -c $FFLAGS nec2d_params.f90 -o nec2d_params.o
+if [ $? -eq 0 ]; then
+    echo "✓ nec2d_params.f90 compiled successfully"
+else
+    echo "✗ Compilation failed"
+    exit 1
+fi
+echo
+
+echo "Step 0b: Compile commons module (nec2d_commons.f90)"
+gfortran -c $FFLAGS nec2d_commons.f90 -o nec2d_commons.o
+if [ $? -eq 0 ]; then
+    echo "✓ nec2d_commons.f90 compiled successfully"
+else
+    echo "✗ Compilation failed"
+    exit 1
+fi
+echo
+
 echo "Step 1: Compile modernized I/O module (nec2d_io.f90)"
 gfortran -c $FFLAGS nec2d_io.f90 -o nec2d_io.o
 if [ $? -eq 0 ]; then
@@ -286,7 +306,7 @@ fi
 echo
 
 echo "Step 26: Link to create executable"
-gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o nec2d_fields.o nec2d_integration.o nec2d_nearfield.o nec2d_matrix2.o nec2d_utilities.o nec2d_sommerfeld.o nec2d_dataproc.o nec2d_numint.o nec2d_geomproc.o nec2d_solver.o nec2d_fields2.o nec2d_fields3.o nec2d_segment.o nec2d_rdpat.o nec2d_conect.o nec2d_cmngf.o nec2d_matrix3.o -o nec2dxs_integrated
+gfortran -O0 nec2dxs_integrated.o nec2d_params.o nec2d_commons.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o nec2d_fields.o nec2d_integration.o nec2d_nearfield.o nec2d_matrix2.o nec2d_utilities.o nec2d_sommerfeld.o nec2d_dataproc.o nec2d_numint.o nec2d_geomproc.o nec2d_solver.o nec2d_fields2.o nec2d_fields3.o nec2d_segment.o nec2d_rdpat.o nec2d_conect.o nec2d_cmngf.o nec2d_matrix3.o -o nec2dxs_integrated
 if [ $? -eq 0 ]; then
     echo "✓ Linking successful"
 else

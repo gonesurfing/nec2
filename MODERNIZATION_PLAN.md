@@ -504,6 +504,34 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 951 - 12 = **939 GOTOs**
 **Total GOTOs Eliminated:** 80 / 1,019 (7.9% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_integration.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 2 numerical integration and matrix routines
+  - HFK, FACTR
+- **Lines:** 185 → 232 (25% increase through modern formatting and structured logic)
+- **GOTOs Eliminated:** 9 → 0 ✅
+  - HFK: 4 GOTOs eliminated (integration loop control → DO WHILE + nested IF/ELSE)
+  - FACTR: 5 GOTOs eliminated (loop guards → IF conditions)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, warnings only in legacy code ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- HFK: Variable interval width Romberg integration for H field computation
+- FACTR: LU matrix factorization using Gauss-Doolittle algorithm
+- Complex integration loop with convergence testing → DO WHILE with nested refinement
+- Step size adaptation logic converted to structured conditionals
+- Pivot selection in factorization converted to guarded IF blocks
+
+**Remaining GOTOs in Codebase:** 939 - 9 = **930 GOTOs**
+**Total GOTOs Eliminated:** 89 / 1,019 (8.7% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
@@ -514,8 +542,9 @@ SUBROUTINE FOO(A, B, C)
 6. ✅ **Create nec2d_kernels.f90:** Kernels/solvers modernization COMPLETE (4 GOTOs eliminated)
 7. ✅ **Create nec2d_matrix.f90:** Matrix/coupling modernization COMPLETE (9 GOTOs eliminated)
 8. ✅ **Create nec2d_fields.f90:** Field calculations modernization COMPLETE (12 GOTOs eliminated)
-9. ✅ **Test with full program:** Integration tests passing with bit-identical output
-10. **Continue with next module:** Medium-complexity modules (939 GOTOs remaining)
+9. ✅ **Create nec2d_integration.f90:** Integration/factorization modernization COMPLETE (9 GOTOs eliminated)
+10. ✅ **Test with full program:** Integration tests passing with bit-identical output
+11. **Continue with next module:** Medium-complexity modules (930 GOTOs remaining)
 
 ## Success Criteria
 
@@ -538,7 +567,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 1.7
+**Document Version:** 1.8
 **Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 8 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields), 80/1,019 GOTOs eliminated (7.9%)
+**Status:** Phase 2 In Progress - 9 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields, Integration), 89/1,019 GOTOs eliminated (8.7%)

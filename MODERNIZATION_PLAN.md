@@ -922,3 +922,45 @@ SUBROUTINE FOO(A, B, C)
 - Main file: 3,285 lines (down from 3,758)
 - Remaining in subroutines: 330 GOTOs in 10 routines
 - Main program: 153 GOTOs (to be tackled later)
+
+### ✅ Batch 9: Segment Lookup (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Function:** ISEGNO - Segment number lookup by tag
+- **Lines:** Created nec2d_segment.f90 (62 lines)
+- **GOTOs Eliminated:** 5 → 0 ✅
+  - Line 1847: GO TO 1 → IF (MX .LE. 0) THEN error handling
+  - Line 1851: GO TO 2 → IF (ITAGI .EQ. 0) THEN early return
+  - Line 1854: GO TO 4 → IF (N .LT. 1) THEN error handling
+  - Line 1856: GO TO 3 → CYCLE for loop continuation
+  - Line 1858: GO TO 5 → Direct RETURN when found
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** Labeled DO 3 → Modern DO...END DO ✅
+- **Compilation:** Clean compile with gfortran ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+- **Hollerith Formats:** Converted to quoted strings
+
+**Details:**
+- ISEGNO: Returns segment number of Mth segment with tag ITAGI
+- Simple lookup function with validation
+- 5 GOTOs eliminated using basic structured control flow
+- IF/THEN for error handling and early returns
+- CYCLE for loop continuation instead of GOTO
+- Modern FORMAT statements with quoted strings
+
+**Integration Results:**
+- Module created: nec2d_segment.f90 (62 lines)
+- Lines removed: 36 lines from nec2dxs_integrated.f
+- Build: ✅ Success (added Step 21 to build script)
+- Testing: ✅ Bit-identical output
+
+**Overall Progress:**
+- GOTOs eliminated this batch: 5
+- Total progress: 541/1,019 GOTOs (53.1% complete)
+- Remaining: 478 GOTOs
+- Modules created: 25 total
+- Main file size: 3,249 lines (down from 3,285)

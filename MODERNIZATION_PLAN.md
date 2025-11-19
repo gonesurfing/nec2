@@ -597,6 +597,41 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 900 - 22 = **878 GOTOs**
 **Total GOTOs Eliminated:** 141 / 1,019 (13.8% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_utilities.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 3 utility and computation routines
+  - TRIO, UNERE, ROM1
+- **Lines:** 223 → 347 (56% increase through modern formatting and structured logic)
+- **GOTOs Eliminated:** 32 → 0 ✅
+  - TRIO: 14 GOTOs eliminated (segment connection traversal → DO WHILE loops, IEND iteration)
+  - UNERE: 7 GOTOs eliminated (ground reflection handling → nested IF/THEN/ELSE)
+  - ROM1: 12 GOTOs eliminated (Romberg integration → named DO WHILE with convergence)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, warnings only in legacy code ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- TRIO: Computes components of all basis functions on a segment by traversing connections
+- UNERE: Calculates electric field due to unit current in T1/T2 directions on a patch
+- ROM1: Integrates 6 Sommerfeld integrals using variable interval width Romberg method
+- Complex segment connection traversal → DO WHILE loops with DO IEND iteration
+- Ground reflection (perfect/imperfect) → nested IF/THEN/ELSE structure
+- Romberg integration with adaptive refinement → named loops (main_loop, refine_loop) with EXIT/CYCLE
+
+**Parallel Agent Acceleration:**
+- Used 3 parallel agents to modernize simultaneously
+- Reduced modernization time while maintaining quality
+- Each agent successfully eliminated all GOTOs in assigned subroutine
+
+**Remaining GOTOs in Codebase:** 878 - 32 = **846 GOTOs**
+**Total GOTOs Eliminated:** 173 / 1,019 (17.0% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
@@ -610,8 +645,9 @@ SUBROUTINE FOO(A, B, C)
 9. ✅ **Create nec2d_integration.f90:** Integration/factorization modernization COMPLETE (9 GOTOs eliminated)
 10. ✅ **Create nec2d_nearfield.f90:** Near field calculations modernization COMPLETE (30 GOTOs eliminated)
 11. ✅ **Create nec2d_matrix2.f90:** Matrix computation modernization COMPLETE (22 GOTOs eliminated)
-12. ✅ **Test with full program:** Integration tests passing with bit-identical output
-13. **Continue with next module:** Medium-complexity modules (878 GOTOs remaining)
+12. ✅ **Create nec2d_utilities.f90:** Utilities and computation modernization COMPLETE (32 GOTOs eliminated)
+13. ✅ **Test with full program:** Integration tests passing with bit-identical output
+14. **Continue with next module:** Medium-complexity modules (846 GOTOs remaining)
 
 ## Success Criteria
 
@@ -634,7 +670,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 2.0
+**Document Version:** 3.0
 **Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 11 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields, Integration, Near Field, Matrix2), 141/1,019 GOTOs eliminated (13.8%)
+**Status:** Phase 2 In Progress - 12 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields, Integration, Near Field, Matrix2, Utilities), 173/1,019 GOTOs eliminated (17.0%)

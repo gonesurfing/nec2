@@ -1015,3 +1015,68 @@ SUBROUTINE FOO(A, B, C)
 - Remaining: 434 GOTOs
 - Modules created: 26 total
 - Main file size: 2,968 lines (down from 3,249)
+
+### ✅ Batch 11: Wire Segment Connectivity (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutine:** CONECT - Wire segment and surface connectivity analysis
+- **Lines:** Created nec2d_conect.f90 (613 lines)
+- **GOTOs Eliminated:** 67 → 0 ✅ **[LARGEST SINGLE-ROUTINE MODERNIZATION]**
+  - Section 1 (Initialization & symmetry): 3 GOTOs (labels 1, 2, 3) → structured IF-THEN-ELSE
+  - Section 2 (Main segment loop): 13 GOTOs (labels 4-15) → structured loops with flags
+  - Section 3 (Wire-surface connections): 5 GOTOs (labels 16-19) → DO WHILE with EXIT
+  - Section 4 (NGF patch connections): 6 GOTOs (labels 20-25) → DO WHILE with EXIT
+  - Section 5 (Symmetry output): 5 GOTOs (labels 26-30) → structured IF-THEN-ELSE
+  - Section 6 (Junction processing): 30 GOTOs (labels 31-44, 49) → **complex graph traversal algorithm**
+    * Named DO loops (process_end1, process_end2)
+    * Nested traversal loops (traverse_connections, traverse_connections2)
+    * Computed GOTO eliminated → structured IF-THEN-ELSE
+    * Error handling integrated (label 49)
+  - Section 7 (Old-to-new patches): 5 GOTOs (labels 45-48) → structured IF with flags
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** Labeled DO 7, DO 14, DO 18, DO 23, DO 39, DO 41, DO 44, DO 47 → Modern DO...END DO ✅
+- **Compilation:** Clean compile with gfortran ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+- **Hollerith Formats:** Converted all 13 FORMAT statements to quoted strings
+- **LOGICAL Variables:** Explicit declarations (end1_connected, end2_connected, patch_connected, needs_tracking)
+
+**Details:**
+- CONECT: Establishes segment connection topology for wire structures
+- Complex computational geometry routine (307 lines original)
+- 67 GOTOs eliminated using sophisticated structured control flow
+- **Graph traversal algorithm** (Section 6): Most complex part with nested loops traversing connected segments
+  * Uses named DO blocks for clarity (process_end1, process_end2)
+  * Inner while-loop structure (traverse_connections) follows connection chain
+  * Averages junction coordinates for connected segment endpoints
+  * Tracks new segments connecting to NGF (Numerical Green's Function) patches
+- Wire-to-wire connection detection using spatial proximity
+- Wire-to-surface patch connection detection
+- Ground plane special handling
+- Symmetry plane adjustments
+- Junction identification and coordinate averaging
+- **Structural/topology logic, not electromagnetic physics** - safe to modernize
+
+**Technical Challenges:**
+- Complex graph traversal with variable-length connection chains
+- Nested loop structures with multiple exit conditions
+- Dual-pass processing (both ends of each segment)
+- Special cases for ground plane, symmetry, and NGF patches
+- Required LOGICAL flag variables to track connection states
+
+**Integration Results:**
+- Module created: nec2d_conect.f90 (613 lines)
+- Lines removed: 307 lines from nec2dxs_integrated.f
+- Build: ✅ Success (added Step 23 to build script)
+- Testing: ✅ Bit-identical output
+- Type issues: Fixed LOGICAL variable declarations (explicit types after IMPLICIT)
+
+**Overall Progress:**
+- GOTOs eliminated this batch: 67 **[NEW RECORD!]**
+- Total progress: 652/1,019 GOTOs (64.0% complete) **[PAST 60%!]**
+- Remaining: 367 GOTOs
+- Modules created: 27 total
+- Main file size: 2,661 lines (down from 2,968)

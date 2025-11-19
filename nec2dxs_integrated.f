@@ -538,26 +538,30 @@ C     BEGINNING OF THE FREQUENCY DO LOOP
 C
 41    MHZ=1
 C***
-      IF(N.EQ.0 .OR. IFRTIMW .EQ. 1)GO TO 406
-      IFRTIMW=1
-      DO 445 I=1,N
-         XTEMP(I)=X(I)
-         YTEMP(I)=Y(I)
-         ZTEMP(I)=Z(I)
-         SITEMP(I)=SI(I)
-         BITEMP(I)=BI(I)
-445   CONTINUE
-406   IF(M.EQ.0 .OR. IFRTIMP .EQ. 1)GO TO 407
-      IFRTIMP=1
-      J=LD+1
-      DO 545 I=1,M
-         J=J-1
-         XTEMP(J)=X(J)
-         YTEMP(J)=Y(J)
-         ZTEMP(J)=Z(J)
-         BITEMP(J)=BI(J)
-545   CONTINUE
-407   CONTINUE
+C     SAVE ORIGINAL GEOMETRY (FIRST TIME ONLY)
+      IF (.NOT.(N.EQ.0 .OR. IFRTIMW .EQ. 1)) THEN
+        IFRTIMW=1
+        DO I=1,N
+          XTEMP(I)=X(I)
+          YTEMP(I)=Y(I)
+          ZTEMP(I)=Z(I)
+          SITEMP(I)=SI(I)
+          BITEMP(I)=BI(I)
+        END DO
+      END IF
+
+      IF (.NOT.(M.EQ.0 .OR. IFRTIMP .EQ. 1)) THEN
+        IFRTIMP=1
+        J=LD+1
+        DO I=1,M
+          J=J-1
+          XTEMP(J)=X(J)
+          YTEMP(J)=Y(J)
+          ZTEMP(J)=Z(J)
+          BITEMP(J)=BI(J)
+        END DO
+      END IF
+
       FMHZ1=FMHZ
 C***
 C     CORE ALLOCATION FOR PRIMARY INTERACTON MATRIX.  (A)

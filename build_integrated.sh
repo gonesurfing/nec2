@@ -9,6 +9,7 @@
 #   - nec2d_bessel.f90 (modernized Bessel functions - 0 GOTOs)
 #   - nec2d_kernels.f90 (modernized kernels & solvers - 0 GOTOs)
 #   - nec2d_matrix.f90 (modernized matrix & coupling - 0 GOTOs)
+#   - nec2d_fields.f90 (modernized field calculations - 0 GOTOs)
 
 set -e  # Exit on error
 
@@ -91,7 +92,17 @@ else
 fi
 echo
 
-echo "Step 8: Compile integrated main program (nec2dxs_integrated.f)"
+echo "Step 8: Compile modernized fields module (nec2d_fields.f90)"
+gfortran -c $FFLAGS nec2d_fields.f90 -o nec2d_fields.o
+if [ $? -eq 0 ]; then
+    echo "✓ nec2d_fields.f90 compiled successfully"
+else
+    echo "✗ Compilation failed"
+    exit 1
+fi
+echo
+
+echo "Step 9: Compile integrated main program (nec2dxs_integrated.f)"
 gfortran -c $FFLAGS nec2dxs_integrated.f -o nec2dxs_integrated.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2dxs_integrated.f compiled successfully"
@@ -101,8 +112,8 @@ else
 fi
 echo
 
-echo "Step 9: Link to create executable"
-gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o -o nec2dxs_integrated
+echo "Step 10: Link to create executable"
+gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o nec2d_fields.o -o nec2dxs_integrated
 if [ $? -eq 0 ]; then
     echo "✓ Linking successful"
 else

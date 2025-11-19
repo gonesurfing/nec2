@@ -19,6 +19,7 @@
 #   - nec2d_dataproc.f90 (modernized data processing & fields - 0 GOTOs)
 #   - nec2d_numint.f90 (modernized numerical integration & interpolation - 0 GOTOs)
 #   - nec2d_geomproc.f90 (modernized geometry processing & factorization - 0 GOTOs)
+#   - nec2d_solver.f90 (modernized matrix solution routines - 0 GOTOs)
 
 set -e  # Exit on error
 
@@ -203,7 +204,17 @@ else
 fi
 echo
 
-echo "Step 18: Compile integrated main program (nec2dxs_integrated.f)"
+echo "Step 18: Compile solver module (nec2d_solver.f90)"
+gfortran -c $FFLAGS nec2d_solver.f90 -o nec2d_solver.o
+if [ $? -eq 0 ]; then
+    echo "✓ nec2d_solver.f90 compiled successfully"
+else
+    echo "✗ Compilation failed"
+    exit 1
+fi
+echo
+
+echo "Step 19: Compile integrated main program (nec2dxs_integrated.f)"
 gfortran -c $FFLAGS nec2dxs_integrated.f -o nec2dxs_integrated.o
 if [ $? -eq 0 ]; then
     echo "✓ nec2dxs_integrated.f compiled successfully"
@@ -213,8 +224,8 @@ else
 fi
 echo
 
-echo "Step 19: Link to create executable"
-gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o nec2d_fields.o nec2d_integration.o nec2d_nearfield.o nec2d_matrix2.o nec2d_utilities.o nec2d_sommerfeld.o nec2d_dataproc.o nec2d_numint.o nec2d_geomproc.o nec2d_matrix3.o -o nec2dxs_integrated
+echo "Step 20: Link to create executable"
+gfortran -O0 nec2dxs_integrated.o nec2d_io.o nec2d_geometry.o nec2d_mathutil.o nec2d_simple.o nec2d_bessel.o nec2d_kernels.o nec2d_matrix.o nec2d_fields.o nec2d_integration.o nec2d_nearfield.o nec2d_matrix2.o nec2d_utilities.o nec2d_sommerfeld.o nec2d_dataproc.o nec2d_numint.o nec2d_geomproc.o nec2d_solver.o nec2d_matrix3.o -o nec2dxs_integrated
 if [ $? -eq 0 ]; then
     echo "✓ Linking successful"
 else

@@ -19,3 +19,16 @@ a.out
 
 # Test and generated files
 test_output.txt
+
+# Intermediate modernization files
+*_modernized.f90
+*_fixed.f90
+*_v2.f90
+remove_*_subs.py
+
+# Build artifacts
+*.o
+fort.*
+*.out
+*.txt
+nec2dxs_integrated

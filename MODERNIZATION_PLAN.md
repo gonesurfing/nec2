@@ -532,6 +532,36 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 939 - 9 = **930 GOTOs**
 **Total GOTOs Eliminated:** 89 / 1,019 (8.7% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_nearfield.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 3 near field calculation routines
+  - INTX, NHFLD, HINTG
+- **Lines:** 307 → 376 (22% increase through modern formatting and structured logic)
+- **GOTOs Eliminated:** 30 → 0 ✅
+  - INTX: 19 GOTOs eliminated (adaptive Romberg integration loops → DO WHILE + nested convergence)
+  - NHFLD: 5 GOTOs eliminated (wire/patch processing → structured IF/DO blocks)
+  - HINTG: 6 GOTOs eliminated (ground reflection logic → nested IF/ELSE)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, warnings only in legacy code ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- INTX: Variable interval Romberg integration of exp(jkr)/r with adaptive step sizing
+- NHFLD: Near H field computation including Sommerfeld ground finite difference method
+- HINTG: H field from patch current with ground reflection coefficient calculations
+- Complex nested integration loops → DO WHILE with 3-point/5-point Romberg convergence
+- Multi-path processing logic for wires vs patches → structured IF blocks
+- Ground reflection handling with vertical/general incidence → nested conditionals
+
+**Remaining GOTOs in Codebase:** 930 - 30 = **900 GOTOs**
+**Total GOTOs Eliminated:** 119 / 1,019 (11.7% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
@@ -543,8 +573,9 @@ SUBROUTINE FOO(A, B, C)
 7. ✅ **Create nec2d_matrix.f90:** Matrix/coupling modernization COMPLETE (9 GOTOs eliminated)
 8. ✅ **Create nec2d_fields.f90:** Field calculations modernization COMPLETE (12 GOTOs eliminated)
 9. ✅ **Create nec2d_integration.f90:** Integration/factorization modernization COMPLETE (9 GOTOs eliminated)
-10. ✅ **Test with full program:** Integration tests passing with bit-identical output
-11. **Continue with next module:** Medium-complexity modules (930 GOTOs remaining)
+10. ✅ **Create nec2d_nearfield.f90:** Near field calculations modernization COMPLETE (30 GOTOs eliminated)
+11. ✅ **Test with full program:** Integration tests passing with bit-identical output
+12. **Continue with next module:** Medium-complexity modules (900 GOTOs remaining)
 
 ## Success Criteria
 
@@ -567,7 +598,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 1.8
+**Document Version:** 1.9
 **Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 9 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields, Integration), 89/1,019 GOTOs eliminated (8.7%)
+**Status:** Phase 2 In Progress - 10 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields, Integration, Near Field), 119/1,019 GOTOs eliminated (11.7%)

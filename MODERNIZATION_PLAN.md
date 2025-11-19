@@ -476,6 +476,34 @@ SUBROUTINE FOO(A, B, C)
 **Remaining GOTOs in Codebase:** 960 - 9 = **951 GOTOs**
 **Total GOTOs Eliminated:** 68 / 1,019 (6.7% complete)
 
+### ✅ Phase 2 Progress - Module: nec2d_fields.f90 (COMPLETED)
+
+**Date:** 2025-11-19
+
+**Modernization Results:**
+- **Subroutines:** 2 field calculation routines
+  - HSFLX, EKSCX
+- **Lines:** 130 → 169 (30% increase through modern formatting and structured logic)
+- **GOTOs Eliminated:** 12 → 0 ✅
+  - HSFLX: 6 GOTOs eliminated (sign handling + approximation selection → IF/ELSE)
+  - EKSCX: 6 GOTOs eliminated (parameter swapping + method selection → IF/ELSE)
+- **Format:** Fixed-form → Free-form Fortran 90 ✅
+- **DO Loops:** All labeled DO loops → Modern DO...END DO ✅
+- **Compilation:** Clean compile, warnings only in legacy code ✅
+- **Testing:** Bit-identical output verified (MD5: 7c45f1e15ba34584728075e0cf6402c1) ✅
+- **IMPLICIT:** Kept REAL*8 for COMMON compatibility
+- **COMMON Blocks:** Preserved (will modernize in Phase 4)
+
+**Details:**
+- HSFLX: H field calculation for sine/cosine/constant current segments
+- EKSCX: Extended E field calculation using extended thin wire approximation
+- Sign handling (ZPX < 0) converted from GOTO to IF/ELSE
+- Method selection (RHZ threshold, INX flags) converted to structured IF/ELSE
+- Parameter swapping logic (RHX vs BX) modernized with IF/ELSE
+
+**Remaining GOTOs in Codebase:** 951 - 12 = **939 GOTOs**
+**Total GOTOs Eliminated:** 80 / 1,019 (7.9% complete)
+
 ## Next Steps
 
 1. ✅ **Create nec2d_io.f90:** I/O module modernization COMPLETE (20 GOTOs eliminated)
@@ -485,8 +513,9 @@ SUBROUTINE FOO(A, B, C)
 5. ✅ **Create nec2d_bessel.f90:** Bessel functions modernization COMPLETE (10 GOTOs eliminated)
 6. ✅ **Create nec2d_kernels.f90:** Kernels/solvers modernization COMPLETE (4 GOTOs eliminated)
 7. ✅ **Create nec2d_matrix.f90:** Matrix/coupling modernization COMPLETE (9 GOTOs eliminated)
-8. ✅ **Test with full program:** Integration tests passing with bit-identical output
-9. **Continue with next module:** Medium-complexity modules (951 GOTOs remaining)
+8. ✅ **Create nec2d_fields.f90:** Field calculations modernization COMPLETE (12 GOTOs eliminated)
+9. ✅ **Test with full program:** Integration tests passing with bit-identical output
+10. **Continue with next module:** Medium-complexity modules (939 GOTOs remaining)
 
 ## Success Criteria
 
@@ -509,7 +538,7 @@ SUBROUTINE FOO(A, B, C)
 
 ---
 
-**Document Version:** 1.6
+**Document Version:** 1.7
 **Last Updated:** 2025-11-19
 **Author:** AI Assistant (Claude)
-**Status:** Phase 2 In Progress - 7 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix), 68/1,019 GOTOs eliminated (6.7%)
+**Status:** Phase 2 In Progress - 8 modules complete (I/O, Geometry, Math Utils, Simple, Bessel, Kernels, Matrix, Fields), 80/1,019 GOTOs eliminated (7.9%)

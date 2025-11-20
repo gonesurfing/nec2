@@ -373,3 +373,126 @@ subroutine hintg(xi,yi,zi)
   end do
 
 end subroutine hintg
+
+! -----------------------------------------------------------------------------
+! nefld - extracted from nec2dxs_integrated.f
+! -----------------------------------------------------------------------------
+  subroutine nefld (xob,yob,zob,ex,ey,ez)
+! ***
+!     DOUBLE PRECISION 6/4/85
+!
+  use nec2d_params
+  implicit real*8(a-h,o-z)
+! ***
+!
+!     NEFLD COMPUTES THE NEAR FIELD AT SPECIFIED POINTS IN SPACE AFTER
+!     THE STRUCTURE CURRENTS HAVE BEEN COMPUTED.
+!
+  complex*16 ex,ey,ez,cur,acx,bcx,ccx,exk,eyk,ezk,exs,eys,ezs,exc,eyc,ezc,zrati,zrati2,t1,frati
+  common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg),alp(maxseg),bet(maxseg),wlam,icon1(2*maxseg), &
+    icon2(2*maxseg),itag(2*maxseg),iconx(maxseg),ld,n1,n2,n,np,m1,m2,m,mp,ipsym
+  common /angl/ salp(maxseg)
+  common /crnt/ air(maxseg),aii(maxseg),bir(maxseg),bii(maxseg),cir(maxseg),cii(maxseg),cur(3*maxseg)
+  common /dataj/ s,b,xj,yj,zj,cabj,sabj,salpj,exk,eyk,ezk,exs,eys,ezs,exc,eyc,ezc,rkh,ind1,indd1,ind2,indd2,iexk,ipgnd
+  common /gnd/zrati,zrati2,frati,t1,t2,cl,ch,scrwl,scrwr,nradl,ksymp,ifar,iperf
+  dimension cab(1), sab(1), t1x(1), t1y(1), t1z(1), t2x(1), t2y(1),t2z(1)
+  equivalence (cab,alp), (sab,bet)
+  equivalence (t1x,si), (t1y,alp), (t1z,bet), (t2x,icon1), (t2y,icon2), (t2z,itag)
+  equivalence (t1xj,cabj), (t1yj,sabj), (t1zj,salpj), (t2xj,b), (t2yj,ind1), (t2zj,ind2)
+  ex=(0.,0.)
+  ey=(0.,0.)
+  ez=(0.,0.)
+  ax=0.
+  if (n.eq.0) go to 20
+  do 1 i=1,n
+  xj=xob-x(i)
+  yj=yob-y(i)
+  zj=zob-z(i)
+  zp=cab(i)*xj+sab(i)*yj+salp(i)*zj
+  if (abs(zp).gt.0.5001*si(i)) go to 1
+  zp=xj*xj+yj*yj+zj*zj-zp*zp
+  xj=bi(i)
+  if (zp.gt.0.9*xj*xj) go to 1
+  ax=xj
+  go to 2
+1 continue
+2 do 19 i=1,n
+  s=si(i)
+  b=bi(i)
+  xj=x(i)
+  yj=y(i)
+  zj=z(i)
+  cabj=cab(i)
+  sabj=sab(i)
+  salpj=salp(i)
+  if (iexk.eq.0) go to 18
+  ipr=icon1(i)
+  if (ipr.gt.10000) go to 9
+  if (ipr) 3,8,4
+3 ipr=-ipr
+  if (-icon1(ipr).ne.i) go to 9
+  go to 6
+4 if (ipr.ne.i) go to 5
+  if (cabj*cabj+sabj*sabj.gt.1.d-8) go to 9
+  go to 7
+5 if (icon2(ipr).ne.i) go to 9
+6 xi=abs(cabj*cab(ipr)+sabj*sab(ipr)+salpj*salp(ipr))
+  if (xi.lt.0.999999d+0) go to 9
+  if (abs(bi(ipr)/b-1.).gt.1.d-6) go to 9
+7 ind1=0
+  go to 10
+8 ind1=1
+  go to 10
+9 ind1=2
+10 ipr=icon2(i)
+  if (ipr.gt.10000) go to 17
+  if (ipr) 11,16,12
+11 ipr=-ipr
+  if (-icon2(ipr).ne.i) go to 17
+  go to 14
+12 if (ipr.ne.i) go to 13
+  if (cabj*cabj+sabj*sabj.gt.1.d-8) go to 17
+  go to 15
+13 if (icon1(ipr).ne.i) go to 17
+14 xi=abs(cabj*cab(ipr)+sabj*sab(ipr)+salpj*salp(ipr))
+  if (xi.lt.0.999999d+0) go to 17
+  if (abs(bi(ipr)/b-1.).gt.1.d-6) go to 17
+15 ind2=0
+  go to 18
+16 ind2=1
+  go to 18
+17 ind2=2
+18 continue
+  call efld (xob,yob,zob,ax,1)
+  acx=dcmplx(air(i),aii(i))
+  bcx=dcmplx(bir(i),bii(i))
+  ccx=dcmplx(cir(i),cii(i))
+  ex=ex+exk*acx+exs*bcx+exc*ccx
+  ey=ey+eyk*acx+eys*bcx+eyc*ccx
+19 ez=ez+ezk*acx+ezs*bcx+ezc*ccx
+  if (m.eq.0) return
+20 jc=n
+  jl=ld+1
+  do 21 i=1,m
+  jl=jl-1
+  s=bi(jl)
+  xj=x(jl)
+  yj=y(jl)
+  zj=z(jl)
+  t1xj=t1x(jl)
+  t1yj=t1y(jl)
+  t1zj=t1z(jl)
+  t2xj=t2x(jl)
+  t2yj=t2y(jl)
+  t2zj=t2z(jl)
+  jc=jc+3
+  acx=t1xj*cur(jc-2)+t1yj*cur(jc-1)+t1zj*cur(jc)
+  bcx=t2xj*cur(jc-2)+t2yj*cur(jc-1)+t2zj*cur(jc)
+  do 21 ip=1,ksymp
+  ipgnd=ip
+  call unere (xob,yob,zob)
+  ex=ex+acx*exk+bcx*exs
+  ey=ey+acx*eyk+bcx*eys
+21 ez=ez+acx*ezk+bcx*ezs
+  return
+  end

@@ -610,3 +610,20 @@ subroutine reblk(b,bx,nb,nbx,n2c)
   rewind 16
 
 end subroutine reblk
+
+! -----------------------------------------------------------------------------
+! enf - extracted from nec2dxs_integrated.f
+! -----------------------------------------------------------------------------
+  logical function enf(nunit)
+! ***
+!     DOUBLE PRECISION 6/4/85
+!
+  implicit real*8(a-h,o-z)
+! ***
+!*********** THIS ROUTINE NOT USED ON VAX **************
+!     IF (EOF,NUNIT) 1,2
+1 enf=.true.
+  return
+2 enf=.false.
+  return
+  end

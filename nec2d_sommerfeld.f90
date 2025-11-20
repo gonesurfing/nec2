@@ -408,3 +408,14 @@ subroutine saoa(t, ans)
   ans(5) = com * b0
 
 end subroutine saoa
+
+! -----------------------------------------------------------------------------
+! somset - extracted from nec2dxs_integrated.f
+! -----------------------------------------------------------------------------
+  block data somset
+  implicit real*8(a-h,o-z)
+  complex*16 ar1,ar2,ar3,epscf
+  common /ggrid/ ar1(11,10,4),ar2(17,5,4),ar3(9,8,4),epscf,dxa(3),dya(3),xsa(3),ysa(3),nxa(3),nya(3)
+  data nxa/11,17,9/,nya/10,5,8/,xsa/0.,.2,.2/,ysa/0.,0.,.3490658504/
+  data dxa/.02,.05,.1/,dya/.1745329252,.0872664626,.1745329252/
+  end

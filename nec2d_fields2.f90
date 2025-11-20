@@ -750,3 +750,219 @@ subroutine nfpat
     'METERS',9x,'AMPS/M',3x,'DEGREES',7x,'AMPS/M',3x,'DEGREES',7x, &
     'AMPS/M',3x,'DEGREES')
 end subroutine nfpat
+
+! -----------------------------------------------------------------------------
+! ffld - extracted from nec2dxs_integrated.f
+! -----------------------------------------------------------------------------
+  subroutine ffld (thet,phi,eth,eph)
+! ***
+!     DOUBLE PRECISION 6/4/85
+!
+  use nec2d_params
+  implicit real*8(a-h,o-z)
+! ***
+!
+!     FFLD CALCULATES THE FAR ZONE RADIATED ELECTRIC FIELDS,
+!     THE FACTOR EXP(J*K*R)/(R/LAMDA) NOT INCLUDED
+!
+  complex*16 cix,ciy,ciz,exa,eth,eph,const,ccx,ccy,ccz,cdp,cur
+  complex*16 zrati,zrsin,rrv,rrh,rrv1,rrh1,rrv2,rrh2,zrati2,tix,tiy,tiz,t1,zscrn,ex,ey,ez,gx,gy,gz,frati
+  common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg),alp(maxseg),bet(maxseg),wlam,icon1(2*maxseg), &
+    icon2(2*maxseg),itag(2*maxseg),iconx(maxseg),ld,n1,n2,n,np,m1,m2,m,mp,ipsym
+  common /angl/ salp(maxseg)
+  common /crnt/ air(maxseg),aii(maxseg),bir(maxseg),bii(maxseg),cir(maxseg),cii(maxseg),cur(3*maxseg)
+  common /gnd/zrati,zrati2,frati,t1,t2,cl,ch,scrwl,scrwr,nradl,ksymp,ifar,iperf
+  dimension cab(1), sab(1), consx(2)
+  equivalence (cab,alp), (sab,bet), (const,consx)
+  data pi,tp,eta/3.141592654d+0,6.283185308d+0,376.73/
+  data consx/0.,-29.97922085d+0/
+  phx=-sin(phi)
+  phy=cos(phi)
+  roz=cos(thet)
+  rozs=roz
+  thx=roz*phy
+  thy=-roz*phx
+  thz=-sin(thet)
+  rox=-thz*phy
+  roy=thz*phx
+  if (n.eq.0) go to 20
+!
+!     LOOP FOR STRUCTURE IMAGE IF ANY
+!
+  do 19 k=1,ksymp
+!
+!     CALCULATION OF REFLECTION COEFFECIENTS
+!
+  if (k.eq.1) go to 4
+  if (iperf.ne.1) go to 1
+!
+!     FOR PERFECT GROUND
+!
+  rrv=-(1.,0.)
+  rrh=-(1.,0.)
+  go to 2
+!
+!     FOR INFINITE PLANAR GROUND
+!
+1 zrsin=sqrt(1.-zrati*zrati*thz*thz)
+  rrv=-(roz-zrati*zrsin)/(roz+zrati*zrsin)
+  rrh=(zrati*roz-zrsin)/(zrati*roz+zrsin)
+2 if (ifar.le.1) go to 3
+!
+!     FOR THE CLIFF PROBLEM, TWO REFLCTION COEFFICIENTS CALCULATED
+!
+  rrv1=rrv
+  rrh1=rrh
+  tthet=tan(thet)
+  if (ifar.eq.4) go to 3
+  zrsin=sqrt(1.-zrati2*zrati2*thz*thz)
+  rrv2=-(roz-zrati2*zrsin)/(roz+zrati2*zrsin)
+  rrh2=(zrati2*roz-zrsin)/(zrati2*roz+zrsin)
+  darg=-tp*2.*ch*roz
+3 roz=-roz
+  ccx=cix
+  ccy=ciy
+  ccz=ciz
+4 cix=(0.,0.)
+  ciy=(0.,0.)
+  ciz=(0.,0.)
+!
+!     LOOP OVER STRUCTURE SEGMENTS
+!
+  do 17 i=1,n
+  omega=-(rox*cab(i)+roy*sab(i)+roz*salp(i))
+  el=pi*si(i)
+  sill=omega*el
+  top=el+sill
+  bot=el-sill
+  if (abs(omega).lt.1.d-7) go to 5
+  a=2.*sin(sill)/omega
+  go to 6
+5 a=(2.-omega*omega*el*el/3.)*el
+6 if (abs(top).lt.1.d-7) go to 7
+  too=sin(top)/top
+  go to 8
+7 too=1.-top*top/6.
+8 if (abs(bot).lt.1.d-7) go to 9
+  boo=sin(bot)/bot
+  go to 10
+9 boo=1.-bot*bot/6.
+10 b=el*(boo-too)
+  c=el*(boo+too)
+  rr=a*air(i)+b*bii(i)+c*cir(i)
+  ri=a*aii(i)-b*bir(i)+c*cii(i)
+  arg=tp*(x(i)*rox+y(i)*roy+z(i)*roz)
+  if (k.eq.2.and.ifar.ge.2) go to 11
+  exa=dcmplx(cos(arg),sin(arg))*dcmplx(rr,ri)
+!
+!     SUMMATION FOR FAR FIELD INTEGRAL
+!
+  cix=cix+exa*cab(i)
+  ciy=ciy+exa*sab(i)
+  ciz=ciz+exa*salp(i)
+  go to 17
+!
+!     CALCULATION OF IMAGE CONTRIBUTION IN CLIFF AND GROUND SCREEN
+!     PROBLEMS.
+!
+11 dr=z(i)*tthet
+!
+!     SPECULAR POINT DISTANCE
+!
+  d=dr*phy+x(i)
+  if (ifar.eq.2) go to 13
+  d=sqrt(d*d+(y(i)-dr*phx)**2)
+  if (ifar.eq.3) go to 13
+  if ((scrwl-d).lt.0.) go to 12
+!
+!     RADIAL WIRE GROUND SCREEN REFLECTION COEFFICIENT
+!
+  d=d+t2
+  zscrn=t1*d*log(d/t2)
+  zscrn=(zscrn*zrati)/(eta*zrati+zscrn)
+  zrsin=sqrt(1.-zscrn*zscrn*thz*thz)
+  rrv=(roz+zscrn*zrsin)/(-roz+zscrn*zrsin)
+  rrh=(zscrn*roz+zrsin)/(zscrn*roz-zrsin)
+  go to 16
+12 if (ifar.eq.4) go to 14
+  if (ifar.eq.5) d=dr*phy+x(i)
+13 if ((cl-d).le.0.) go to 15
+14 rrv=rrv1
+  rrh=rrh1
+  go to 16
+15 rrv=rrv2
+  rrh=rrh2
+  arg=arg+darg
+16 exa=dcmplx(cos(arg),sin(arg))*dcmplx(rr,ri)
+!
+!     CONTRIBUTION OF EACH IMAGE SEGMENT MODIFIED BY REFLECTION COEF. ,
+!     FOR CLIFF AND GROUND SCREEN PROBLEMS
+!
+  tix=exa*cab(i)
+  tiy=exa*sab(i)
+  tiz=exa*salp(i)
+  cdp=(tix*phx+tiy*phy)*(rrh-rrv)
+  cix=cix+tix*rrv+cdp*phx
+  ciy=ciy+tiy*rrv+cdp*phy
+  ciz=ciz-tiz*rrv
+17 continue
+  if (k.eq.1) go to 19
+  if (ifar.ge.2) go to 18
+!
+!     CALCULATION OF CONTRIBUTION OF STRUCTURE IMAGE FOR INFINITE GROUND
+!
+  cdp=(cix*phx+ciy*phy)*(rrh-rrv)
+  cix=ccx+cix*rrv+cdp*phx
+  ciy=ccy+ciy*rrv+cdp*phy
+  ciz=ccz-ciz*rrv
+  go to 19
+18 cix=cix+ccx
+  ciy=ciy+ccy
+  ciz=ciz+ccz
+19 continue
+  if (m.gt.0) go to 21
+  eth=(cix*thx+ciy*thy+ciz*thz)*const
+  eph=(cix*phx+ciy*phy)*const
+  return
+20 cix=(0.,0.)
+  ciy=(0.,0.)
+  ciz=(0.,0.)
+21 roz=rozs
+!
+!     ELECTRIC FIELD COMPONENTS
+!
+  rfl=-1.
+  do 25 ip=1,ksymp
+  rfl=-rfl
+  rrz=roz*rfl
+  call fflds (rox,roy,rrz,cur(n+1),gx,gy,gz)
+  if (ip.eq.2) go to 22
+  ex=gx
+  ey=gy
+  ez=gz
+  go to 25
+22 if (iperf.ne.1) go to 23
+  gx=-gx
+  gy=-gy
+  gz=-gz
+  go to 24
+23 rrv=sqrt(1.-zrati*zrati*thz*thz)
+  rrh=zrati*roz
+  rrh=(rrh-rrv)/(rrh+rrv)
+  rrv=zrati*rrv
+  rrv=-(roz-rrv)/(roz+rrv)
+  eth=(gx*phx+gy*phy)*(rrh-rrv)
+  gx=gx*rrv+eth*phx
+  gy=gy*rrv+eth*phy
+  gz=gz*rrv
+24 ex=ex+gx
+  ey=ey+gy
+  ez=ez-gz
+25 continue
+  ex=ex+cix*const
+  ey=ey+ciy*const
+  ez=ez+ciz*const
+  eth=ex*thx+ey*thy+ez*thz
+  eph=ex*phx+ey*phy
+  return
+  end

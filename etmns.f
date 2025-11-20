@@ -1,0 +1,237 @@
+C     ETMNS.F - Electric field incident on structure
+C     SUBROUTINE ETMNS fills the array E with the negative of the
+C     electric field incident on the structure (right hand side of matrix equation).
+C
+      SUBROUTINE ETMNS (P1,P2,P3,P4,P5,P6,IPR,E)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C
+C     ETMNS FILLS THE ARRAY E WITH THE NEGATIVE OF THE ELECTRIC FIELD
+C     INCIDENT ON THE STRUCTURE.  E IS THE RIGHT HAND SIDE OF THE MATRIX
+C     EQUATION.
+C
+      COMPLEX*16 E,CX,CY,CZ,VSANT,ER,ET,EZH,ERH,VQD,VQDS,ZRATI
+     1,ZRATI2,RRV,RRH,T1,TT1,TT2,FRATI
+      COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
+     1ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
+     2ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
+      COMMON /ANGL/ SALP(MAXSEG)
+      COMMON /VSORC/ VQD(NSMAX),VSANT(NSMAX),VQDS(NSMAX),IVQD(NSMAX),
+     1ISANT(NSMAX),IQDS(NSMAX),NVQD,NSANT,NQDS
+      COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL,
+     1KSYMP,IFAR,IPERF
+      DIMENSION CAB(1), SAB(1), E(2*MAXSEG)
+      DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
+      EQUIVALENCE (CAB,ALP), (SAB,BET)
+      EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON
+     12), (T2Z,ITAG)
+      DATA TP/6.283185308D+0/,RETA/2.654420938D-3/
+      NEQ=N+2*M
+      NQDS=0
+      IF (IPR.GT.0.AND.IPR.NE.5) GO TO 5
+C
+C     APPLIED FIELD OF VOLTAGE SOURCES FOR TRANSMITTING CASE
+C
+      DO 1 I=1,NEQ
+1     E(I)=(0.,0.)
+      IF (NSANT.EQ.0) GO TO 3
+      DO 2 I=1,NSANT
+      IS=ISANT(I)
+2     E(IS)=-VSANT(I)/(SI(IS)*WLAM)
+3     IF (NVQD.EQ.0) RETURN
+      DO 4 I=1,NVQD
+      IS=IVQD(I)
+4     CALL QDSRC (IS,VQD(I),E)
+      RETURN
+5     IF (IPR.GT.3) GO TO 19
+C
+C     INCIDENT PLANE WAVE, LINEARLY POLARIZED.
+C
+      CTH=COS(P1)
+      STH=SIN(P1)
+      CPH=COS(P2)
+      SPH=SIN(P2)
+      CET=COS(P3)
+      SET=SIN(P3)
+      PX=CTH*CPH*CET-SPH*SET
+      PY=CTH*SPH*CET+CPH*SET
+      PZ=-STH*CET
+      WX=-STH*CPH
+      WY=-STH*SPH
+      WZ=-CTH
+      QX=WY*PZ-WZ*PY
+      QY=WZ*PX-WX*PZ
+      QZ=WX*PY-WY*PX
+      IF (KSYMP.EQ.1) GO TO 7
+      IF (IPERF.EQ.1) GO TO 6
+      RRV=SQRT(1.-ZRATI*ZRATI*STH*STH)
+      RRH=ZRATI*CTH
+      RRH=(RRH-RRV)/(RRH+RRV)
+      RRV=ZRATI*RRV
+      RRV=-(CTH-RRV)/(CTH+RRV)
+      GO TO 7
+6     RRV=-(1.,0.)
+      RRH=-(1.,0.)
+7     IF (IPR.GT.1) GO TO 13
+      IF (N.EQ.0) GO TO 10
+      DO 8 I=1,N
+      ARG=-TP*(WX*X(I)+WY*Y(I)+WZ*Z(I))
+8     E(I)=-(PX*CAB(I)+PY*SAB(I)+PZ*SALP(I))*DCMPLX(COS(ARG),SIN(ARG))
+      IF (KSYMP.EQ.1) GO TO 10
+      TT1=(PY*CPH-PX*SPH)*(RRH-RRV)
+      CX=RRV*PX-TT1*SPH
+      CY=RRV*PY+TT1*CPH
+      CZ=-RRV*PZ
+      DO 9 I=1,N
+      ARG=-TP*(WX*X(I)+WY*Y(I)-WZ*Z(I))
+9     E(I)=E(I)-(CX*CAB(I)+CY*SAB(I)+CZ*SALP(I))*DCMPLX(COS(ARG),
+     1SIN(ARG))
+10    IF (M.EQ.0) RETURN
+      I=LD+1
+      I1=N-1
+      DO 11 IS=1,M
+      I=I-1
+      I1=I1+2
+      I2=I1+1
+      ARG=-TP*(WX*X(I)+WY*Y(I)+WZ*Z(I))
+      TT1=DCMPLX(COS(ARG),SIN(ARG))*SALP(I)*RETA
+      E(I2)=(QX*T1X(I)+QY*T1Y(I)+QZ*T1Z(I))*TT1
+11    E(I1)=(QX*T2X(I)+QY*T2Y(I)+QZ*T2Z(I))*TT1
+      IF (KSYMP.EQ.1) RETURN
+      TT1=(QY*CPH-QX*SPH)*(RRV-RRH)
+      CX=-(RRH*QX-TT1*SPH)
+      CY=-(RRH*QY+TT1*CPH)
+      CZ=RRH*QZ
+      I=LD+1
+      I1=N-1
+      DO 12 IS=1,M
+      I=I-1
+      I1=I1+2
+      I2=I1+1
+      ARG=-TP*(WX*X(I)+WY*Y(I)-WZ*Z(I))
+      TT1=DCMPLX(COS(ARG),SIN(ARG))*SALP(I)*RETA
+      E(I2)=E(I2)+(CX*T1X(I)+CY*T1Y(I)+CZ*T1Z(I))*TT1
+12    E(I1)=E(I1)+(CX*T2X(I)+CY*T2Y(I)+CZ*T2Z(I))*TT1
+      RETURN
+C
+C     INCIDENT PLANE WAVE, ELLIPTIC POLARIZATION.
+C
+13    TT1=-(0.,1.)*P6
+      IF (IPR.EQ.3) TT1=-TT1
+      IF (N.EQ.0) GO TO 16
+      CX=PX+TT1*QX
+      CY=PY+TT1*QY
+      CZ=PZ+TT1*QZ
+      DO 14 I=1,N
+      ARG=-TP*(WX*X(I)+WY*Y(I)+WZ*Z(I))
+14    E(I)=-(CX*CAB(I)+CY*SAB(I)+CZ*SALP(I))*DCMPLX(COS(ARG),SIN(ARG))
+      IF (KSYMP.EQ.1) GO TO 16
+      TT2=(CY*CPH-CX*SPH)*(RRH-RRV)
+      CX=RRV*CX-TT2*SPH
+      CY=RRV*CY+TT2*CPH
+      CZ=-RRV*CZ
+      DO 15 I=1,N
+      ARG=-TP*(WX*X(I)+WY*Y(I)-WZ*Z(I))
+15    E(I)=E(I)-(CX*CAB(I)+CY*SAB(I)+CZ*SALP(I))*DCMPLX(COS(ARG),
+     1SIN(ARG))
+16    IF (M.EQ.0) RETURN
+      CX=QX-TT1*PX
+      CY=QY-TT1*PY
+      CZ=QZ-TT1*PZ
+      I=LD+1
+      I1=N-1
+      DO 17 IS=1,M
+      I=I-1
+      I1=I1+2
+      I2=I1+1
+      ARG=-TP*(WX*X(I)+WY*Y(I)+WZ*Z(I))
+      TT2=DCMPLX(COS(ARG),SIN(ARG))*SALP(I)*RETA
+      E(I2)=(CX*T1X(I)+CY*T1Y(I)+CZ*T1Z(I))*TT2
+17    E(I1)=(CX*T2X(I)+CY*T2Y(I)+CZ*T2Z(I))*TT2
+      IF (KSYMP.EQ.1) RETURN
+      TT1=(CY*CPH-CX*SPH)*(RRV-RRH)
+      CX=-(RRH*CX-TT1*SPH)
+      CY=-(RRH*CY+TT1*CPH)
+      CZ=RRH*CZ
+      I=LD+1
+      I1=N-1
+      DO 18 IS=1,M
+      I=I-1
+      I1=I1+2
+      I2=I1+1
+      ARG=-TP*(WX*X(I)+WY*Y(I)-WZ*Z(I))
+      TT1=DCMPLX(COS(ARG),SIN(ARG))*SALP(I)*RETA
+      E(I2)=E(I2)+(CX*T1X(I)+CY*T1Y(I)+CZ*T1Z(I))*TT1
+18    E(I1)=E(I1)+(CX*T2X(I)+CY*T2Y(I)+CZ*T2Z(I))*TT1
+      RETURN
+C
+C     INCIDENT FIELD OF AN ELEMENTARY CURRENT SOURCE.
+C
+19    WZ=COS(P4)
+      WX=WZ*COS(P5)
+      WY=WZ*SIN(P5)
+      WZ=SIN(P4)
+      DS=P6*59.958
+      DSH=P6/(2.*TP)
+      NPM=N+M
+      IS=LD+1
+      I1=N-1
+      DO 24 I=1,NPM
+      II=I
+      IF (I.LE.N) GO TO 20
+      IS=IS-1
+      II=IS
+      I1=I1+2
+      I2=I1+1
+20    PX=X(II)-P1
+      PY=Y(II)-P2
+      PZ=Z(II)-P3
+      RS=PX*PX+PY*PY+PZ*PZ
+      IF (RS.LT.1.D-30) GO TO 24
+      R=SQRT(RS)
+      PX=PX/R
+      PY=PY/R
+      PZ=PZ/R
+      CTH=PX*WX+PY*WY+PZ*WZ
+      STH=SQRT(1.-CTH*CTH)
+      QX=PX-WX*CTH
+      QY=PY-WY*CTH
+      QZ=PZ-WZ*CTH
+      ARG=SQRT(QX*QX+QY*QY+QZ*QZ)
+      IF (ARG.LT.1.D-30) GO TO 21
+      QX=QX/ARG
+      QY=QY/ARG
+      QZ=QZ/ARG
+      GO TO 22
+21    QX=1.
+      QY=0.
+      QZ=0.
+22    ARG=-TP*R
+      TT1=DCMPLX(COS(ARG),SIN(ARG))
+      IF (I.GT.N) GO TO 23
+      TT2=DCMPLX(1.D+0,-1.D+0/(R*TP))/RS
+      ER=DS*TT1*TT2*CTH
+      ET=.5*DS*TT1*((0.,1.)*TP/R+TT2)*STH
+      EZH=ER*CTH-ET*STH
+      ERH=ER*STH+ET*CTH
+      CX=EZH*WX+ERH*QX
+      CY=EZH*WY+ERH*QY
+      CZ=EZH*WZ+ERH*QZ
+      E(I)=-(CX*CAB(I)+CY*SAB(I)+CZ*SALP(I))
+      GO TO 24
+23    PX=WY*QZ-WZ*QY
+      PY=WZ*QX-WX*QZ
+      PZ=WX*QY-WY*QX
+      TT2=DSH*TT1*DCMPLX(1./R,TP)/R*STH*SALP(II)
+      CX=TT2*PX
+      CY=TT2*PY
+      CZ=TT2*PZ
+      E(I2)=CX*T1X(II)+CY*T1Y(II)+CZ*T1Z(II)
+      E(I1)=CX*T2X(II)+CY*T2Y(II)+CZ*T2Z(II)
+24    CONTINUE
+      RETURN
+      END

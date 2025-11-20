@@ -16,14 +16,40 @@ option(BUILTIN_SOMNEC "Use built-in SOMNEC" OFF)
 
 # Source files (order matters for module dependencies)
 set(SOURCES
+    # Core modules
     nec2_parameters.f
     nec2_common.f
-    nec2_io.f
-    nec2_geometry.f
-    nec2_greens.f
-    nec2_solve.f
-    nec2_fields.f
-    nec2_network.f
+
+    # I/O routines
+    io_utils.f
+    stopwtch.f
+
+    # Geometry routines
+    geometry_utils.f
+    datagn.f
+    reflc.f
+    conect.f
+
+    # Green's function routines
+    greens_utils.f
+    som2d.f
+    etmns.f
+
+    # Solver routines
+    solve_utils.f
+    cmngf.f
+
+    # Field calculation routines
+    fields_utils.f
+    ffld.f
+    rdpat.f
+    efld.f
+
+    # Network routines
+    network_utils.f
+    netwk.f
+
+    # Main program
     nec2dxs.f
 )
 

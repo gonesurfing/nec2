@@ -227,8 +227,8 @@ subroutine datagn
             write(*,46) xw1
 
          case ('GE')  ! 'GE' - Terminate structure geometry input
-            ! Set plot flags if NS=0
-            if (ns == 0) then
+            ! Set plot flags if NS/=0
+            if (ns /= 0) then
                iplp1=1
                iplp2=1
             end if

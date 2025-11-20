@@ -1,4 +1,10 @@
-SUBROUTINE CONECT (IGND)
+! =============================================================================
+! nec2d_conect - Connection Handling
+! =============================================================================
+! Purpose: Wire and patch connection processing
+! Contains: CONECT
+! =============================================================================
+subroutine conect (ignd)
   ! ***
   ! DOUBLE PRECISION 6/4/85
   !
@@ -7,616 +13,616 @@ SUBROUTINE CONECT (IGND)
   !
   ! Modernized: Eliminated 67 GOTOs using structured control flow
   !
-  IMPLICIT REAL*8(A-H,O-Z)
+  implicit real*8(a-h,o-z)
 
   ! Parameter from NEC2DPAR.INC
-  INTEGER, PARAMETER :: MAXSEG = 3000
-  INTEGER, PARAMETER :: JMAX = 50
-  INTEGER, PARAMETER :: NSMAX = 50
+  integer, parameter :: maxseg = 3000
+  integer, parameter :: jmax = 50
+  integer, parameter :: nsmax = 50
 
   ! LOGICAL variables override IMPLICIT typing
-  LOGICAL :: end1_connected, end2_connected, patch_connected, needs_tracking
+  logical :: end1_connected, end2_connected, patch_connected, needs_tracking
 
-  COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
-                ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG), &
-                ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-  COMMON /SEGJ/ AX(JMAX),BX(JMAX),CX(JMAX),JCO(JMAX), &
-                JSNO,ISCON(50),NSCON,IPCON(10),NPCON
+  common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &
+                alp(maxseg),bet(maxseg),wlam,icon1(2*maxseg),icon2(2*maxseg), &
+                itag(2*maxseg),iconx(maxseg),ld,n1,n2,n,np,m1,m2,m,mp,ipsym
+  common /segj/ ax(jmax),bx(jmax),cx(jmax),jco(jmax), &
+                jsno,iscon(50),nscon,ipcon(10),npcon
 
-  DIMENSION X2(1), Y2(1), Z2(1)
-  EQUIVALENCE (X2,SI), (Y2,ALP), (Z2,BET)
-  DATA SMIN/1.D-3/,NPMAX/10/
+  dimension x2(1), y2(1), z2(1)
+  equivalence (x2,si), (y2,alp), (z2,bet)
+  data smin/1.d-3/,npmax/10/
 
-  NSCON = 0
-  NPCON = 0
+  nscon = 0
+  npcon = 0
 
   ! Section 1: Initialization and symmetry setup (labels 1, 2, 3 eliminated)
   ! GOTO 1, 2, 3 eliminated with structured IF-THEN-ELSE
-  IF (IGND .NE. 0) THEN
-    WRITE(*,54)
-    IF (IGND .GT. 0) WRITE(*,55)
+  if (ignd .ne. 0) then
+    write(*,54)
+    if (ignd .gt. 0) write(*,55)
 
     ! Label 1: Adjust for symmetry
-    IF (IPSYM .EQ. 2) THEN
-      NP = 2*NP
-      MP = 2*MP
-    END IF
+    if (ipsym .eq. 2) then
+      np = 2*np
+      mp = 2*mp
+    end if
 
     ! Label 2: More symmetry adjustments
-    IF (IABS(IPSYM) .GT. 2) THEN
-      NP = N
-      MP = M
-    END IF
+    if (iabs(ipsym) .gt. 2) then
+      np = n
+      mp = m
+    end if
 
-    IF (NP .GT. N) STOP
-    IF (NP .EQ. N .AND. MP .EQ. M) IPSYM = 0
-  END IF
+    if (np .gt. n) stop
+    if (np .eq. n .and. mp .eq. m) ipsym = 0
+  end if
 
   ! Label 3: Main processing begins
   ! GOTO 26 eliminated with IF-THEN
-  IF (N .EQ. 0) THEN
+  if (n .eq. 0) then
     ! Skip to label 26 (output section)
     ! (handled at end of routine)
-  ELSE
+  else
     ! Main segment connection loop (DO 15 eliminated)
-    DO I = 1, N
-      ICONX(I) = 0
-      XI1 = X(I)
-      YI1 = Y(I)
-      ZI1 = Z(I)
-      XI2 = X2(I)
-      YI2 = Y2(I)
-      ZI2 = Z2(I)
-      SLEN = SQRT((XI2-XI1)**2 + (YI2-YI1)**2 + (ZI2-ZI1)**2)*SMIN
+    do i = 1, n
+      iconx(i) = 0
+      xi1 = x(i)
+      yi1 = y(i)
+      zi1 = z(i)
+      xi2 = x2(i)
+      yi2 = y2(i)
+      zi2 = z2(i)
+      slen = sqrt((xi2-xi1)**2 + (yi2-yi1)**2 + (zi2-zi1)**2)*smin
 
       ! Determine connection data for end 1 of segment
       ! Labels 4, 5, 9 eliminated with IF-THEN-ELSE
-      end1_connected = .FALSE.
+      end1_connected = .false.
 
-      IF (IGND .GE. 1) THEN
+      if (ignd .ge. 1) then
         ! Check ground plane connection for end 1
-        IF (ZI1 .LE. -SLEN) THEN
-          WRITE(*,56) I
-          STOP
-        END IF
+        if (zi1 .le. -slen) then
+          write(*,56) i
+          stop
+        end if
 
-        IF (ZI1 .LE. SLEN) THEN
+        if (zi1 .le. slen) then
           ! Label 4: End 1 touches ground
-          ICON1(I) = I
-          Z(I) = 0.
-          end1_connected = .TRUE.
-        END IF
-      END IF
+          icon1(i) = i
+          z(i) = 0.
+          end1_connected = .true.
+        end if
+      end if
 
       ! Label 5: Search for segment connections (if not ground connected)
-      IF (.NOT. end1_connected) THEN
-        IC = I
-        ICON1(I) = 0  ! Default: no connection
+      if (.not. end1_connected) then
+        ic = i
+        icon1(i) = 0  ! Default: no connection
 
         ! DO 7 loop: Search for connecting segment
-        DO J = 2, N
-          IC = IC + 1
-          IF (IC .GT. N) IC = 1
+        do j = 2, n
+          ic = ic + 1
+          if (ic .gt. n) ic = 1
 
           ! Check connection to end 1 of segment IC (label 6)
-          SEP = ABS(XI1-X(IC)) + ABS(YI1-Y(IC)) + ABS(ZI1-Z(IC))
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi1-x(ic)) + abs(yi1-y(ic)) + abs(zi1-z(ic))
+          if (sep .le. slen) then
             ! GOTO 6 eliminated: Found connection at end 1 of IC
-            ICON1(I) = -IC
-            EXIT  ! GOTO 8 eliminated
-          END IF
+            icon1(i) = -ic
+            exit  ! GOTO 8 eliminated
+          end if
 
           ! Check connection to end 2 of segment IC (label 7)
-          SEP = ABS(XI1-X2(IC)) + ABS(YI1-Y2(IC)) + ABS(ZI1-Z2(IC))
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi1-x2(ic)) + abs(yi1-y2(ic)) + abs(zi1-z2(ic))
+          if (sep .le. slen) then
             ! GOTO 7 eliminated: Found connection at end 2 of IC
-            ICON1(I) = IC
-            EXIT  ! GOTO 8 eliminated
-          END IF
-        END DO  ! Label 7: CONTINUE eliminated
+            icon1(i) = ic
+            exit  ! GOTO 8 eliminated
+          end if
+        end do  ! Label 7: CONTINUE eliminated
 
         ! After DO 7 loop, check special case
-        IF (I .LT. N2 .AND. ICON1(I) .GT. 10000) THEN
+        if (i .lt. n2 .and. icon1(i) .gt. 10000) then
           ! Keep ICON1(I) as is (GOTO 8 implicit)
-        ELSE IF (ICON1(I) .EQ. 0) THEN
+        else if (icon1(i) .eq. 0) then
           ! No connection found, ICON1(I) already set to 0
-        END IF
-      END IF
+        end if
+      end if
 
       ! Label 8: Determine connection data for end 2 of segment
       ! Labels 9, 10, 11, 12 eliminated with IF-THEN-ELSE
-      end2_connected = .FALSE.
+      end2_connected = .false.
 
-      IF (IGND .GE. 1) THEN
+      if (ignd .ge. 1) then
         ! Label 9: Check ground plane connection for end 2
-        IF (ZI2 .LE. -SLEN) THEN
-          WRITE(*,56) I
-          STOP
-        END IF
+        if (zi2 .le. -slen) then
+          write(*,56) i
+          stop
+        end if
 
         ! Label 10
-        IF (ZI2 .LE. SLEN) THEN
-          IF (ICON1(I) .EQ. I) THEN
+        if (zi2 .le. slen) then
+          if (icon1(i) .eq. i) then
             ! Label 11: Both ends on ground - error
-            WRITE(*,57) I
-            STOP
-          END IF
-          ICON2(I) = I
-          Z2(I) = 0.
-          end2_connected = .TRUE.
-        END IF
-      END IF
+            write(*,57) i
+            stop
+          end if
+          icon2(i) = i
+          z2(i) = 0.
+          end2_connected = .true.
+        end if
+      end if
 
       ! Label 12: Search for segment connections (if not ground connected)
-      IF (.NOT. end2_connected) THEN
-        IC = I
-        ICON2(I) = 0  ! Default: no connection
+      if (.not. end2_connected) then
+        ic = i
+        icon2(i) = 0  ! Default: no connection
 
         ! DO 14 loop: Search for connecting segment
-        DO J = 2, N
-          IC = IC + 1
-          IF (IC .GT. N) IC = 1
+        do j = 2, n
+          ic = ic + 1
+          if (ic .gt. n) ic = 1
 
           ! Check connection to end 1 of segment IC (label 13)
-          SEP = ABS(XI2-X(IC)) + ABS(YI2-Y(IC)) + ABS(ZI2-Z(IC))
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi2-x(ic)) + abs(yi2-y(ic)) + abs(zi2-z(ic))
+          if (sep .le. slen) then
             ! GOTO 13 eliminated: Found connection at end 1 of IC
-            ICON2(I) = IC
-            EXIT  ! GOTO 15 eliminated
-          END IF
+            icon2(i) = ic
+            exit  ! GOTO 15 eliminated
+          end if
 
           ! Check connection to end 2 of segment IC (label 14)
-          SEP = ABS(XI2-X2(IC)) + ABS(YI2-Y2(IC)) + ABS(ZI2-Z2(IC))
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi2-x2(ic)) + abs(yi2-y2(ic)) + abs(zi2-z2(ic))
+          if (sep .le. slen) then
             ! GOTO 14 eliminated: Found connection at end 2 of IC
-            ICON2(I) = -IC
-            EXIT  ! GOTO 15 eliminated
-          END IF
-        END DO  ! Label 14: CONTINUE eliminated
+            icon2(i) = -ic
+            exit  ! GOTO 15 eliminated
+          end if
+        end do  ! Label 14: CONTINUE eliminated
 
         ! After DO 14 loop, check special case
-        IF (I .LT. N2 .AND. ICON2(I) .GT. 10000) THEN
+        if (i .lt. n2 .and. icon2(i) .gt. 10000) then
           ! Keep ICON2(I) as is (GOTO 15 implicit)
-        ELSE IF (ICON2(I) .EQ. 0) THEN
+        else if (icon2(i) .eq. 0) then
           ! No connection found, ICON2(I) already set to 0
-        END IF
-      END IF
+        end if
+      end if
 
-    END DO  ! Label 15: End main segment loop
+    end do  ! Label 15: End main segment loop
 
     ! Section 2: Find wire-surface connections for new patches
     ! GOTO 26 eliminated with IF-THEN
-    IF (M .NE. 0) THEN
-      IX = LD + 1 - M1
-      I = M2
+    if (m .ne. 0) then
+      ix = ld + 1 - m1
+      i = m2
 
       ! Label 16: Loop through new patches
-      DO WHILE (I .LE. M)
-        IX = IX - 1
-        XS = X(IX)
-        YS = Y(IX)
-        ZS = Z(IX)
+      do while (i .le. m)
+        ix = ix - 1
+        xs = x(ix)
+        ys = y(ix)
+        zs = z(ix)
 
-        patch_connected = .FALSE.
+        patch_connected = .false.
 
         ! DO 18 loop: Check all segments
-        DO ISEG = 1, N
-          XI1 = X(ISEG)
-          YI1 = Y(ISEG)
-          ZI1 = Z(ISEG)
-          XI2 = X2(ISEG)
-          YI2 = Y2(ISEG)
-          ZI2 = Z2(ISEG)
-          SLEN = (ABS(XI2-XI1) + ABS(YI2-YI1) + ABS(ZI2-ZI1))*SMIN
+        do iseg = 1, n
+          xi1 = x(iseg)
+          yi1 = y(iseg)
+          zi1 = z(iseg)
+          xi2 = x2(iseg)
+          yi2 = y2(iseg)
+          zi2 = z2(iseg)
+          slen = (abs(xi2-xi1) + abs(yi2-yi1) + abs(zi2-zi1))*smin
 
           ! Check end 1 connection (label 17)
-          SEP = ABS(XI1-XS) + ABS(YI1-YS) + ABS(ZI1-ZS)
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi1-xs) + abs(yi1-ys) + abs(zi1-zs)
+          if (sep .le. slen) then
             ! GOTO 17 eliminated: Connection found at end 1
-            ICON1(ISEG) = 10000 + I
-            IC = 0
-            CALL SUBPH(I, IC, XI1, YI1, ZI1, XI2, YI2, ZI2, XA, YA, ZA, XS, YS, ZS)
-            patch_connected = .TRUE.
-            EXIT  ! GOTO 19 eliminated
-          END IF
+            icon1(iseg) = 10000 + i
+            ic = 0
+            call subph(i, ic, xi1, yi1, zi1, xi2, yi2, zi2, xa, ya, za, xs, ys, zs)
+            patch_connected = .true.
+            exit  ! GOTO 19 eliminated
+          end if
 
           ! Check end 2 connection (label 18)
-          SEP = ABS(XI2-XS) + ABS(YI2-YS) + ABS(ZI2-ZS)
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi2-xs) + abs(yi2-ys) + abs(zi2-zs)
+          if (sep .le. slen) then
             ! GOTO 18 eliminated: Connection found at end 2
-            ICON2(ISEG) = 10000 + I
-            IC = 0
-            CALL SUBPH(I, IC, XI1, YI1, ZI1, XI2, YI2, ZI2, XA, YA, ZA, XS, YS, ZS)
-            patch_connected = .TRUE.
-            EXIT  ! GOTO 19 eliminated
-          END IF
-        END DO  ! Label 18: CONTINUE eliminated
+            icon2(iseg) = 10000 + i
+            ic = 0
+            call subph(i, ic, xi1, yi1, zi1, xi2, yi2, zi2, xa, ya, za, xs, ys, zs)
+            patch_connected = .true.
+            exit  ! GOTO 19 eliminated
+          end if
+        end do  ! Label 18: CONTINUE eliminated
 
         ! Label 19: Next patch
-        I = I + 1
-      END DO  ! GOTO 16 eliminated (DO WHILE loop)
-    END IF
+        i = i + 1
+      end do  ! GOTO 16 eliminated (DO WHILE loop)
+    end if
 
     ! Section 3: Repeat search for new segments connected to NGF patches
     ! Label 20: GOTO 26 eliminated with IF-THEN
-    IF (M1 .NE. 0 .AND. N2 .LE. N) THEN
-      IX = LD + 1
-      I = 1
+    if (m1 .ne. 0 .and. n2 .le. n) then
+      ix = ld + 1
+      i = 1
 
       ! Label 21: Loop through NGF patches
-      DO WHILE (I .LE. M1)
-        IX = IX - 1
-        XS = X(IX)
-        YS = Y(IX)
-        ZS = Z(IX)
+      do while (i .le. m1)
+        ix = ix - 1
+        xs = x(ix)
+        ys = y(ix)
+        zs = z(ix)
 
         ! DO 23 loop: Check segments N2 to N
-        DO ISEG = N2, N
-          XI1 = X(ISEG)
-          YI1 = Y(ISEG)
-          ZI1 = Z(ISEG)
-          XI2 = X2(ISEG)
-          YI2 = Y2(ISEG)
-          ZI2 = Z2(ISEG)
-          SLEN = (ABS(XI2-XI1) + ABS(YI2-YI1) + ABS(ZI2-ZI1))*SMIN
+        do iseg = n2, n
+          xi1 = x(iseg)
+          yi1 = y(iseg)
+          zi1 = z(iseg)
+          xi2 = x2(iseg)
+          yi2 = y2(iseg)
+          zi2 = z2(iseg)
+          slen = (abs(xi2-xi1) + abs(yi2-yi1) + abs(zi2-zi1))*smin
 
           ! Check end 1 connection (label 22)
-          SEP = ABS(XI1-XS) + ABS(YI1-YS) + ABS(ZI1-ZS)
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi1-xs) + abs(yi1-ys) + abs(zi1-zs)
+          if (sep .le. slen) then
             ! GOTO 22 eliminated: Connection found at end 1
-            ICON1(ISEG) = 10001 + M
-            IC = 1
-            NPCON = NPCON + 1
-            IPCON(NPCON) = I
-            CALL SUBPH(I, IC, XI1, YI1, ZI1, XI2, YI2, ZI2, XA, YA, ZA, XS, YS, ZS)
-            EXIT  ! GOTO 24 eliminated
-          END IF
+            icon1(iseg) = 10001 + m
+            ic = 1
+            npcon = npcon + 1
+            ipcon(npcon) = i
+            call subph(i, ic, xi1, yi1, zi1, xi2, yi2, zi2, xa, ya, za, xs, ys, zs)
+            exit  ! GOTO 24 eliminated
+          end if
 
           ! Check end 2 connection (label 23)
-          SEP = ABS(XI2-XS) + ABS(YI2-YS) + ABS(ZI2-ZS)
-          IF (SEP .LE. SLEN) THEN
+          sep = abs(xi2-xs) + abs(yi2-ys) + abs(zi2-zs)
+          if (sep .le. slen) then
             ! GOTO 23 eliminated: Connection found at end 2
-            ICON2(ISEG) = 10001 + M
-            IC = 1
-            NPCON = NPCON + 1
-            IPCON(NPCON) = I
-            CALL SUBPH(I, IC, XI1, YI1, ZI1, XI2, YI2, ZI2, XA, YA, ZA, XS, YS, ZS)
-            EXIT  ! GOTO 24 eliminated
-          END IF
-        END DO  ! Label 23: CONTINUE eliminated
+            icon2(iseg) = 10001 + m
+            ic = 1
+            npcon = npcon + 1
+            ipcon(npcon) = i
+            call subph(i, ic, xi1, yi1, zi1, xi2, yi2, zi2, xa, ya, za, xs, ys, zs)
+            exit  ! GOTO 24 eliminated
+          end if
+        end do  ! Label 23: CONTINUE eliminated
 
         ! Label 24: Next NGF patch
-        I = I + 1
-      END DO  ! GOTO 21 eliminated (DO WHILE loop)
+        i = i + 1
+      end do  ! GOTO 21 eliminated (DO WHILE loop)
 
       ! Label 25: Check NPCON limit
-      IF (NPCON .GT. NPMAX) THEN
-        WRITE(*,62) NPMAX
-        STOP
-      END IF
-    END IF
-  END IF  ! End of N .NE. 0 block
+      if (npcon .gt. npmax) then
+        write(*,62) npmax
+        stop
+      end if
+    end if
+  end if  ! End of N .NE. 0 block
 
   ! Label 26: Output segment and symmetry information
-  WRITE(*,58) N, NP, IPSYM
-  IF (M .GT. 0) WRITE(*,61) M, MP
+  write(*,58) n, np, ipsym
+  if (m .gt. 0) write(*,61) m, mp
 
-  ISEG = (N + M)/(NP + MP)
+  iseg = (n + m)/(np + mp)
 
   ! Labels 27, 28, 29, 30 eliminated with structured IF-THEN-ELSE
-  IF (ISEG .NE. 1) THEN
-    IF (IPSYM .LT. 0) THEN
+  if (iseg .ne. 1) then
+    if (ipsym .lt. 0) then
       ! Label 28: Negative IPSYM (rotational symmetry)
-      WRITE(*,59) ISEG
-    ELSE IF (IPSYM .GT. 0) THEN
+      write(*,59) iseg
+    else if (ipsym .gt. 0) then
       ! Label 29: Positive IPSYM (plane symmetry)
-      IC = ISEG/2
-      IF (ISEG .EQ. 8) IC = 3
-      WRITE(*,60) IC
-    ELSE
+      ic = iseg/2
+      if (iseg .eq. 8) ic = 3
+      write(*,60) ic
+    else
       ! Label 27: IPSYM = 0 and ISEG != 1 - error
-      STOP
-    END IF
-  END IF
+      stop
+    end if
+  end if
 
   ! Label 30: Adjust connected segment ends and print junctions
   ! GOTO 48 eliminated with IF-THEN
-  IF (N .NE. 0) THEN
-    WRITE(*,50)
-    ISEG = 0
+  if (n .ne. 0) then
+    write(*,50)
+    iseg = 0
 
     ! Main junction processing loop (DO 44)
-    DO J = 1, N
-      IEND = -1
-      JEND = -1
-      IX = ICON1(J)
-      IC = 1
-      JCO(1) = -J
-      XA = X(J)
-      YA = Y(J)
-      ZA = Z(J)
+    do j = 1, n
+      iend = -1
+      jend = -1
+      ix = icon1(j)
+      ic = 1
+      jco(1) = -j
+      xa = x(j)
+      ya = y(j)
+      za = z(j)
 
       ! Label 31: Process one end of segment J
       ! This is a complex section with a graph traversal algorithm
       ! GOTO 31, 43, 49 eliminated with structured loops and flags
-      process_end1: DO
+      process_end1: do
         ! Label 31: Check if valid connection to process
         ! GOTO 43 eliminated with EXIT
-        IF (IX .EQ. 0) EXIT process_end1
-        IF (IX .EQ. J) EXIT process_end1
-        IF (IX .GT. 10000) EXIT process_end1
+        if (ix .eq. 0) exit process_end1
+        if (ix .eq. j) exit process_end1
+        if (ix .gt. 10000) exit process_end1
 
-        NSFLG = 0
+        nsflg = 0
 
         ! Label 32: Traverse connected segments (while-loop structure)
-        traverse_connections: DO
+        traverse_connections: do
           ! Computed GOTO: IF (IX) 33,49,34 → structured IF-THEN-ELSE
-          IF (IX .EQ. 0) THEN
+          if (ix .eq. 0) then
             ! Label 49: Error - segment connection error
-            WRITE(*,53) IX
-            STOP
-          ELSE IF (IX .LT. 0) THEN
+            write(*,53) ix
+            stop
+          else if (ix .lt. 0) then
             ! Label 33: Negative IX (connected at end 1)
-            IX = -IX
-          ELSE
+            ix = -ix
+          else
             ! Label 34: Positive IX (connected at end 2)
-            JEND = -JEND
-          END IF
+            jend = -jend
+          end if
 
           ! Label 35: Check for loop completion or continuation
-          IF (IX .EQ. J) THEN
+          if (ix .eq. j) then
             ! GOTO 37: Loop detected, average coordinates
-            EXIT traverse_connections
-          END IF
+            exit traverse_connections
+          end if
 
           ! GOTO 43 eliminated with EXIT
-          IF (IX .LT. J) EXIT process_end1
+          if (ix .lt. j) exit process_end1
 
-          IC = IC + 1
-          IF (IC .GT. JMAX) THEN
+          ic = ic + 1
+          if (ic .gt. jmax) then
             ! GOTO 49: Too many connections
-            WRITE(*,53) IX
-            STOP
-          END IF
+            write(*,53) ix
+            stop
+          end if
 
-          JCO(IC) = IX*JEND
-          IF (IX .GT. N1) NSFLG = 1
+          jco(ic) = ix*jend
+          if (ix .gt. n1) nsflg = 1
 
           ! Labels 36, 32 eliminated: Get next connection
-          IF (JEND .EQ. 1) THEN
+          if (jend .eq. 1) then
             ! Label 36: Connected at end 2, accumulate and get ICON2
-            XA = XA + X2(IX)
-            YA = YA + Y2(IX)
-            ZA = ZA + Z2(IX)
-            IX = ICON2(IX)
-          ELSE
+            xa = xa + x2(ix)
+            ya = ya + y2(ix)
+            za = za + z2(ix)
+            ix = icon2(ix)
+          else
             ! Connected at end 1, accumulate and get ICON1
-            XA = XA + X(IX)
-            YA = YA + Y(IX)
-            ZA = ZA + Z(IX)
-            IX = ICON1(IX)
-          END IF
+            xa = xa + x(ix)
+            ya = ya + y(ix)
+            za = za + z(ix)
+            ix = icon1(ix)
+          end if
 
           ! GOTO 32: Continue traversal (DO loop handles this)
-        END DO traverse_connections
+        end do traverse_connections
 
         ! Label 37: Average junction coordinates
-        SEP = IC
-        XA = XA/SEP
-        YA = YA/SEP
-        ZA = ZA/SEP
+        sep = ic
+        xa = xa/sep
+        ya = ya/sep
+        za = za/sep
 
         ! DO 39: Update all connected segment endpoints
-        DO I = 1, IC
-          IX = JCO(I)
+        do i = 1, ic
+          ix = jco(i)
 
           ! Labels 38, 39 eliminated with IF-THEN-ELSE
-          IF (IX .GT. 0) THEN
+          if (ix .gt. 0) then
             ! Label 38: Update end 2
-            X2(IX) = XA
-            Y2(IX) = YA
-            Z2(IX) = ZA
-          ELSE
+            x2(ix) = xa
+            y2(ix) = ya
+            z2(ix) = za
+          else
             ! Update end 1
-            IX = -IX
-            X(IX) = XA
-            Y(IX) = YA
-            Z(IX) = ZA
-          END IF
-        END DO  ! Label 39: CONTINUE eliminated
+            ix = -ix
+            x(ix) = xa
+            y(ix) = ya
+            z(ix) = za
+          end if
+        end do  ! Label 39: CONTINUE eliminated
 
         ! Labels 40, 41, 42 eliminated: Track new segment connections
         ! GOTO 42 eliminated with IF-THEN
-        IF (N1 .NE. 0 .AND. NSFLG .NE. 0) THEN
-          DO I = 1, IC
-            IX = IABS(JCO(I))
+        if (n1 .ne. 0 .and. nsflg .ne. 0) then
+          do i = 1, ic
+            ix = iabs(jco(i))
 
             ! GOTO 41 eliminated with CYCLE
-            IF (IX .GT. N1) CYCLE
-            IF (ICONX(IX) .NE. 0) CYCLE
+            if (ix .gt. n1) cycle
+            if (iconx(ix) .ne. 0) cycle
 
-            NSCON = NSCON + 1
-            IF (NSCON .GT. NSMAX) THEN
+            nscon = nscon + 1
+            if (nscon .gt. nsmax) then
               ! Label 40: Error - too many connections
-              WRITE(*,62) NSMAX
-              STOP
-            END IF
+              write(*,62) nsmax
+              stop
+            end if
 
-            ISCON(NSCON) = IX
-            ICONX(IX) = NSCON
-          END DO  ! Label 41: CONTINUE eliminated
-        END IF
+            iscon(nscon) = ix
+            iconx(ix) = nscon
+          end do  ! Label 41: CONTINUE eliminated
+        end if
 
         ! Label 42, 43: Check if junction has 3+ segments
-        EXIT process_end1  ! Exit after processing this junction
-      END DO process_end1
+        exit process_end1  ! Exit after processing this junction
+      end do process_end1
 
       ! Label 43: Print junction if 3 or more segments
-      IF (IC .GE. 3) THEN
-        ISEG = ISEG + 1
-        WRITE(*,51) ISEG, (JCO(I), I=1, IC)
-      END IF
+      if (ic .ge. 3) then
+        iseg = iseg + 1
+        write(*,51) iseg, (jco(i), i=1, ic)
+      end if
 
       ! Label 43, 44: Process second end if not done
       ! GOTO 44 eliminated with IF-THEN
-      IF (IEND .EQ. -1) THEN
+      if (iend .eq. -1) then
         ! Process end 2
-        IEND = 1
-        JEND = 1
-        IX = ICON2(J)
-        IC = 1
-        JCO(1) = J
-        XA = X2(J)
-        YA = Y2(J)
-        ZA = Z2(J)
+        iend = 1
+        jend = 1
+        ix = icon2(j)
+        ic = 1
+        jco(1) = j
+        xa = x2(j)
+        ya = y2(j)
+        za = z2(j)
 
         ! Re-enter at label 31 for end 2 processing
         ! Duplicate the process_end1 logic for end 2
-        process_end2: DO
-          IF (IX .EQ. 0) EXIT process_end2
-          IF (IX .EQ. J) EXIT process_end2
-          IF (IX .GT. 10000) EXIT process_end2
+        process_end2: do
+          if (ix .eq. 0) exit process_end2
+          if (ix .eq. j) exit process_end2
+          if (ix .gt. 10000) exit process_end2
 
-          NSFLG = 0
+          nsflg = 0
 
-          traverse_connections2: DO
-            IF (IX .EQ. 0) THEN
-              WRITE(*,53) IX
-              STOP
-            ELSE IF (IX .LT. 0) THEN
-              IX = -IX
-            ELSE
-              JEND = -JEND
-            END IF
+          traverse_connections2: do
+            if (ix .eq. 0) then
+              write(*,53) ix
+              stop
+            else if (ix .lt. 0) then
+              ix = -ix
+            else
+              jend = -jend
+            end if
 
-            IF (IX .EQ. J) EXIT traverse_connections2
-            IF (IX .LT. J) EXIT process_end2
+            if (ix .eq. j) exit traverse_connections2
+            if (ix .lt. j) exit process_end2
 
-            IC = IC + 1
-            IF (IC .GT. JMAX) THEN
-              WRITE(*,53) IX
-              STOP
-            END IF
+            ic = ic + 1
+            if (ic .gt. jmax) then
+              write(*,53) ix
+              stop
+            end if
 
-            JCO(IC) = IX*JEND
-            IF (IX .GT. N1) NSFLG = 1
+            jco(ic) = ix*jend
+            if (ix .gt. n1) nsflg = 1
 
-            IF (JEND .EQ. 1) THEN
-              XA = XA + X2(IX)
-              YA = YA + Y2(IX)
-              ZA = ZA + Z2(IX)
-              IX = ICON2(IX)
-            ELSE
-              XA = XA + X(IX)
-              YA = YA + Y(IX)
-              ZA = ZA + Z(IX)
-              IX = ICON1(IX)
-            END IF
-          END DO traverse_connections2
+            if (jend .eq. 1) then
+              xa = xa + x2(ix)
+              ya = ya + y2(ix)
+              za = za + z2(ix)
+              ix = icon2(ix)
+            else
+              xa = xa + x(ix)
+              ya = ya + y(ix)
+              za = za + z(ix)
+              ix = icon1(ix)
+            end if
+          end do traverse_connections2
 
-          SEP = IC
-          XA = XA/SEP
-          YA = YA/SEP
-          ZA = ZA/SEP
+          sep = ic
+          xa = xa/sep
+          ya = ya/sep
+          za = za/sep
 
-          DO I = 1, IC
-            IX = JCO(I)
-            IF (IX .GT. 0) THEN
-              X2(IX) = XA
-              Y2(IX) = YA
-              Z2(IX) = ZA
-            ELSE
-              IX = -IX
-              X(IX) = XA
-              Y(IX) = YA
-              Z(IX) = ZA
-            END IF
-          END DO
+          do i = 1, ic
+            ix = jco(i)
+            if (ix .gt. 0) then
+              x2(ix) = xa
+              y2(ix) = ya
+              z2(ix) = za
+            else
+              ix = -ix
+              x(ix) = xa
+              y(ix) = ya
+              z(ix) = za
+            end if
+          end do
 
-          IF (N1 .NE. 0 .AND. NSFLG .NE. 0) THEN
-            DO I = 1, IC
-              IX = IABS(JCO(I))
-              IF (IX .GT. N1) CYCLE
-              IF (ICONX(IX) .NE. 0) CYCLE
+          if (n1 .ne. 0 .and. nsflg .ne. 0) then
+            do i = 1, ic
+              ix = iabs(jco(i))
+              if (ix .gt. n1) cycle
+              if (iconx(ix) .ne. 0) cycle
 
-              NSCON = NSCON + 1
-              IF (NSCON .GT. NSMAX) THEN
-                WRITE(*,62) NSMAX
-                STOP
-              END IF
+              nscon = nscon + 1
+              if (nscon .gt. nsmax) then
+                write(*,62) nsmax
+                stop
+              end if
 
-              ISCON(NSCON) = IX
-              ICONX(IX) = NSCON
-            END DO
-          END IF
+              iscon(nscon) = ix
+              iconx(ix) = nscon
+            end do
+          end if
 
-          EXIT process_end2
-        END DO process_end2
+          exit process_end2
+        end do process_end2
 
-        IF (IC .GE. 3) THEN
-          ISEG = ISEG + 1
-          WRITE(*,51) ISEG, (JCO(I), I=1, IC)
-        END IF
-      END IF
+        if (ic .ge. 3) then
+          iseg = iseg + 1
+          write(*,51) iseg, (jco(i), i=1, ic)
+        end if
+      end if
 
-    END DO  ! Label 44: End main junction loop
+    end do  ! Label 44: End main junction loop
 
-    IF (ISEG .EQ. 0) WRITE(*,52)
+    if (iseg .eq. 0) write(*,52)
 
     ! Section 4: Find old segments connecting to new patches
     ! Labels 45, 46, 47 eliminated with structured IF-THEN
     ! GOTO 48 eliminated with IF-THEN
-    IF (N1 .NE. 0 .AND. M1 .NE. M) THEN
-      DO J = 1, N1
-        IX = ICON1(J)
+    if (n1 .ne. 0 .and. m1 .ne. m) then
+      do j = 1, n1
+        ix = icon1(j)
 
         ! Label 45, 46: Check ICON1 connection
         ! GOTO 45, 46, 47 eliminated with nested IF-THEN
-        needs_tracking = .FALSE.
+        needs_tracking = .false.
 
-        IF (IX .GE. 10000) THEN
-          IX = IX - 10000
-          IF (IX .GT. M1) needs_tracking = .TRUE.
-        ELSE
+        if (ix .ge. 10000) then
+          ix = ix - 10000
+          if (ix .gt. m1) needs_tracking = .true.
+        else
           ! Label 45: Check ICON2
-          IX = ICON2(J)
-          IF (IX .GE. 10000) THEN
-            IX = IX - 10000
-            IF (IX .GE. M2) needs_tracking = .TRUE.
-          END IF
-        END IF
+          ix = icon2(j)
+          if (ix .ge. 10000) then
+            ix = ix - 10000
+            if (ix .ge. m2) needs_tracking = .true.
+          end if
+        end if
 
         ! Label 46: Track if needed
-        IF (needs_tracking .AND. ICONX(J) .EQ. 0) THEN
-          NSCON = NSCON + 1
-          ISCON(NSCON) = J
-          ICONX(J) = NSCON
-        END IF
+        if (needs_tracking .and. iconx(j) .eq. 0) then
+          nscon = nscon + 1
+          iscon(nscon) = j
+          iconx(j) = nscon
+        end if
 
-      END DO  ! Label 47: CONTINUE eliminated
-    END IF
-  END IF  ! Label 48: End of N != 0 block
+      end do  ! Label 47: CONTINUE eliminated
+    end if
+  end if  ! Label 48: End of N != 0 block
 
-  RETURN
+  return
 
   ! Format statements (Hollerith converted to quoted strings)
-50 FORMAT (//,9X,'- MULTIPLE WIRE JUNCTIONS -',/,1X,'JUNCTION',4X, &
+50 format (//,9x,'- MULTIPLE WIRE JUNCTIONS -',/,1x,'JUNCTION',4x, &
            'SEGMENTS  (- FOR END 1, + FOR END 2)')
-51 FORMAT (1X,I5,5X,20I5,/,(11X,20I5))
-52 FORMAT (2X,'NONE')
-53 FORMAT (' CONNECT - SEGMENT CONNECTION ERROR FOR SEGMENT',I5)
-54 FORMAT (/,3X,'GROUND PLANE SPECIFIED.')
-55 FORMAT (/,3X,'WHERE WIRE ENDS TOUCH GROUND, CURRENT WILL BE ', &
+51 format (1x,i5,5x,20i5,/,(11x,20i5))
+52 format (2x,'NONE')
+53 format (' CONNECT - SEGMENT CONNECTION ERROR FOR SEGMENT',i5)
+54 format (/,3x,'GROUND PLANE SPECIFIED.')
+55 format (/,3x,'WHERE WIRE ENDS TOUCH GROUND, CURRENT WILL BE ', &
            'INTERPOLATED TO IMAGE IN GROUND PLANE.',/)
-56 FORMAT (' GEOMETRY DATA ERROR-- SEGMENT',I5,' EXTENDS BELOW GROUND')
-57 FORMAT (' GEOMETRY DATA ERROR--SEGMENT',I5,' LIES IN GROUND PLANE.')
-58 FORMAT (/,3X,'TOTAL SEGMENTS USED=',I5,5X,'NO. SEG. IN ', &
-           'A SYMMETRIC CELL=',I5,5X,'SYMMETRY FLAG=',I3)
-59 FORMAT (' STRUCTURE HAS',I4,' FOLD ROTATIONAL SYMMETRY',/)
-60 FORMAT (' STRUCTURE HAS',I2,' PLANES OF SYMMETRY',/)
-61 FORMAT (3X,'TOTAL PATCHES USED=',I5,6X, &
-           'NO. PATCHES IN A SYMMETRIC CELL=',I5)
-62 FORMAT (' ERROR - NO. NEW SEGMENTS CONNECTED TO N.G.F. SEGMENTS ', &
-           'OR PATCHES EXCEEDS LIMIT OF',I5)
+56 format (' GEOMETRY DATA ERROR-- SEGMENT',i5,' EXTENDS BELOW GROUND')
+57 format (' GEOMETRY DATA ERROR--SEGMENT',i5,' LIES IN GROUND PLANE.')
+58 format (/,3x,'TOTAL SEGMENTS USED=',i5,5x,'NO. SEG. IN ', &
+           'A SYMMETRIC CELL=',i5,5x,'SYMMETRY FLAG=',i3)
+59 format (' STRUCTURE HAS',i4,' FOLD ROTATIONAL SYMMETRY',/)
+60 format (' STRUCTURE HAS',i2,' PLANES OF SYMMETRY',/)
+61 format (3x,'TOTAL PATCHES USED=',i5,6x, &
+           'NO. PATCHES IN A SYMMETRIC CELL=',i5)
+62 format (' ERROR - NO. NEW SEGMENTS CONNECTED TO N.G.F. SEGMENTS ', &
+           'OR PATCHES EXCEEDS LIMIT OF',i5)
 
-END SUBROUTINE CONECT
+end subroutine conect

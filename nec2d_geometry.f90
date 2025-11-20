@@ -1,9 +1,9 @@
-! ***********************************************************************
-! NEC2D GEOMETRY MODULE
-! Contains: arc, wire, helix, move
-! Modernized from fixed-form Fortran
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_geometry - Geometry Processing
+! =============================================================================
+! Purpose: Arc, helix, and geometry transformation routines
+! Contains: ARC, WIRE, HELIX, MOVE
+! =============================================================================
 subroutine arc (itg,ns,rada,ang1,ang2,rad)
 ! ***
 ! double precision 6/4/85

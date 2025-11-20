@@ -1,83 +1,79 @@
-!***********************************************************************
-!     NEC2D Utility Functions Module
-!***********************************************************************
-!     Contains small, standalone utility functions
-!     - ATGN2: Arc tangent with special handling for 0,0
-!     - CANG: Complex angle in degrees
-!     - DB10/DB20: Decibel conversion
-!     - CPUSEC/STOPWTCH: CPU timing utilities
-!***********************************************************************
+! =============================================================================
+! nec2d_utils - General Utilities
+! =============================================================================
+! Purpose: Move and test functions using module variables
+! Contains: ATGN2, CANG, DB10, CPUSEC, STOPWTCH
+! =============================================================================
+module nec2d_utils
+  use nec2d_params
+  use nec2d_commons
+  implicit none
 
-MODULE nec2d_utils
-  USE nec2d_params
-  USE nec2d_commons
-  IMPLICIT NONE
-
-  CONTAINS
+  contains
 
 !***********************************************************************
-      FUNCTION ATGN2 (X,Y)
+      function atgn2 (x,y)
 !***********************************************************************
 !     ATGN2 IS ARCTANGENT FUNCTION MODIFIED TO RETURN 0. WHEN X=Y=0.
 !***********************************************************************
-      IMPLICIT REAL*8(A-H,O-Z)
-      REAL*8 :: ATGN2, X, Y
+      implicit real*8(a-h,o-z)
+      real*8 :: atgn2, x, y
 
-      IF (X) 3,1,3
-1     IF (Y) 3,2,3
-2     ATGN2=0.
-      RETURN
-3     ATGN2=ATAN2(X,Y)
-      RETURN
-      END FUNCTION ATGN2
+      if (x) 3,1,3
+1     if (y) 3,2,3
+2     atgn2=0.
+      return
+3     atgn2=atan2(x,y)
+      return
+      end function atgn2
 
 !***********************************************************************
-      FUNCTION CANG (Z)
+      function cang (z)
 !***********************************************************************
 !     CANG RETURNS THE PHASE ANGLE OF A COMPLEX NUMBER IN DEGREES.
 !***********************************************************************
-      IMPLICIT REAL*8(A-H,O-Z)
-      COMPLEX*16 :: Z
-      REAL*8 :: CANG
+      implicit real*8(a-h,o-z)
+      complex*16 :: z
+      real*8 :: cang
 
-      CANG=ATGN2(DIMAG(Z),DREAL(Z))*57.29577951D+0
-      RETURN
-      END FUNCTION CANG
+      cang=atgn2(dimag(z),dreal(z))*57.29577951d+0
+      return
+      end function cang
 
 !***********************************************************************
-      FUNCTION DB10 (X)
+      function db10 (x)
 !***********************************************************************
 !     FUNCTION DB-- RETURNS DB FOR MAGNITUDE (FIELD) OR MAG**2 (POWER)
 !***********************************************************************
-      IMPLICIT REAL*8(A-H,O-Z)
-      REAL*8 :: DB10, DB20, X, F
+      implicit real*8(a-h,o-z)
+      real*8 :: db10, db20, x, f
 
-      F=10.
-      GO TO 1
-      ENTRY DB20(X)
-      F=20.
-1     IF (X.LT.1.D-20) GO TO 2
-      DB10=F*LOG10(X)
-      RETURN
-2     DB10=-999.99
-      RETURN
-      END FUNCTION DB10
+      f=10.
+      go to 1
+      entry db20(x)
+      f=20.
+1     if (x.lt.1.d-20) go to 2
+      db10=f*log10(x)
+      return
+2     db10=-999.99
+      return
+      end function db10
 
 !***********************************************************************
-      SUBROUTINE CPUSEC (CPUSECD)
+      subroutine cpusec (cpusecd)
 !***********************************************************************
 !     CPUSEC returns cpu time in seconds.
 !***********************************************************************
-      REAL*8 :: CPUSECD
-      REAL :: CPUSECS, WALLTOT, CPUSPLT, WALLSPLT
+      real*8 :: cpusecd
+      real :: cpusecs, walltot, cpusplt, wallsplt
 
-      CALL STOPWTCH(CPUSECS,WALLTOT,CPUSPLT,WALLSPLT)
-      CPUSECD=60.*CPUSECS
-      RETURN
-      END SUBROUTINE CPUSEC
+      call stopwtch(cpusecs,walltot,cpusplt,wallsplt)
+      cpusecd=60.*cpusecs
+      return
+      end subroutine cpusec
 
 !***********************************************************************
-      SUBROUTINE STOPWTCH(cputot,walltot,cpusplt,wallsplt)
+      subroutine stopwtch(cputot,walltot,cpusplt,wallsplt)
 !***********************************************************************
 !     This routine operates as a stopwatch.
 !     When first called, the routine initializes the clock.
@@ -88,13 +84,13 @@ MODULE nec2d_utils
 !              cpusplt  -- split (delta) CPU time since previous call
 !              wallsplt -- split wallclock time since previous call
 !***********************************************************************
-      REAL :: cputot,walltot,cpusplt,wallsplt
-      LOGICAL :: initiz
-      INTEGER :: wallinit,walllast,wallnow,time
-      REAL :: cpuinit,cpulast,cpunow
-      REAL :: tarray(2)
-      SAVE initiz,cpuinit,cpulast,wallinit,walllast
-      DATA initiz/.false./
+      real :: cputot,walltot,cpusplt,wallsplt
+      logical :: initiz
+      integer :: wallinit,walllast,wallnow,time
+      real :: cpuinit,cpulast,cpunow
+      real :: tarray(2)
+      save initiz,cpuinit,cpulast,wallinit,walllast
+      data initiz/.false./
 
       if (.not. initiz) then
          initiz = .true.
@@ -118,6 +114,6 @@ MODULE nec2d_utils
       walllast = wallnow
 
       return
-      END SUBROUTINE STOPWTCH
+      end subroutine stopwtch
 
-END MODULE nec2d_utils
+end module nec2d_utils

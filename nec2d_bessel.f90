@@ -1,10 +1,9 @@
-! ***********************************************************************
-! nec2d bessel functions module
-! contains: bessel, hankel
-! special mathematical functions for electromagnetic calculations
-! modernized from fixed-form fortran
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_bessel - Bessel and Hankel Functions
+! =============================================================================
+! Purpose: Special mathematical functions for electromagnetic calculations
+! Contains: BESSEL, HANKEL
+! =============================================================================
 subroutine bessel (z,j0,j0p)
 ! bessel evaluates the zero-order bessel function and its derivative
 ! for complex argument z.

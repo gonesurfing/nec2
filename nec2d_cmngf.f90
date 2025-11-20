@@ -1,385 +1,382 @@
-! ========================================================================
-!     NEC2D - Numerical Electromagnetics Code (2D version)
-!     Modernized Fortran 90 Module: Matrix NGF Filling (CMNGF)
-! ========================================================================
-!     Original: CMNGF subroutine from nec2dxs_integrated.f
-!     Modernized: 2025-11-19
-!     GOTOs eliminated: 38
-!     COMMON blocks: Replaced with MODULE USE (2025-11-19)
-! ========================================================================
-
-SUBROUTINE CMNGF (CB,CC,CD,NB,NC,ND,RKHX,IEXKX)
-  USE nec2d_params
-  USE nec2d_commons, ONLY: &
+! =============================================================================
+! nec2d_cmngf - Matrix NGF Filling
+! =============================================================================
+! Purpose: Fill interaction matrices B, C, and D for NGF solution
+! Contains: CMNGF
+! GOTOs eliminated: 38
+! =============================================================================
+subroutine cmngf (cb,cc,cd,nb,nc,nd,rkhx,iexkx)
+  use nec2d_params
+  use nec2d_commons, only: &
     ! /DATA/ - geometry and segment data (22 variables)
-    X, Y, Z, SI, BI, ALP, BET, WLAM, ICON1, ICON2, ITAG, ICONX, &
-    LD, N1, N2, N, NP, M1, M2, M, MP, IPSYM, &
+    x, y, z, si, bi, alp, bet, wlam, icon1, icon2, itag, iconx, &
+    ld, n1, n2, n, np, m1, m2, m, mp, ipsym, &
     ! /ZLOAD/ - load impedances (3 variables)
-    ZARRAY, NLOAD, NLODF, &
+    zarray, nload, nlodf, &
     ! /SEGJ/ - segment junction data (9 variables)
-    AX, BX, CX, JCO, JSNO, ISCON, NSCON, IPCON, NPCON, &
+    ax, bx, cx, jco, jsno, iscon, nscon, ipcon, npcon, &
     ! /DATAJ/ - data for junction calculations (24 variables)
-    S_J, B_J, XJ, YJ, ZJ, CABJ, SABJ, SALPJ, &
-    EXK, EYK, EZK, EXS, EYS, EZS, EXC, EYC, EZC, &
-    RKH, IND1, INDD1, IND2, INDD2, IEXK, IPGND, &
+    s_j, b_j, xj, yj, zj, cabj, sabj, salpj, &
+    exk, eyk, ezk, exs, eys, ezs, exc, eyc, ezc, &
+    rkh, ind1, indd1, ind2, indd2, iexk, ipgnd, &
     ! /MATPAR/ - matrix parameters (15 variables)
-    ICASE, NBLOKS, NPBLK, NLAST, NBLSYM, NPSYM, NLSYM, IMAT, &
-    ICASX, NBBX, NPBX, NLBX, NBBL, NPBL, NLBL
+    icase, nbloks, npblk, nlast, nblsym, npsym, nlsym, imat, &
+    icasx, nbbx, npbx, nlbx, nbbl, npbl, nlbl
 ! ***
 !     DOUBLE PRECISION 6/4/85
 !     CMNGF FILLS INTERACTION MATRICIES B, C, AND D FOR N.G.F. SOLUTION
 
-  IMPLICIT REAL*8(A-H,O-Z)
+  implicit real*8(a-h,o-z)
 
-  COMPLEX*16 CB,CC,CD
-  DIMENSION CB(NB,1), CC(NC,1), CD(ND,1)
+  complex*16 cb,cc,cd
+  dimension cb(nb,1), cc(nc,1), cd(nd,1)
 
-  RKH=RKHX
-  IEXK=IEXKX
-  M1EQ=2*M1
-  M2EQ=M1EQ+1
-  MEQ=2*M
-  NEQP=ND-NPCON*2
-  NEQS=NEQP-NSCON
-  NEQSP=NEQS+NC
-  NEQN=NC+N-N1
-  ITX=1
-  IF (NSCON.GT.0) ITX=2
+  rkh=rkhx
+  iexk=iexkx
+  m1eq=2*m1
+  m2eq=m1eq+1
+  meq=2*m
+  neqp=nd-npcon*2
+  neqs=neqp-nscon
+  neqsp=neqs+nc
+  neqn=nc+n-n1
+  itx=1
+  if (nscon.gt.0) itx=2
 
   ! Initialize matrices and rewind files based on ICASX
-  IF (ICASX.EQ.1) THEN
+  if (icasx.eq.1) then
     ! ICASX=1: Initialize all matrices
-    DO J=1,ND
-      DO I=1,ND
-        CD(I,J)=(0.,0.)
-      END DO
-      DO I=1,NB
-        CB(I,J)=(0.,0.)
-        CC(I,J)=(0.,0.)
-      END DO
-    END DO
-  ELSE
+    do j=1,nd
+      do i=1,nd
+        cd(i,j)=(0.,0.)
+      end do
+      do i=1,nb
+        cb(i,j)=(0.,0.)
+        cc(i,j)=(0.,0.)
+      end do
+    end do
+  else
     ! ICASX != 1: Rewind files
-    REWIND 12
-    REWIND 14
-    REWIND 15
-    IF (ICASX.LE.2) THEN
+    rewind 12
+    rewind 14
+    rewind 15
+    if (icasx.le.2) then
       ! ICASX=2: Also initialize matrices
-      DO J=1,ND
-        DO I=1,ND
-          CD(I,J)=(0.,0.)
-        END DO
-        DO I=1,NB
-          CB(I,J)=(0.,0.)
-          CC(I,J)=(0.,0.)
-        END DO
-      END DO
-    END IF
-  END IF
+      do j=1,nd
+        do i=1,nd
+          cd(i,j)=(0.,0.)
+        end do
+        do i=1,nb
+          cb(i,j)=(0.,0.)
+          cc(i,j)=(0.,0.)
+        end do
+      end do
+    end if
+  end if
 
-  IST=N-N1+1
-  IT=NPBX
-  ISV=-NPBX
+  ist=n-n1+1
+  it=npbx
+  isv=-npbx
 
   ! ========================================================================
   ! LOOP THRU 24: FILLS B. FOR ICASX=1 OR 2 ALSO FILLS D(WW), D(WS)
   ! ========================================================================
-  DO IBLK=1,NBBX
-    ISV=ISV+NPBX
-    IF (IBLK.EQ.NBBX) IT=NLBX
+  do iblk=1,nbbx
+    isv=isv+npbx
+    if (iblk.eq.nbbx) it=nlbx
 
     ! For ICASX >= 3: Zero out CB for this block
-    IF (ICASX.GE.3) THEN
-      DO J=1,ND
-        DO I=1,IT
-          CB(I,J)=(0.,0.)
-        END DO
-      END DO
-    END IF
+    if (icasx.ge.3) then
+      do j=1,nd
+        do i=1,it
+          cb(i,j)=(0.,0.)
+        end do
+      end do
+    end if
 
-    I1=ISV+1
-    I2=ISV+IT
-    IN2=I2
-    IF (IN2.GT.N1) IN2=N1
-    IM1=I1-N1
-    IM2=I2-N1
-    IF (IM1.LT.1) IM1=1
-    IMX=1
-    IF (I1.LE.N1) IMX=N1-I1+2
+    i1=isv+1
+    i2=isv+it
+    in2=i2
+    if (in2.gt.n1) in2=n1
+    im1=i1-n1
+    im2=i2-n1
+    if (im1.lt.1) im1=1
+    imx=1
+    if (i1.le.n1) imx=n1-i1+2
 
     ! FILL B(WW),B(WS). FOR ICASX=1,2 FILL D(WW),D(WS)
-    IF (N2.LE.N) THEN
-      DO J=N2,N
-        CALL TRIO (J)
+    if (n2.le.n) then
+      do j=n2,n
+        call trio (j)
 
         ! Process JCO array
-        DO I=1,JSNO
-          JSS=JCO(I)
-          IF (JSS.GE.N2) THEN
+        do i=1,jsno
+          jss=jco(i)
+          if (jss.ge.n2) then
             ! SET JCO WHEN SOURCE IS NEW BASIS FUNCTION ON NEW SEGMENT
-            JCO(I)=JSS-N1
-          ELSE
+            jco(i)=jss-n1
+          else
             ! SOURCE IS PORTION OF MODIFIED BASIS FUNCTION ON NEW SEGMENT
-            JCO(I)=NEQS+ICONX(JSS)
-          END IF
-        END DO
+            jco(i)=neqs+iconx(jss)
+          end if
+        end do
 
-        IF (I1.LE.IN2) CALL CMWW (J,I1,IN2,CB,NB,CB,NB,0)
-        IF (IM1.LE.IM2) CALL CMWS (J,IM1,IM2,CB(IMX,1),NB,CB,NB,0)
+        if (i1.le.in2) call cmww (j,i1,in2,cb,nb,cb,nb,0)
+        if (im1.le.im2) call cmws (j,im1,im2,cb(imx,1),nb,cb,nb,0)
 
-        IF (ICASX.LE.2) THEN
-          CALL CMWW (J,N2,N,CD,ND,CD,ND,1)
-          IF (M2.LE.M) CALL CMWS (J,M2EQ,MEQ,CD(1,IST),ND,CD,ND,1)
+        if (icasx.le.2) then
+          call cmww (j,n2,n,cd,nd,cd,nd,1)
+          if (m2.le.m) call cmws (j,m2eq,meq,cd(1,ist),nd,cd,nd,1)
 
           ! LOADING IN D(WW)
-          IF (NLOAD.NE.0) THEN
-            IR=J-N1
-            EXK=ZARRAY(J)
-            DO I=1,JSNO
-              JSS=JCO(I)
-              CD(JSS,IR)=CD(JSS,IR)-(AX(I)+CX(I))*EXK
-            END DO
-          END IF
-        END IF
-      END DO
-    END IF
+          if (nload.ne.0) then
+            ir=j-n1
+            exk=zarray(j)
+            do i=1,jsno
+              jss=jco(i)
+              cd(jss,ir)=cd(jss,ir)-(ax(i)+cx(i))*exk
+            end do
+          end if
+        end if
+      end do
+    end if
 
     ! FILL B(WW)PRIME
-    IF (NSCON.GT.0) THEN
-      DO I=1,NSCON
-        J=ISCON(I)
+    if (nscon.gt.0) then
+      do i=1,nscon
+        j=iscon(i)
         ! SOURCES ARE NEW OR MODIFIED BASIS FUNCTIONS ON OLD SEGMENTS WHICH
         ! CONNECT TO NEW SEGMENTS
-        CALL TRIO (J)
-        JSS=0
+        call trio (j)
+        jss=0
 
-        DO IX=1,JSNO
-          IR=JCO(IX)
-          IF (IR.GE.N2) THEN
-            IR=IR-N1
-          ELSE
-            IR=ICONX(IR)
-            IF (IR.EQ.0) CYCLE
-            IR=NEQS+IR
-          END IF
-          JSS=JSS+1
-          JCO(JSS)=IR
-          AX(JSS)=AX(IX)
-          BX(JSS)=BX(IX)
-          CX(JSS)=CX(IX)
-        END DO
+        do ix=1,jsno
+          ir=jco(ix)
+          if (ir.ge.n2) then
+            ir=ir-n1
+          else
+            ir=iconx(ir)
+            if (ir.eq.0) cycle
+            ir=neqs+ir
+          end if
+          jss=jss+1
+          jco(jss)=ir
+          ax(jss)=ax(ix)
+          bx(jss)=bx(ix)
+          cx(jss)=cx(ix)
+        end do
 
-        JSNO=JSS
-        IF (I1.LE.IN2) CALL CMWW (J,I1,IN2,CB,NB,CB,NB,0)
-        IF (IM1.LE.IM2) CALL CMWS (J,IM1,IM2,CB(IMX,1),NB,CB,NB,0)
+        jsno=jss
+        if (i1.le.in2) call cmww (j,i1,in2,cb,nb,cb,nb,0)
+        if (im1.le.im2) call cmws (j,im1,im2,cb(imx,1),nb,cb,nb,0)
 
         ! SOURCE IS SINGULAR COMPONENT OF PATCH CURRENT THAT IS PART OF
         ! MODIFIED BASIS FUNCTION FOR OLD SEGMENT THAT CONNECTS TO A NEW
         ! SEGMENT ON END OPPOSITE PATCH.
-        IF (I1.LE.IN2) CALL CMSW (J,I,I1,IN2,CB,CB,0,NB,-1)
+        if (i1.le.in2) call cmsw (j,i,i1,in2,cb,cb,0,nb,-1)
 
-        IF (NLODF.NE.0) THEN
-          JX=J-ISV
-          IF (JX.GE.1.AND.JX.LE.IT) THEN
-            EXK=ZARRAY(J)
-            DO IX=1,JSNO
-              JSS=JCO(IX)
-              CB(JX,JSS)=CB(JX,JSS)-(AX(IX)+CX(IX))*EXK
-            END DO
-          END IF
-        END IF
+        if (nlodf.ne.0) then
+          jx=j-isv
+          if (jx.ge.1.and.jx.le.it) then
+            exk=zarray(j)
+            do ix=1,jsno
+              jss=jco(ix)
+              cb(jx,jss)=cb(jx,jss)-(ax(ix)+cx(ix))*exk
+            end do
+          end if
+        end if
 
         ! SOURCES ARE PORTIONS OF MODIFIED BASIS FUNCTION J ON OLD SEGMENTS
         ! EXCLUDING OLD SEGMENTS THAT DIRECTLY CONNECT TO NEW SEGMENTS.
-        CALL TBF (J,1)
-        JSX=JSNO
-        JSNO=1
-        IR=JCO(1)
-        JCO(1)=NEQS+I
+        call tbf (j,1)
+        jsx=jsno
+        jsno=1
+        ir=jco(1)
+        jco(1)=neqs+i
 
-        DO IX=1,JSX
-          IF (IX.NE.1) THEN
-            IR=JCO(IX)
-            AX(1)=AX(IX)
-            BX(1)=BX(IX)
-            CX(1)=CX(IX)
-          END IF
+        do ix=1,jsx
+          if (ix.ne.1) then
+            ir=jco(ix)
+            ax(1)=ax(ix)
+            bx(1)=bx(ix)
+            cx(1)=cx(ix)
+          end if
 
-          IF (IR.LE.N1) THEN
-            IF (ICONX(IR).EQ.0) THEN
-              IF (I1.LE.IN2) CALL CMWW (IR,I1,IN2,CB,NB,CB,NB,0)
-              IF (IM1.LE.IM2) CALL CMWS (IR,IM1,IM2,CB(IMX,1),NB,CB,NB,0)
+          if (ir.le.n1) then
+            if (iconx(ir).eq.0) then
+              if (i1.le.in2) call cmww (ir,i1,in2,cb,nb,cb,nb,0)
+              if (im1.le.im2) call cmws (ir,im1,im2,cb(imx,1),nb,cb,nb,0)
 
               ! LOADING FOR B(WW)PRIME
-              IF (NLODF.NE.0) THEN
-                JX=IR-ISV
-                IF (JX.GE.1.AND.JX.LE.IT) THEN
-                  EXK=ZARRAY(IR)
-                  JSS=JCO(1)
-                  CB(JX,JSS)=CB(JX,JSS)-(AX(1)+CX(1))*EXK
-                END IF
-              END IF
-            END IF
-          END IF
-        END DO
-      END DO
-    END IF
+              if (nlodf.ne.0) then
+                jx=ir-isv
+                if (jx.ge.1.and.jx.le.it) then
+                  exk=zarray(ir)
+                  jss=jco(1)
+                  cb(jx,jss)=cb(jx,jss)-(ax(1)+cx(1))*exk
+                end if
+              end if
+            end if
+          end if
+        end do
+      end do
+    end if
 
     ! FILL B(SS)PRIME TO SET OLD PATCH BASIS FUNCTIONS TO ZERO FOR
     ! PATCHES THAT CONNECT TO NEW SEGMENTS
-    IF (NPCON.GT.0) THEN
-      JSS=NEQP
-      DO I=1,NPCON
-        IX=IPCON(I)*2+N1-ISV
-        IR=IX-1
-        JSS=JSS+1
-        IF (IR.GT.0.AND.IR.LE.IT) CB(IR,JSS)=(1.,0.)
-        JSS=JSS+1
-        IF (IX.GT.0.AND.IX.LE.IT) CB(IX,JSS)=(1.,0.)
-      END DO
-    END IF
+    if (npcon.gt.0) then
+      jss=neqp
+      do i=1,npcon
+        ix=ipcon(i)*2+n1-isv
+        ir=ix-1
+        jss=jss+1
+        if (ir.gt.0.and.ir.le.it) cb(ir,jss)=(1.,0.)
+        jss=jss+1
+        if (ix.gt.0.and.ix.le.it) cb(ix,jss)=(1.,0.)
+      end do
+    end if
 
     ! FILL B(SW) AND B(SS)
-    IF (M2.LE.M) THEN
-      IF (I1.LE.IN2) CALL CMSW (M2,M,I1,IN2,CB(1,IST),CB,N1,NB,0)
-      IF (IM1.LE.IM2) CALL CMSS (M2,M,IM1,IM2,CB(IMX,IST),NB,0)
-    END IF
+    if (m2.le.m) then
+      if (i1.le.in2) call cmsw (m2,m,i1,in2,cb(1,ist),cb,n1,nb,0)
+      if (im1.le.im2) call cmss (m2,m,im1,im2,cb(imx,ist),nb,0)
+    end if
 
-    IF (ICASX.NE.1) THEN
-      WRITE (14) ((CB(I,J),I=1,IT),J=1,ND)
-    END IF
-  END DO
+    if (icasx.ne.1) then
+      write (14) ((cb(i,j),i=1,it),j=1,nd)
+    end if
+  end do
 
   ! ========================================================================
   ! FILLING B COMPLETE. START ON C AND D
   ! ========================================================================
-  IT=NPBL
-  ISV=-NPBL
+  it=npbl
+  isv=-npbl
 
-  DO IBLK=1,NBBL
-    ISV=ISV+NPBL
-    ISVV=ISV+NC
-    IF (IBLK.EQ.NBBL) IT=NLBL
+  do iblk=1,nbbl
+    isv=isv+npbl
+    isvv=isv+nc
+    if (iblk.eq.nbbl) it=nlbl
 
     ! For ICASX >= 3: Zero out CC and CD for this block
-    IF (ICASX.GE.3) THEN
-      DO J=1,IT
-        DO I=1,NC
-          CC(I,J)=(0.,0.)
-        END DO
-        DO I=1,ND
-          CD(I,J)=(0.,0.)
-        END DO
-      END DO
-    END IF
+    if (icasx.ge.3) then
+      do j=1,it
+        do i=1,nc
+          cc(i,j)=(0.,0.)
+        end do
+        do i=1,nd
+          cd(i,j)=(0.,0.)
+        end do
+      end do
+    end if
 
-    I1=ISVV+1
-    I2=ISVV+IT
-    IN1=I1-M1EQ
-    IN2=I2-M1EQ
-    IF (IN2.GT.N) IN2=N
-    IM1=I1-N
-    IM2=I2-N
-    IF (IM1.LT.M2EQ) IM1=M2EQ
-    IF (IM2.GT.MEQ) IM2=MEQ
-    IMX=1
-    IF (IN1.LE.IN2) IMX=NEQN-I1+2
+    i1=isvv+1
+    i2=isvv+it
+    in1=i1-m1eq
+    in2=i2-m1eq
+    if (in2.gt.n) in2=n
+    im1=i1-n
+    im2=i2-n
+    if (im1.lt.m2eq) im1=m2eq
+    if (im2.gt.meq) im2=meq
+    imx=1
+    if (in1.le.in2) imx=neqn-i1+2
 
     ! SAME AS FIRST LOOP TO FILL D(WW) FOR ICASX GREATER THAN 2
-    IF (ICASX.GE.3.AND.N2.LE.N) THEN
-      DO J=N2,N
-        CALL TRIO (J)
+    if (icasx.ge.3.and.n2.le.n) then
+      do j=n2,n
+        call trio (j)
 
-        DO I=1,JSNO
-          JSS=JCO(I)
-          IF (JSS.GE.N2) THEN
-            JCO(I)=JSS-N1
-          ELSE
-            JCO(I)=NEQS+ICONX(JSS)
-          END IF
-        END DO
+        do i=1,jsno
+          jss=jco(i)
+          if (jss.ge.n2) then
+            jco(i)=jss-n1
+          else
+            jco(i)=neqs+iconx(jss)
+          end if
+        end do
 
-        IF (IN1.LE.IN2) CALL CMWW (J,IN1,IN2,CD,ND,CD,ND,1)
-        IF (IM1.LE.IM2) CALL CMWS (J,IM1,IM2,CD(1,IMX),ND,CD,ND,1)
+        if (in1.le.in2) call cmww (j,in1,in2,cd,nd,cd,nd,1)
+        if (im1.le.im2) call cmws (j,im1,im2,cd(1,imx),nd,cd,nd,1)
 
-        IF (NLOAD.NE.0) THEN
-          IR=J-N1-ISV
-          IF (IR.GE.1.AND.IR.LE.IT) THEN
-            EXK=ZARRAY(J)
-            DO I=1,JSNO
-              JSS=JCO(I)
-              CD(JSS,IR)=CD(JSS,IR)-(AX(I)+CX(I))*EXK
-            END DO
-          END IF
-        END IF
-      END DO
-    END IF
+        if (nload.ne.0) then
+          ir=j-n1-isv
+          if (ir.ge.1.and.ir.le.it) then
+            exk=zarray(j)
+            do i=1,jsno
+              jss=jco(i)
+              cd(jss,ir)=cd(jss,ir)-(ax(i)+cx(i))*exk
+            end do
+          end if
+        end if
+      end do
+    end if
 
     ! FILL D(SW) AND D(SS)
-    IF (M2.LE.M) THEN
-      IF (IN1.LE.IN2) CALL CMSW (M2,M,IN1,IN2,CD(IST,1),CD,N1,ND,1)
-      IF (IM1.LE.IM2) CALL CMSS (M2,M,IM1,IM2,CD(IST,IMX),ND,1)
-    END IF
+    if (m2.le.m) then
+      if (in1.le.in2) call cmsw (m2,m,in1,in2,cd(ist,1),cd,n1,nd,1)
+      if (im1.le.im2) call cmss (m2,m,im1,im2,cd(ist,imx),nd,1)
+    end if
 
     ! FILL C(WW),C(WS), D(WW)PRIME, AND D(WS)PRIME.
-    IF (N1.GE.1) THEN
-      DO J=1,N1
-        CALL TRIO (J)
+    if (n1.ge.1) then
+      do j=1,n1
+        call trio (j)
 
-        IF (NSCON.GT.0) THEN
-          DO IX=1,JSNO
-            JSS=JCO(IX)
-            IF (JSS.GE.N2) THEN
-              JCO(IX)=JSS+M1EQ
-            ELSE
-              IR=ICONX(JSS)
-              IF (IR.NE.0) JCO(IX)=NEQSP+IR
-            END IF
-          END DO
-        END IF
+        if (nscon.gt.0) then
+          do ix=1,jsno
+            jss=jco(ix)
+            if (jss.ge.n2) then
+              jco(ix)=jss+m1eq
+            else
+              ir=iconx(jss)
+              if (ir.ne.0) jco(ix)=neqsp+ir
+            end if
+          end do
+        end if
 
-        IF (IN1.LE.IN2) CALL CMWW (J,IN1,IN2,CC,NC,CD,ND,ITX)
-        IF (IM1.LE.IM2) CALL CMWS (J,IM1,IM2,CC(1,IMX),NC,CD(1,IMX),ND,ITX)
-      END DO
+        if (in1.le.in2) call cmww (j,in1,in2,cc,nc,cd,nd,itx)
+        if (im1.le.im2) call cmws (j,im1,im2,cc(1,imx),nc,cd(1,imx),nd,itx)
+      end do
 
       ! FILL C(WW)PRIME
-      IF (NSCON.GT.0) THEN
-        DO IX=1,NSCON
-          IR=ISCON(IX)
-          JSS=NEQS+IX-ISV
-          IF (JSS.GT.0.AND.JSS.LE.IT) CC(IR,JSS)=(1.,0.)
-        END DO
-      END IF
-    END IF
+      if (nscon.gt.0) then
+        do ix=1,nscon
+          ir=iscon(ix)
+          jss=neqs+ix-isv
+          if (jss.gt.0.and.jss.le.it) cc(ir,jss)=(1.,0.)
+        end do
+      end if
+    end if
 
     ! FILL C(SS)PRIME
-    IF (NPCON.GT.0) THEN
-      JSS=NEQP-ISV
-      DO I=1,NPCON
-        IX=IPCON(I)*2+N1
-        IR=IX-1
-        JSS=JSS+1
-        IF (JSS.GT.0.AND.JSS.LE.IT) CC(IR,JSS)=(1.,0.)
-        JSS=JSS+1
-        IF (JSS.GT.0.AND.JSS.LE.IT) CC(IX,JSS)=(1.,0.)
-      END DO
-    END IF
+    if (npcon.gt.0) then
+      jss=neqp-isv
+      do i=1,npcon
+        ix=ipcon(i)*2+n1
+        ir=ix-1
+        jss=jss+1
+        if (jss.gt.0.and.jss.le.it) cc(ir,jss)=(1.,0.)
+        jss=jss+1
+        if (jss.gt.0.and.jss.le.it) cc(ix,jss)=(1.,0.)
+      end do
+    end if
 
     ! FILL C(SW) AND C(SS)
-    IF (M1.GE.1) THEN
-      IF (IN1.LE.IN2) CALL CMSW (1,M1,IN1,IN2,CC(N2,1),CC,0,NC,1)
-      IF (IM1.LE.IM2) CALL CMSS (1,M1,IM1,IM2,CC(N2,IMX),NC,1)
-    END IF
+    if (m1.ge.1) then
+      if (in1.le.in2) call cmsw (1,m1,in1,in2,cc(n2,1),cc,0,nc,1)
+      if (im1.le.im2) call cmss (1,m1,im1,im2,cc(n2,imx),nc,1)
+    end if
 
-    IF (ICASX.NE.1) THEN
-      WRITE (12) ((CD(J,I),J=1,ND),I=1,IT)
-      WRITE (15) ((CC(J,I),J=1,NC),I=1,IT)
-    END IF
-  END DO
+    if (icasx.ne.1) then
+      write (12) ((cd(j,i),j=1,nd),i=1,it)
+      write (15) ((cc(j,i),j=1,nc),i=1,it)
+    end if
+  end do
 
-  IF(ICASX.EQ.1)RETURN
-  REWIND 12
-  REWIND 14
-  REWIND 15
-  RETURN
-END SUBROUTINE CMNGF
+  if(icasx.eq.1)return
+  rewind 12
+  rewind 14
+  rewind 15
+  return
+end subroutine cmngf

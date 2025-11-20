@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D SOMMERFELD MODULE
-!     Modernized Sommerfeld integral evaluation routines
-!     Contains: EVLUA, GSHANK, SAOA
-!     GOTOs eliminated: 33 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_sommerfeld - Sommerfeld Integration
+! =============================================================================
+! Purpose: Ground wave and Sommerfeld integral evaluations
+! Contains: EVLUA, GSHANK, SAOA
+! GOTOs eliminated: 33
+! =============================================================================
 subroutine evlua(erv, ezv, erh, eph)
 !
 ! evlua controls the integration contour in the complex lambda
@@ -318,7 +318,7 @@ subroutine gshank(start, dela, sum, nans, seed, ibk, bk, delb)
     sum(i) = 0.5d0 * (q1(i, inx) + q2(i, inx))
   end do
 
-24 format(46h **** NO CONVERGENCE IN SUBROUTINE GSHANK ****)
+24 format(46h **** no convergence in subroutine gshank ****)
 25 format(1x, 1p10e12.5)
 end subroutine gshank
 
@@ -408,3 +408,14 @@ subroutine saoa(t, ans)
   ans(5) = com * b0
 
 end subroutine saoa
+
+! -----------------------------------------------------------------------------
+! somset - extracted from nec2dxs_integrated.f
+! -----------------------------------------------------------------------------
+  block data somset
+  implicit real*8(a-h,o-z)
+  complex*16 ar1,ar2,ar3,epscf
+  common /ggrid/ ar1(11,10,4),ar2(17,5,4),ar3(9,8,4),epscf,dxa(3),dya(3),xsa(3),ysa(3),nxa(3),nya(3)
+  data nxa/11,17,9/,nya/10,5,8/,xsa/0.,.2,.2/,ysa/0.,0.,.3490658504/
+  data dxa/.02,.05,.1/,dya/.1745329252,.0872664626,.1745329252/
+  end

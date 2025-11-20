@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D INTEGRATION MODULE
-!     Modernized numerical integration and factorization routines
-!     Contains: HFK, FACTR
-!     GOTOs eliminated: 9 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_integration - Numerical Integration
+! =============================================================================
+! Purpose: Integration routines for kernel evaluations
+! Contains: HFK, FACTR
+! GOTOs eliminated: 9
+! =============================================================================
 subroutine hfk(el1,el2,rhk,zpkx,sgr,sgi)
 !
 ! hfk computes the h field of a uniform current filament by
@@ -128,7 +128,7 @@ subroutine hfk(el1,el2,rhk,zpkx,sgr,sgi)
   sgr=sgr*rhk*0.5d0
   sgi=sgi*rhk*0.5d0
 
-18 format(24h STEP SIZE LIMITED AT Z=,f10.5)
+18 format(24h step size limited at z=,f10.5)
 
 end subroutine hfk
 
@@ -140,7 +140,7 @@ subroutine factr(n,a,ip,ndim)
 ! numerical analysis. comments below refer to comments in ralstons
 ! text. (matrix transposed.)
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 a,d,arj
   dimension a(ndim,ndim), ip(ndim)
@@ -213,6 +213,6 @@ subroutine factr(n,a,ip,ndim)
     end if
   end do
 
-10 format(1h ,6hPIVOT(,i3,2h)=,1p,e16.8)
+10 format(1h ,6hpivot(,i3,2h)=,1p,e16.8)
 
 end subroutine factr

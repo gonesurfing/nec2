@@ -1,162 +1,144 @@
-! ***********************************************************************
-!     NEC2D GEOMETRY PROCESSING MODULE
-!     Modernized geometry and matrix processing routines
-!     Contains: HSFLD, LFACTR, PATCH
-!     GOTOs eliminated: 39 → 0
-! ***********************************************************************
+! =============================================================================
+! nec2d_geomproc - Geometry and Matrix Processing
+! =============================================================================
+! Purpose: H field computation, matrix factorization, patch subdivision
+! Contains: HSFLD, LFACTR, PATCH, SUBPH
+! GOTOs eliminated: 39
+! =============================================================================
+subroutine hsfld (xi,yi,zi,ai)
+  implicit real*8(a-h,o-z)
 
-!==============================================================================
-! HSFLD - H Field Computation with Ground Effects
-!==============================================================================
-! Modernized from nec2dxs_integrated.f (lines 2239-2349)
-! Tier 2 Modernization: Free-form Fortran 90, all GOTOs eliminated
-!
-! Purpose: Computes the H field for constant, sine, and cosine current
-!          on a segment including ground effects.
-!
-! GOTOs eliminated: 10 (labels: 1, 2, 3, 4, 5, 6, 7)
-!
-! Modifications:
-!   - Converted to free-form Fortran 90
-!   - Changed C comments to ! comments
-!   - Eliminated all 10 GOTOs using structured IF/THEN/ELSE
-!   - Converted labeled DO loop to modern DO...END DO
-!   - Maintained numerical equivalence with original code
-!==============================================================================
-SUBROUTINE HSFLD (XI,YI,ZI,AI)
-  IMPLICIT REAL*8(A-H,O-Z)
+  complex*16 exk,eyk,ezk,exs,eys,ezs,exc,eyc,ezc,zrati,zrati2,t1
+  complex*16 hpk,hps,hpc,qx,qy,qz,rrv,rrh,zratx,frati
 
-  COMPLEX*16 EXK,EYK,EZK,EXS,EYS,EZS,EXC,EYC,EZC,ZRATI,ZRATI2,T1
-  COMPLEX*16 HPK,HPS,HPC,QX,QY,QZ,RRV,RRH,ZRATX,FRATI
+  common /dataj/ s,b,xj,yj,zj,cabj,sabj,salpj,exk,eyk,ezk,exs,eys, &
+                 ezs,exc,eyc,ezc,rkh,ind1,indd1,ind2,indd2,iexk,ipgnd
+  common /gnd/zrati,zrati2,frati,t1,t2,cl,ch,scrwl,scrwr,nradl, &
+              ksymp,ifar,iperf
 
-  COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS, &
-                 EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
-  COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL, &
-              KSYMP,IFAR,IPERF
+  data eta/376.73/
 
-  DATA ETA/376.73/
-
-  XIJ=XI-XJ
-  YIJ=YI-YJ
-  RFL=-1.
+  xij=xi-xj
+  yij=yi-yj
+  rfl=-1.
 
   ! Symmetry loop (formerly DO 7)
-  DO IP=1,KSYMP
-    RFL=-RFL
-    SALPR=SALPJ*RFL
-    ZIJ=ZI-RFL*ZJ
-    ZP=XIJ*CABJ+YIJ*SABJ+ZIJ*SALPR
-    RHOX=XIJ-CABJ*ZP
-    RHOY=YIJ-SABJ*ZP
-    RHOZ=ZIJ-SALPR*ZP
-    RH=SQRT(RHOX*RHOX+RHOY*RHOY+RHOZ*RHOZ+AI*AI)
+  do ip=1,ksymp
+    rfl=-rfl
+    salpr=salpj*rfl
+    zij=zi-rfl*zj
+    zp=xij*cabj+yij*sabj+zij*salpr
+    rhox=xij-cabj*zp
+    rhoy=yij-sabj*zp
+    rhoz=zij-salpr*zp
+    rh=sqrt(rhox*rhox+rhoy*rhoy+rhoz*rhoz+ai*ai)
 
     ! Handle zero RH case (formerly GO TO 1 / GO TO 7)
-    IF (RH.LE.1.D-10) THEN
-      EXK=0.
-      EYK=0.
-      EZK=0.
-      EXS=0.
-      EYS=0.
-      EZS=0.
-      EXC=0.
-      EYC=0.
-      EZC=0.
-      CYCLE  ! Skip to next iteration
-    END IF
+    if (rh.le.1.d-10) then
+      exk=0.
+      eyk=0.
+      ezk=0.
+      exs=0.
+      eys=0.
+      ezs=0.
+      exc=0.
+      eyc=0.
+      ezc=0.
+      cycle  ! Skip to next iteration
+    end if
 
     ! Label 1: Normalize and compute field components
-    RHOX=RHOX/RH
-    RHOY=RHOY/RH
-    RHOZ=RHOZ/RH
-    PHX=SABJ*RHOZ-SALPR*RHOY
-    PHY=SALPR*RHOX-CABJ*RHOZ
-    PHZ=CABJ*RHOY-SABJ*RHOX
-    CALL HSFLX (S,RH,ZP,HPK,HPS,HPC)
+    rhox=rhox/rh
+    rhoy=rhoy/rh
+    rhoz=rhoz/rh
+    phx=sabj*rhoz-salpr*rhoy
+    phy=salpr*rhox-cabj*rhoz
+    phz=cabj*rhoy-sabj*rhox
+    call hsflx (s,rh,zp,hpk,hps,hpc)
 
     ! Check iteration number (formerly GO TO 6)
-    IF (IP.NE.2) THEN
+    if (ip.ne.2) then
       ! Label 6: First iteration - set initial field values
-      EXK=HPK*PHX
-      EYK=HPK*PHY
-      EZK=HPK*PHZ
-      EXS=HPS*PHX
-      EYS=HPS*PHY
-      EZS=HPS*PHZ
-      EXC=HPC*PHX
-      EYC=HPC*PHY
-      EZC=HPC*PHZ
-    ELSE
+      exk=hpk*phx
+      eyk=hpk*phy
+      ezk=hpk*phz
+      exs=hps*phx
+      eys=hps*phy
+      ezs=hps*phz
+      exc=hpc*phx
+      eyc=hpc*phy
+      ezc=hpc*phz
+    else
       ! Second iteration - apply ground effects
       ! Check for perfect ground (formerly GO TO 5)
-      IF (IPERF.EQ.1) THEN
+      if (iperf.eq.1) then
         ! Label 5: Perfect ground case
-        EXK=EXK-HPK*PHX
-        EYK=EYK-HPK*PHY
-        EZK=EZK-HPK*PHZ
-        EXS=EXS-HPS*PHX
-        EYS=EYS-HPS*PHY
-        EZS=EZS-HPS*PHZ
-        EXC=EXC-HPC*PHX
-        EYC=EYC-HPC*PHY
-        EZC=EZC-HPC*PHZ
-      ELSE
+        exk=exk-hpk*phx
+        eyk=eyk-hpk*phy
+        ezk=ezk-hpk*phz
+        exs=exs-hps*phx
+        eys=eys-hps*phy
+        ezs=ezs-hps*phz
+        exc=exc-hpc*phx
+        eyc=eyc-hpc*phy
+        ezc=ezc-hpc*phz
+      else
         ! Imperfect ground case
-        ZRATX=ZRATI
-        RMAG=SQRT(ZP*ZP+RH*RH)
-        XYMAG=SQRT(XIJ*XIJ+YIJ*YIJ)
+        zratx=zrati
+        rmag=sqrt(zp*zp+rh*rh)
+        xymag=sqrt(xij*xij+yij*yij)
 
         ! Set parameters for radial wire ground screen (formerly GO TO 2)
-        IF (NRADL.NE.0) THEN
-          XSPEC=(XI*ZJ+ZI*XJ)/(ZI+ZJ)
-          YSPEC=(YI*ZJ+ZI*YJ)/(ZI+ZJ)
-          RHOSPC=SQRT(XSPEC*XSPEC+YSPEC*YSPEC+T2*T2)
-          IF (RHOSPC.LE.SCRWL) THEN
-            RRV=T1*RHOSPC*LOG(RHOSPC/T2)
-            ZRATX=(RRV*ZRATI)/(ETA*ZRATI+RRV)
-          END IF
-        END IF
+        if (nradl.ne.0) then
+          xspec=(xi*zj+zi*xj)/(zi+zj)
+          yspec=(yi*zj+zi*yj)/(zi+zj)
+          rhospc=sqrt(xspec*xspec+yspec*yspec+t2*t2)
+          if (rhospc.le.scrwl) then
+            rrv=t1*rhospc*log(rhospc/t2)
+            zratx=(rrv*zrati)/(eta*zrati+rrv)
+          end if
+        end if
 
         ! Label 2: Calculation of reflection coefficients when ground is specified
         ! (formerly GO TO 3 / GO TO 4)
-        IF (XYMAG.LE.1.D-6) THEN
-          PX=0.
-          PY=0.
-          CTH=1.
-          RRV=(1.,0.)
-        ELSE
+        if (xymag.le.1.d-6) then
+          px=0.
+          py=0.
+          cth=1.
+          rrv=(1.,0.)
+        else
           ! Label 3
-          PX=-YIJ/XYMAG
-          PY=XIJ/XYMAG
-          CTH=ZIJ/RMAG
-          RRV=SQRT(1.-ZRATX*ZRATX*(1.-CTH*CTH))
-        END IF
+          px=-yij/xymag
+          py=xij/xymag
+          cth=zij/rmag
+          rrv=sqrt(1.-zratx*zratx*(1.-cth*cth))
+        end if
 
         ! Label 4: Compute reflection coefficients
-        RRH=ZRATX*CTH
-        RRH=-(RRH-RRV)/(RRH+RRV)
-        RRV=ZRATX*RRV
-        RRV=(CTH-RRV)/(CTH+RRV)
-        QY=(PHX*PX+PHY*PY)*(RRV-RRH)
-        QX=QY*PX+PHX*RRH
-        QY=QY*PY+PHY*RRH
-        QZ=PHZ*RRH
-        EXK=EXK-HPK*QX
-        EYK=EYK-HPK*QY
-        EZK=EZK-HPK*QZ
-        EXS=EXS-HPS*QX
-        EYS=EYS-HPS*QY
-        EZS=EZS-HPS*QZ
-        EXC=EXC-HPC*QX
-        EYC=EYC-HPC*QY
-        EZC=EZC-HPC*QZ
-      END IF
-    END IF
+        rrh=zratx*cth
+        rrh=-(rrh-rrv)/(rrh+rrv)
+        rrv=zratx*rrv
+        rrv=(cth-rrv)/(cth+rrv)
+        qy=(phx*px+phy*py)*(rrv-rrh)
+        qx=qy*px+phx*rrh
+        qy=qy*py+phy*rrh
+        qz=phz*rrh
+        exk=exk-hpk*qx
+        eyk=eyk-hpk*qy
+        ezk=ezk-hpk*qz
+        exs=exs-hps*qx
+        eys=eys-hps*qy
+        ezs=ezs-hps*qz
+        exc=exc-hpc*qx
+        eyc=eyc-hpc*qy
+        ezc=ezc-hpc*qz
+      end if
+    end if
 
-  END DO  ! IP loop (formerly label 7)
+  end do  ! IP loop (formerly label 7)
 
-  RETURN
-END SUBROUTINE HSFLD
+  return
+end subroutine hsfld
 
 !==============================================================================
 ! LFACTR - Gauss-Doolittle LU Factorization
@@ -173,119 +155,119 @@ END SUBROUTINE HSFLD
 !
 ! GOTOs eliminated: 14 (labels 1-16)
 !==============================================================================
-SUBROUTINE LFACTR(A, NROW, IX1, IX2, IP)
-  INCLUDE 'NEC2D3000.INC'
-  IMPLICIT REAL*8(A-H,O-Z)
+subroutine lfactr(a, nrow, ix1, ix2, ip)
+  use nec2d_params
+  implicit real*8(a-h,o-z)
 
-  COMPLEX*16 A, D, AJR
-  INTEGER R, R1, R2, PJ, PR
-  LOGICAL L1, L2, L3
-  COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,ICASX, &
-                  NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  COMMON /SCRATM/ D(2*MAXSEG)
-  DIMENSION A(NROW,1), IP(NROW)
+  complex*16 a, d, ajr
+  integer r, r1, r2, pj, pr
+  logical l1, l2, l3
+  common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat,icasx, &
+                  nbbx,npbx,nlbx,nbbl,npbl,nlbl
+  common /scratm/ d(2*maxseg)
+  dimension a(nrow,1), ip(nrow)
 
-  IFLG = 0
+  iflg = 0
 
   ! Initialize R1, R2, J1, J2
-  L1 = IX1.EQ.1 .AND. IX2.EQ.2
-  L2 = (IX2-1).EQ.IX1
-  L3 = IX2.EQ.NBLSYM
+  l1 = ix1.eq.1 .and. ix2.eq.2
+  l2 = (ix2-1).eq.ix1
+  l3 = ix2.eq.nblsym
 
-  IF (L1) THEN
-    R1 = 1
-    R2 = 2*NPSYM
-    J1 = 1
-    J2 = -1
-  ELSE
-    R1 = NPSYM+1
-    R2 = 2*NPSYM
-    J1 = (IX1-1)*NPSYM+1
-    IF (L2) THEN
-      J2 = J1+NPSYM-2
-    ELSE
-      J2 = J1+NPSYM-1
-    END IF
-  END IF
+  if (l1) then
+    r1 = 1
+    r2 = 2*npsym
+    j1 = 1
+    j2 = -1
+  else
+    r1 = npsym+1
+    r2 = 2*npsym
+    j1 = (ix1-1)*npsym+1
+    if (l2) then
+      j2 = j1+npsym-2
+    else
+      j2 = j1+npsym-1
+    end if
+  end if
 
-  IF (L3) R2 = NPSYM+NLSYM
+  if (l3) r2 = npsym+nlsym
 
-  DO R = R1, R2
+  do r = r1, r2
     ! Step 1
-    DO K = J1, NROW
-      D(K) = A(K,R)
-    END DO
+    do k = j1, nrow
+      d(k) = a(k,r)
+    end do
 
     ! Steps 2 and 3
-    IF (L1 .OR. L2) J2 = J2+1
+    if (l1 .or. l2) j2 = j2+1
 
-    IF (J1 .LE. J2) THEN
-      IXJ = 0
-      DO J = J1, J2
-        IXJ = IXJ+1
-        PJ = IP(J)
-        AJR = D(PJ)
-        A(J,R) = AJR
-        D(PJ) = D(J)
-        JP1 = J+1
-        DO I = JP1, NROW
-          D(I) = D(I) - A(I,IXJ)*AJR
-        END DO
-      END DO
-    END IF
+    if (j1 .le. j2) then
+      ixj = 0
+      do j = j1, j2
+        ixj = ixj+1
+        pj = ip(j)
+        ajr = d(pj)
+        a(j,r) = ajr
+        d(pj) = d(j)
+        jp1 = j+1
+        do i = jp1, nrow
+          d(i) = d(i) - a(i,ixj)*ajr
+        end do
+      end do
+    end if
 
     ! Step 4
-    J2P1 = J2+1
+    j2p1 = j2+1
 
-    IF (L1 .OR. L2) THEN
+    if (l1 .or. l2) then
       ! Pivot selection
-      DMAX = DREAL(D(J2P1)*DCONJG(D(J2P1)))
-      IP(J2P1) = J2P1
-      J2P2 = J2+2
+      dmax = dreal(d(j2p1)*dconjg(d(j2p1)))
+      ip(j2p1) = j2p1
+      j2p2 = j2+2
 
-      IF (J2P2 .LE. NROW) THEN
-        DO I = J2P2, NROW
-          ELMAG = DREAL(D(I)*DCONJG(D(I)))
-          IF (ELMAG .GE. DMAX) THEN
-            DMAX = ELMAG
-            IP(J2P1) = I
-          END IF
-        END DO
-      END IF
+      if (j2p2 .le. nrow) then
+        do i = j2p2, nrow
+          elmag = dreal(d(i)*dconjg(d(i)))
+          if (elmag .ge. dmax) then
+            dmax = elmag
+            ip(j2p1) = i
+          end if
+        end do
+      end if
 
-      IF (DMAX .LT. 1.D-10) IFLG = 1
-      PR = IP(J2P1)
-      A(J2P1,R) = D(PR)
-      D(PR) = D(J2P1)
+      if (dmax .lt. 1.d-10) iflg = 1
+      pr = ip(j2p1)
+      a(j2p1,r) = d(pr)
+      d(pr) = d(j2p1)
 
       ! Step 5
-      IF (J2P2 .LE. NROW) THEN
-        AJR = 1./A(J2P1,R)
-        DO I = J2P2, NROW
-          A(I,R) = D(I)*AJR
-        END DO
-      END IF
+      if (j2p2 .le. nrow) then
+        ajr = 1./a(j2p1,r)
+        do i = j2p2, nrow
+          a(i,r) = d(i)*ajr
+        end do
+      end if
 
-      IF (IFLG .NE. 0) THEN
-        WRITE(*,17) J2, DMAX
-        IFLG = 0
-      END IF
+      if (iflg .ne. 0) then
+        write(*,17) j2, dmax
+        iflg = 0
+      end if
 
-    ELSE
+    else
       ! Non-pivot path
-      IF (NROW .GE. J2P1) THEN
-        DO I = J2P1, NROW
-          A(I,R) = D(I)
-        END DO
-      END IF
-    END IF
+      if (nrow .ge. j2p1) then
+        do i = j2p1, nrow
+          a(i,r) = d(i)
+        end do
+      end if
+    end if
 
-  END DO
+  end do
 
-  RETURN
+  return
 
-17 FORMAT (1H ,6HPIVOT(,I3,2H)=,1P,E16.8)
-END SUBROUTINE LFACTR
+17 format (1h ,6hpivot(,i3,2h)=,1p,e16.8)
+end subroutine lfactr
 
 !==============================================================================
 ! PATCH - Patch Geometry Generation
@@ -307,179 +289,179 @@ END SUBROUTINE LFACTR
 !   - Eliminated singularity handling jumps
 !   - Replaced labeled DO loops with modern DO...END DO
 !==============================================================================
-SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
+subroutine patch (nx,ny,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4)
 !
 ! DOUBLE PRECISION 6/4/85
 !
-  INCLUDE 'NEC2D3000.INC'
-  IMPLICIT REAL*8(A-H,O-Z)
+  use nec2d_params
+  implicit real*8(a-h,o-z)
 !
 ! PATCH GENERATES AND MODIFIES PATCH GEOMETRY DATA
-  COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
-       ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG), &
-       ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-  COMMON /ANGL/ SALP(MAXSEG)
-  DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
-  EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON2), &
-       (T2Z,ITAG)
+  common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &
+       alp(maxseg),bet(maxseg),wlam,icon1(2*maxseg),icon2(2*maxseg), &
+       itag(2*maxseg),iconx(maxseg),ld,n1,n2,n,np,m1,m2,m,mp,ipsym
+  common /angl/ salp(maxseg)
+  dimension t1x(1), t1y(1), t1z(1), t2x(1), t2y(1), t2z(1)
+  equivalence (t1x,si), (t1y,alp), (t1z,bet), (t2x,icon1), (t2y,icon2), &
+       (t2z,itag)
 
 ! NEW PATCHES.  FOR NX=0, NY=1,2,3,4 PATCH IS (RESPECTIVELY)
 ! ARBITRARY, RECTAGULAR, TRIANGULAR, OR QUADRILATERAL.
 ! FOR NX AND NY .GT. 0 A RECTANGULAR SURFACE IS PRODUCED WITH
 ! NX BY NY RECTANGULAR PATCHES.
 
-  M=M+1
-  MI=LD+1-M
-  NTP=NY
-  IF (NX.GT.0) NTP=2
+  m=m+1
+  mi=ld+1-m
+  ntp=ny
+  if (nx.gt.0) ntp=2
 
-  IF (NTP.LE.1) THEN
+  if (ntp.le.1) then
     ! Arbitrary patch (NTP=1)
-    X(MI)=X1
-    Y(MI)=Y1
-    Z(MI)=Z1
-    BI(MI)=Z2
-    ZNV=COS(X2)
-    XNV=ZNV*COS(Y2)
-    YNV=ZNV*SIN(Y2)
-    ZNV=SIN(X2)
-    XA=SQRT(XNV*XNV+YNV*YNV)
+    x(mi)=x1
+    y(mi)=y1
+    z(mi)=z1
+    bi(mi)=z2
+    znv=cos(x2)
+    xnv=znv*cos(y2)
+    ynv=znv*sin(y2)
+    znv=sin(x2)
+    xa=sqrt(xnv*xnv+ynv*ynv)
 
-    IF (XA.LT.1.D-6) THEN
+    if (xa.lt.1.d-6) then
       ! Singularity case - normal nearly vertical
-      T1X(MI)=1.
-      T1Y(MI)=0.
-      T1Z(MI)=0.
-    ELSE
+      t1x(mi)=1.
+      t1y(mi)=0.
+      t1z(mi)=0.
+    else
       ! Normal case - compute tangent perpendicular to normal
-      T1X(MI)=-YNV/XA
-      T1Y(MI)=XNV/XA
-      T1Z(MI)=0.
-    END IF
+      t1x(mi)=-ynv/xa
+      t1y(mi)=xnv/xa
+      t1z(mi)=0.
+    end if
 
-  ELSE
+  else
     ! Non-arbitrary patches (NTP=2,3,4)
-    S1X=X2-X1
-    S1Y=Y2-Y1
-    S1Z=Z2-Z1
-    S2X=X3-X2
-    S2Y=Y3-Y2
-    S2Z=Z3-Z2
+    s1x=x2-x1
+    s1y=y2-y1
+    s1z=z2-z1
+    s2x=x3-x2
+    s2y=y3-y2
+    s2z=z3-z2
 
-    IF (NX.NE.0) THEN
+    if (nx.ne.0) then
       ! For rectangular surface generation, divide sides by NX and NY
-      S1X=S1X/NX
-      S1Y=S1Y/NX
-      S1Z=S1Z/NX
-      S2X=S2X/NY
-      S2Y=S2Y/NY
-      S2Z=S2Z/NY
-    END IF
+      s1x=s1x/nx
+      s1y=s1y/nx
+      s1z=s1z/nx
+      s2x=s2x/ny
+      s2y=s2y/ny
+      s2z=s2z/ny
+    end if
 
     ! Compute normal vector from cross product
-    XNV=S1Y*S2Z-S1Z*S2Y
-    YNV=S1Z*S2X-S1X*S2Z
-    ZNV=S1X*S2Y-S1Y*S2X
-    XA=SQRT(XNV*XNV+YNV*YNV+ZNV*ZNV)
-    XNV=XNV/XA
-    YNV=YNV/XA
-    ZNV=ZNV/XA
+    xnv=s1y*s2z-s1z*s2y
+    ynv=s1z*s2x-s1x*s2z
+    znv=s1x*s2y-s1y*s2x
+    xa=sqrt(xnv*xnv+ynv*ynv+znv*znv)
+    xnv=xnv/xa
+    ynv=ynv/xa
+    znv=znv/xa
 
     ! Compute first tangent vector
-    XST=SQRT(S1X*S1X+S1Y*S1Y+S1Z*S1Z)
-    T1X(MI)=S1X/XST
-    T1Y(MI)=S1Y/XST
-    T1Z(MI)=S1Z/XST
+    xst=sqrt(s1x*s1x+s1y*s1y+s1z*s1z)
+    t1x(mi)=s1x/xst
+    t1y(mi)=s1y/xst
+    t1z(mi)=s1z/xst
 
-    IF (NTP.LE.2) THEN
+    if (ntp.le.2) then
       ! Rectangular patch (NTP=2)
-      X(MI)=X1+.5*(S1X+S2X)
-      Y(MI)=Y1+.5*(S1Y+S2Y)
-      Z(MI)=Z1+.5*(S1Z+S2Z)
-      BI(MI)=XA
+      x(mi)=x1+.5*(s1x+s2x)
+      y(mi)=y1+.5*(s1y+s2y)
+      z(mi)=z1+.5*(s1z+s2z)
+      bi(mi)=xa
 
-    ELSE IF (NTP.EQ.3) THEN
+    else if (ntp.eq.3) then
       ! Triangular patch (NTP=3)
-      X(MI)=(X1+X2+X3)/3.
-      Y(MI)=(Y1+Y2+Y3)/3.
-      Z(MI)=(Z1+Z2+Z3)/3.
-      BI(MI)=.5*XA
+      x(mi)=(x1+x2+x3)/3.
+      y(mi)=(y1+y2+y3)/3.
+      z(mi)=(z1+z2+z3)/3.
+      bi(mi)=.5*xa
 
-    ELSE
+    else
       ! Quadrilateral patch (NTP=4)
-      S1X=X3-X1
-      S1Y=Y3-Y1
-      S1Z=Z3-Z1
-      S2X=X4-X1
-      S2Y=Y4-Y1
-      S2Z=Z4-Z1
-      XN2=S1Y*S2Z-S1Z*S2Y
-      YN2=S1Z*S2X-S1X*S2Z
-      ZN2=S1X*S2Y-S1Y*S2X
-      XST=SQRT(XN2*XN2+YN2*YN2+ZN2*ZN2)
-      SALPN=1./(3.*(XA+XST))
-      X(MI)=(XA*(X1+X2+X3)+XST*(X1+X3+X4))*SALPN
-      Y(MI)=(XA*(Y1+Y2+Y3)+XST*(Y1+Y3+Y4))*SALPN
-      Z(MI)=(XA*(Z1+Z2+Z3)+XST*(Z1+Z3+Z4))*SALPN
-      BI(MI)=.5*(XA+XST)
-      S1X=(XNV*XN2+YNV*YN2+ZNV*ZN2)/XST
-      IF (S1X.LE.0.9998) THEN
-        WRITE(*,14)
-        STOP
-      END IF
-    END IF
-  END IF
+      s1x=x3-x1
+      s1y=y3-y1
+      s1z=z3-z1
+      s2x=x4-x1
+      s2y=y4-y1
+      s2z=z4-z1
+      xn2=s1y*s2z-s1z*s2y
+      yn2=s1z*s2x-s1x*s2z
+      zn2=s1x*s2y-s1y*s2x
+      xst=sqrt(xn2*xn2+yn2*yn2+zn2*zn2)
+      salpn=1./(3.*(xa+xst))
+      x(mi)=(xa*(x1+x2+x3)+xst*(x1+x3+x4))*salpn
+      y(mi)=(xa*(y1+y2+y3)+xst*(y1+y3+y4))*salpn
+      z(mi)=(xa*(z1+z2+z3)+xst*(z1+z3+z4))*salpn
+      bi(mi)=.5*(xa+xst)
+      s1x=(xnv*xn2+ynv*yn2+znv*zn2)/xst
+      if (s1x.le.0.9998) then
+        write(*,14)
+        stop
+      end if
+    end if
+  end if
 
   ! Compute second tangent vector (common to all patch types)
-  T2X(MI)=YNV*T1Z(MI)-ZNV*T1Y(MI)
-  T2Y(MI)=ZNV*T1X(MI)-XNV*T1Z(MI)
-  T2Z(MI)=XNV*T1Y(MI)-YNV*T1X(MI)
-  SALP(MI)=1.
+  t2x(mi)=ynv*t1z(mi)-znv*t1y(mi)
+  t2y(mi)=znv*t1x(mi)-xnv*t1z(mi)
+  t2z(mi)=xnv*t1y(mi)-ynv*t1x(mi)
+  salp(mi)=1.
 
   ! Generate NX×NY rectangular surface if NX>0
-  IF (NX.GT.0) THEN
-    M=M+NX*NY-1
-    XN2=X(MI)-S1X-S2X
-    YN2=Y(MI)-S1Y-S2Y
-    ZN2=Z(MI)-S1Z-S2Z
-    XS=T1X(MI)
-    YS=T1Y(MI)
-    ZS=T1Z(MI)
-    XT=T2X(MI)
-    YT=T2Y(MI)
-    ZT=T2Z(MI)
-    MI=MI+1
+  if (nx.gt.0) then
+    m=m+nx*ny-1
+    xn2=x(mi)-s1x-s2x
+    yn2=y(mi)-s1y-s2y
+    zn2=z(mi)-s1z-s2z
+    xs=t1x(mi)
+    ys=t1y(mi)
+    zs=t1z(mi)
+    xt=t2x(mi)
+    yt=t2y(mi)
+    zt=t2z(mi)
+    mi=mi+1
 
-    DO IY=1,NY
-      XN2=XN2+S2X
-      YN2=YN2+S2Y
-      ZN2=ZN2+S2Z
-      DO IX=1,NX
-        XST=IX
-        MI=MI-1
-        X(MI)=XN2+XST*S1X
-        Y(MI)=YN2+XST*S1Y
-        Z(MI)=ZN2+XST*S1Z
-        BI(MI)=XA
-        SALP(MI)=1.
-        T1X(MI)=XS
-        T1Y(MI)=YS
-        T1Z(MI)=ZS
-        T2X(MI)=XT
-        T2Y(MI)=YT
-        T2Z(MI)=ZT
-      END DO
-    END DO
-  END IF
+    do iy=1,ny
+      xn2=xn2+s2x
+      yn2=yn2+s2y
+      zn2=zn2+s2z
+      do ix=1,nx
+        xst=ix
+        mi=mi-1
+        x(mi)=xn2+xst*s1x
+        y(mi)=yn2+xst*s1y
+        z(mi)=zn2+xst*s1z
+        bi(mi)=xa
+        salp(mi)=1.
+        t1x(mi)=xs
+        t1y(mi)=ys
+        t1z(mi)=zs
+        t2x(mi)=xt
+        t2y(mi)=yt
+        t2z(mi)=zt
+      end do
+    end do
+  end if
 
-  IPSYM=0
-  NP=N
-  MP=M
-  RETURN
+  ipsym=0
+  np=n
+  mp=m
+  return
 
-14 FORMAT ('ERROR -- CORNERS OF QUADRILATERAL PATCH DO NOT LIE IN A PLANE')
+14 format ('ERROR -- CORNERS OF QUADRILATERAL PATCH DO NOT LIE IN A PLANE')
 
-END SUBROUTINE PATCH
+end subroutine patch
 
 !==============================================================================
 ! SUBPH - Sub-Patch Handler
@@ -487,86 +469,86 @@ END SUBROUTINE PATCH
 ! Modernized from nec2dxs.f (ENTRY point in PATCH, lines 7517-7576)
 ! Purpose: Subdivides a patch or creates sub-patches
 !==============================================================================
-SUBROUTINE SUBPH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
-  INCLUDE 'NEC2D3000.INC'
-  IMPLICIT REAL*8(A-H,O-Z)
+subroutine subph (nx,ny,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4)
+  use nec2d_params
+  implicit real*8(a-h,o-z)
 
-  COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
-       ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG), &
-       ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-  COMMON /ANGL/ SALP(MAXSEG)
-  DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
-  EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON2), &
-       (T2Z,ITAG)
+  common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &
+       alp(maxseg),bet(maxseg),wlam,icon1(2*maxseg),icon2(2*maxseg), &
+       itag(2*maxseg),iconx(maxseg),ld,n1,n2,n,np,m1,m2,m,mp,ipsym
+  common /angl/ salp(maxseg)
+  dimension t1x(1), t1y(1), t1z(1), t2x(1), t2y(1), t2z(1)
+  equivalence (t1x,si), (t1y,alp), (t1z,bet), (t2x,icon1), (t2y,icon2), &
+       (t2z,itag)
 
   ! Shift patches if needed (formerly GO TO 10)
-  IF (NY.LE.0 .AND. NX.NE.M) THEN
-    NXP=NX+1
-    IX=LD-M
-    DO IY=NXP,M
-      IX=IX+1
-      NYP=IX-3
-      X(NYP)=X(IX)
-      Y(NYP)=Y(IX)
-      Z(NYP)=Z(IX)
-      BI(NYP)=BI(IX)
-      SALP(NYP)=SALP(IX)
-      T1X(NYP)=T1X(IX)
-      T1Y(NYP)=T1Y(IX)
-      T1Z(NYP)=T1Z(IX)
-      T2X(NYP)=T2X(IX)
-      T2Y(NYP)=T2Y(IX)
-      T2Z(NYP)=T2Z(IX)
-    END DO
-  END IF
+  if (ny.le.0 .and. nx.ne.m) then
+    nxp=nx+1
+    ix=ld-m
+    do iy=nxp,m
+      ix=ix+1
+      nyp=ix-3
+      x(nyp)=x(ix)
+      y(nyp)=y(ix)
+      z(nyp)=z(ix)
+      bi(nyp)=bi(ix)
+      salp(nyp)=salp(ix)
+      t1x(nyp)=t1x(ix)
+      t1y(nyp)=t1y(ix)
+      t1z(nyp)=t1z(ix)
+      t2x(nyp)=t2x(ix)
+      t2y(nyp)=t2y(ix)
+      t2z(nyp)=t2z(ix)
+    end do
+  end if
 
   ! Label 10: Setup for subdividing patch
-  MI=LD+1-NX
-  XS=X(MI)
-  YS=Y(MI)
-  ZS=Z(MI)
-  XA=BI(MI)*.25
-  XST=SQRT(XA)*.5
-  S1X=T1X(MI)
-  S1Y=T1Y(MI)
-  S1Z=T1Z(MI)
-  S2X=T2X(MI)
-  S2Y=T2Y(MI)
-  S2Z=T2Z(MI)
-  SALN=SALP(MI)
-  XT=XST
-  YT=XST
+  mi=ld+1-nx
+  xs=x(mi)
+  ys=y(mi)
+  zs=z(mi)
+  xa=bi(mi)*.25
+  xst=sqrt(xa)*.5
+  s1x=t1x(mi)
+  s1y=t1y(mi)
+  s1z=t1z(mi)
+  s2x=t2x(mi)
+  s2y=t2y(mi)
+  s2z=t2z(mi)
+  saln=salp(mi)
+  xt=xst
+  yt=xst
 
   ! Determine starting index (formerly GO TO 11/12)
-  IF (NY.GT.0) THEN
-    M=M+1
-    MP=MP+1
-    MIA=LD+1-M
-  ELSE
-    MIA=MI
-  END IF
+  if (ny.gt.0) then
+    m=m+1
+    mp=mp+1
+    mia=ld+1-m
+  else
+    mia=mi
+  end if
 
   ! Create 4 sub-patches (formerly DO 13)
-  DO IX=1,4
-    X(MIA)=XS+XT*S1X+YT*S2X
-    Y(MIA)=YS+XT*S1Y+YT*S2Y
-    Z(MIA)=ZS+XT*S1Z+YT*S2Z
-    BI(MIA)=XA
-    T1X(MIA)=S1X
-    T1Y(MIA)=S1Y
-    T1Z(MIA)=S1Z
-    T2X(MIA)=S2X
-    T2Y(MIA)=S2Y
-    T2Z(MIA)=S2Z
-    SALP(MIA)=SALN
-    IF (IX.EQ.2) YT=-YT
-    IF (IX.EQ.1.OR.IX.EQ.3) XT=-XT
-    MIA=MIA-1
-  END DO
+  do ix=1,4
+    x(mia)=xs+xt*s1x+yt*s2x
+    y(mia)=ys+xt*s1y+yt*s2y
+    z(mia)=zs+xt*s1z+yt*s2z
+    bi(mia)=xa
+    t1x(mia)=s1x
+    t1y(mia)=s1y
+    t1z(mia)=s1z
+    t2x(mia)=s2x
+    t2y(mia)=s2y
+    t2z(mia)=s2z
+    salp(mia)=saln
+    if (ix.eq.2) yt=-yt
+    if (ix.eq.1.or.ix.eq.3) xt=-xt
+    mia=mia-1
+  end do
 
-  M=M+3
-  IF (NX.LE.MP) MP=MP+3
-  IF (NY.GT.0) Z(MI)=10000.
+  m=m+3
+  if (nx.le.mp) mp=mp+3
+  if (ny.gt.0) z(mi)=10000.
 
-  RETURN
-END SUBROUTINE SUBPH
+  return
+end subroutine subph

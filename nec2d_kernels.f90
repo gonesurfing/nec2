@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D KERNELS MODULE
-!     Modernized electromagnetic kernel and solver routines
-!     Contains: EKSC, GF, SOLVE
-!     GOTOs eliminated: 4 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_kernels - Kernel Functions
+! =============================================================================
+! Purpose: Thin-wire kernel approximations
+! Contains: EKSC, GF, SOLVE
+! GOTOs eliminated: 4
+! =============================================================================
 subroutine eksc(s,z,rh,xk,ij,ezs,ers,ezc,erc,ezk,erk)
 !
 ! eksc computes e field of sine, cosine, and constant current filaments
@@ -90,7 +90,7 @@ subroutine solve(n,a,ip,b,ndim)
 ! in a. the rhs vector b is input and the solution is returned through
 ! vector b.
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 a,b,y,sum
   integer pi

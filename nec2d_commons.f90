@@ -5,131 +5,131 @@
 !     Preserves original data structures for compatibility
 !***********************************************************************
 
-MODULE nec2d_commons
-  USE nec2d_params
-  IMPLICIT NONE
+module nec2d_commons
+  use nec2d_params
+  implicit none
 
   ! Common /DATA/ - Geometry data
-  REAL*8 :: X(MAXSEG), Y(MAXSEG), Z(MAXSEG)
-  REAL*8 :: SI(MAXSEG), BI(MAXSEG)
-  REAL*8 :: ALP(MAXSEG), BET(MAXSEG)
-  REAL*8 :: WLAM
-  INTEGER :: ICON1(2*MAXSEG), ICON2(2*MAXSEG)
-  INTEGER :: ITAG(2*MAXSEG), ICONX(MAXSEG)
-  INTEGER :: LD, N1, N2, N, NP, M1, M2, M, MP, IPSYM
+  real*8 :: x(maxseg), y(maxseg), z(maxseg)
+  real*8 :: si(maxseg), bi(maxseg)
+  real*8 :: alp(maxseg), bet(maxseg)
+  real*8 :: wlam
+  integer :: icon1(2*maxseg), icon2(2*maxseg)
+  integer :: itag(2*maxseg), iconx(maxseg)
+  integer :: ld, n1, n2, n, np, m1, m2, m, mp, ipsym
 
   ! Common /CMB/ - Complex matrix
-  COMPLEX*16 :: CM(IRESRV)
+  complex*16 :: cm(iresrv)
 
   ! Common /MATPAR/ - Matrix parameters
-  INTEGER :: ICASE, NBLOKS, NPBLK, NLAST, NBLSYM, NPSYM, NLSYM, IMAT
-  INTEGER :: ICASX, NBBX, NPBX, NLBX, NBBL, NPBL, NLBL
+  integer :: icase, nbloks, npblk, nlast, nblsym, npsym, nlsym, imat
+  integer :: icasx, nbbx, npbx, nlbx, nbbl, npbl, nlbl
 
   ! Common /SAVE/ - Save parameters
-  REAL*8 :: EPSR, SIG, SCRWLT, SCRWRT, FMHZ
-  INTEGER :: IP(2*MAXSEG), KCOM
+  real*8 :: epsr, sig, scrwlt, scrwrt, fmhz
+  integer :: ip(2*maxseg), kcom
 
   ! Common /CSAVE/ - Character save
-  REAL*8 :: COM(19,5)
+  real*8 :: com(19,5)
 
   ! Common /CRNT/ - Current coefficients
-  REAL*8 :: AIR(MAXSEG), AII(MAXSEG)
-  REAL*8 :: BIR(MAXSEG), BII(MAXSEG)
-  REAL*8 :: CIR(MAXSEG), CII(MAXSEG)
-  COMPLEX*16 :: CUR(3*MAXSEG)
+  real*8 :: air(maxseg), aii(maxseg)
+  real*8 :: bir(maxseg), bii(maxseg)
+  real*8 :: cir(maxseg), cii(maxseg)
+  complex*16 :: cur(3*maxseg)
 
   ! Common /GND/ - Ground parameters
-  COMPLEX*16 :: ZRATI, ZRATI2, FRATI, T1, T2
-  REAL*8 :: CL, CH, SCRWL, SCRWR
-  INTEGER :: NRADL, KSYMP, IFAR, IPERF
+  complex*16 :: zrati, zrati2, frati, t1, t2
+  real*8 :: cl, ch, scrwl, scrwr
+  integer :: nradl, ksymp, ifar, iperf
 
   ! Common /ZLOAD/ - Load impedances
-  COMPLEX*16 :: ZARRAY(MAXSEG)
-  INTEGER :: NLOAD, NLODF
+  complex*16 :: zarray(maxseg)
+  integer :: nload, nlodf
 
   ! Common /YPARM/ - Y-parameters
-  COMPLEX*16 :: Y11A(5), Y12A(20)
-  INTEGER :: NCOUP, ICOUP, NCTAG(5), NCSEG(5)
+  complex*16 :: y11a(5), y12a(20)
+  integer :: ncoup, icoup, nctag(5), ncseg(5)
 
   ! Common /SEGJ/ - Segment junction data
-  REAL*8 :: AX(JMAX), BX(JMAX), CX(JMAX)
-  INTEGER :: JCO(JMAX), JSNO
-  INTEGER :: ISCON(50), NSCON
-  INTEGER :: IPCON(10), NPCON
+  real*8 :: ax(jmax), bx(jmax), cx(jmax)
+  integer :: jco(jmax), jsno
+  integer :: iscon(50), nscon
+  integer :: ipcon(10), npcon
 
   ! Common /VSORC/ - Voltage sources
-  COMPLEX*16 :: VQD(NSMAX), VSANT(NSMAX), VQDS(NSMAX)
-  INTEGER :: IVQD(NSMAX), ISANT(NSMAX), IQDS(NSMAX)
-  INTEGER :: NVQD, NSANT, NQDS
+  complex*16 :: vqd(nsmax), vsant(nsmax), vqds(nsmax)
+  integer :: ivqd(nsmax), isant(nsmax), iqds(nsmax)
+  integer :: nvqd, nsant, nqds
 
   ! Common /NETCX/ - Network connections
-  COMPLEX*16 :: ZPED
-  REAL*8 :: PIN, PNLS
-  REAL*8 :: X11R(NETMX), X11I(NETMX)
-  REAL*8 :: X12R(NETMX), X12I(NETMX)
-  REAL*8 :: X22R(NETMX), X22I(NETMX)
-  INTEGER :: NTYP(NETMX), ISEG1(NETMX), ISEG2(NETMX)
-  INTEGER :: NEQ, NPEQ, NEQ2, NONET, NTSOL, NPRINT, MASYM
+  complex*16 :: zped
+  real*8 :: pin, pnls
+  real*8 :: x11r(netmx), x11i(netmx)
+  real*8 :: x12r(netmx), x12i(netmx)
+  real*8 :: x22r(netmx), x22i(netmx)
+  integer :: ntyp(netmx), iseg1(netmx), iseg2(netmx)
+  integer :: neq, npeq, neq2, nonet, ntsol, nprint, masym
 
   ! Common /FPAT/ - Far field pattern
-  REAL*8 :: THETS, PHIS, DTH, DPH, RFLD, GNOR
-  REAL*8 :: CLT, CHT, EPSR2, SIG2
-  REAL*8 :: XPR6, PINR, PNLR, PLOSS
-  REAL*8 :: XNR, YNR, ZNR, DXNR, DYNR, DZNR
-  INTEGER :: NTH, NPH, IPD, IAVP, INOR, IAX, IXTYP, NEAR, NFEH
-  INTEGER :: NRX, NRY, NRZ
+  real*8 :: thets, phis, dth, dph, rfld, gnor
+  real*8 :: clt, cht, epsr2, sig2
+  real*8 :: xpr6, pinr, pnlr, ploss
+  real*8 :: xnr, ynr, znr, dxnr, dynr, dznr
+  integer :: nth, nph, ipd, iavp, inor, iax, ixtyp, near, nfeh
+  integer :: nrx, nry, nrz
 
   ! Common /GGRID/ - Ground grid
-  COMPLEX*16 :: AR1(11,10,4), AR2(17,5,4), AR3(9,8,4), EPSCF
-  REAL*8 :: DXA(3), DYA(3), XSA(3), YSA(3)
-  INTEGER :: NXA(3), NYA(3)
+  complex*16 :: ar1(11,10,4), ar2(17,5,4), ar3(9,8,4), epscf
+  real*8 :: dxa(3), dya(3), xsa(3), ysa(3)
+  integer :: nxa(3), nya(3)
 
   ! Common /GWAV/ - Ground wave
-  COMPLEX*16 :: U, U2, XX1, XX2
-  REAL*8 :: R1, R2, ZMH, ZPH
+  complex*16 :: u, u2, xx1, xx2
+  real*8 :: r1, r2, zmh, zph
 
   ! Common /PLOT/ - Plot flags
-  INTEGER :: IPLP1, IPLP2, IPLP3, IPLP4
+  integer :: iplp1, iplp2, iplp3, iplp4
 
   ! Common /ANGL/ - Angle data (used in some subroutines)
-  REAL*8 :: SALP(MAXSEG)
+  real*8 :: salp(maxseg)
 
   ! Common /DATAJ/ - Data for junction calculations
-  REAL*8 :: S_J, B_J, XJ, YJ, ZJ, CABJ, SABJ, SALPJ
-  COMPLEX*16 :: EXK, EYK, EZK, EXS, EYS, EZS, EXC, EYC, EZC
-  REAL*8 :: RKH
-  INTEGER :: IND1, INDD1, IND2, INDD2, IEXK, IPGND
+  real*8 :: s_j, b_j, xj, yj, zj, cabj, sabj, salpj
+  complex*16 :: exk, eyk, ezk, exs, eys, ezs, exc, eyc, ezc
+  real*8 :: rkh
+  integer :: ind1, indd1, ind2, indd2, iexk, ipgnd
 
   ! Common /EVLCOM/ - Evaluation common (Sommerfeld integration)
-  COMPLEX*16 :: CKSM, CT1, CT2, CT3, CK1, CK1SQ, CK2, CK2SQ
-  REAL*8 :: TKMAG, TSMAG, CK1R, ZPH_EV, RHO_EV
-  INTEGER :: JH
+  complex*16 :: cksm, ct1, ct2, ct3, ck1, ck1sq, ck2, ck2sq
+  real*8 :: tkmag, tsmag, ck1r, zph_ev, rho_ev
+  integer :: jh
 
   ! Common /INCOM/ - Input common (field calculations)
-  REAL*8 :: XO, YO, ZO, SN, XSN, YSN
-  INTEGER :: ISNOR
+  real*8 :: xo, yo, zo, sn, xsn, ysn
+  integer :: isnor
 
   ! Common /CNTOUR/ - Contour integration
-  REAL*8 :: A_CNTOUR, B_CNTOUR
+  real*8 :: a_cntour, b_cntour
 
   ! Common /SMAT/ - Small matrix for NGF
-  COMPLEX*16 :: SSX(16,16)
+  complex*16 :: ssx(16,16)
 
   ! Common /SCRATM/ - Scratch memory (reused by different routines)
   ! Note: This is declared as union/overlay in different subroutines
   ! Maximum size needed
-  REAL*8 :: SCRATM_REAL(4*MAXSEG)
-  COMPLEX*16 :: SCRATM_CPLX(2*MAXSEG)
-  EQUIVALENCE (SCRATM_REAL, SCRATM_CPLX)
+  real*8 :: scratm_real(4*maxseg)
+  complex*16 :: scratm_cplx(2*maxseg)
+  equivalence (scratm_real, scratm_cplx)
 
   ! Common /TMI/ - TM mode integration
-  REAL*8 :: ZPK_TMI, RKB2
-  INTEGER :: IJX_TMI
+  real*8 :: zpk_tmi, rkb2
+  integer :: ijx_tmi
 
   ! Common /TMH/ - H field integration
-  REAL*8 :: ZPK_TMH, RHKS
+  real*8 :: zpk_tmh, rhks
 
   ! Common /NGFNAM/ - NGF filename
-  CHARACTER*80 :: NGFNAM
+  character*80 :: ngfnam
 
-END MODULE nec2d_commons
+end module nec2d_commons

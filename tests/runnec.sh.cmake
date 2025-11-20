@@ -154,13 +154,19 @@ rm -f "$valid_file_comp"
 if [ -n "$copyname" ]
 then
 
-   for suffix in res log imp ngf som 
+   for suffix in res log imp som
    do
 
       /bin/mv -f "$testname.$suffix" "$copyname.$suffix"
        echo "$testname.$suffix" "$copyname.$suffix"
 
    done
+
+   # NGF file uses default name NGF2D.NEC
+   # if [ -f "NGF2D.NEC" ]; then
+   #    /bin/mv -f "NGF2D.NEC" "$copyname.ngf"
+   #    echo "NGF2D.NEC" "$copyname.ngf"
+   # fi
 
 fi
 

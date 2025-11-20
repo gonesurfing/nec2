@@ -6,9 +6,16 @@ build
 # Executable
 nec2dxs
 nec2dxs_orig
+nec2_orig
+nec2dxs_orig_bin
 
 # Test output files
 *.out
+Testing/
+
+# NGF files
+NGF2D.NEC
+*.ngf
 
 .claude
 

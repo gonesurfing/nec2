@@ -1,0 +1,122 @@
+C     CMWW.F - Wire-wire matrix elements subroutine
+C
+C     CMWW computes matrix elements for wire-wire interactions.
+C     This subroutine calculates the mutual impedance between wire segments,
+C     including decisions about extended thin-wire approximation usage and
+C     handling of both normal and transposed matrix fills.
+C
+      SUBROUTINE CMWW (J,I1,I2,CM,NR,CW,NW,ITRP)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C
+C     CMWW COMPUTES MATRIX ELEMENTS FOR WIRE-WIRE INTERACTIONS
+C
+      COMPLEX*16 CM,CW,ETK,ETS,ETC,EXK,EYK,EZK,EXS,EYS,EZS,EXC,EYC,EZC
+      COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
+     1ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
+     2ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
+      COMMON /ANGL/ SALP(MAXSEG)
+      COMMON /SEGJ/ AX(JMAX),BX(JMAX),CX(JMAX),JCO(JMAX),
+     1JSNO,ISCON(50),NSCON,IPCON(10),NPCON
+      COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
+     1EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
+      DIMENSION CM(NR,1), CW(NW,1), CAB(1), SAB(1)
+      EQUIVALENCE (CAB,ALP), (SAB,BET)
+C     SET SOURCE SEGMENT PARAMETERS
+      S=SI(J)
+      B=BI(J)
+      XJ=X(J)
+      YJ=Y(J)
+      ZJ=Z(J)
+      CABJ=CAB(J)
+      SABJ=SAB(J)
+      SALPJ=SALP(J)
+      IF (IEXK.EQ.0) GO TO 16
+C     DECIDE WETHER EXT. T.W. APPROX. CAN BE USED
+      IPR=ICON1(J)
+      IF (IPR.GT.10000) GO TO 5
+      IF (IPR) 1,6,2
+1     IPR=-IPR
+      IF (-ICON1(IPR).NE.J) GO TO 7
+      GO TO 4
+2     IF (IPR.NE.J) GO TO 3
+      IF (CABJ*CABJ+SABJ*SABJ.GT.1.D-8) GO TO 7
+      GO TO 5
+3     IF (ICON2(IPR).NE.J) GO TO 7
+4     XI=ABS(CABJ*CAB(IPR)+SABJ*SAB(IPR)+SALPJ*SALP(IPR))
+      IF (XI.LT.0.999999D+0) GO TO 7
+      IF (ABS(BI(IPR)/B-1.).GT.1.D-6) GO TO 7
+5     IND1=0
+      GO TO 8
+6     IND1=1
+      GO TO 8
+7     IND1=2
+8     IPR=ICON2(J)
+      IF (IPR.GT.10000) GO TO 15
+      IF (IPR) 9,14,10
+9     IPR=-IPR
+      IF (-ICON2(IPR).NE.J) GO TO 15
+      GO TO 12
+10    IF (IPR.NE.J) GO TO 11
+      IF (CABJ*CABJ+SABJ*SABJ.GT.1.D-8) GO TO 15
+      GO TO 13
+11    IF (ICON1(IPR).NE.J) GO TO 15
+12    XI=ABS(CABJ*CAB(IPR)+SABJ*SAB(IPR)+SALPJ*SALP(IPR))
+      IF (XI.LT.0.999999D+0) GO TO 15
+      IF (ABS(BI(IPR)/B-1.).GT.1.D-6) GO TO 15
+13    IND2=0
+      GO TO 16
+14    IND2=1
+      GO TO 16
+15    IND2=2
+16    CONTINUE
+C
+C     OBSERVATION LOOP
+C
+      IPR=0
+      DO 23 I=I1,I2
+      IPR=IPR+1
+      IJ=I-J
+      XI=X(I)
+      YI=Y(I)
+      ZI=Z(I)
+      AI=BI(I)
+      CABI=CAB(I)
+      SABI=SAB(I)
+      SALPI=SALP(I)
+      CALL EFLD (XI,YI,ZI,AI,IJ)
+      ETK=EXK*CABI+EYK*SABI+EZK*SALPI
+      ETS=EXS*CABI+EYS*SABI+EZS*SALPI
+      ETC=EXC*CABI+EYC*SABI+EZC*SALPI
+C
+C     FILL MATRIX ELEMENTS.  ELEMENT LOCATIONS DETERMINED BY CONNECTION
+C     DATA.
+C
+      IF (ITRP.NE.0) GO TO 18
+C     NORMAL FILL
+      DO 17 IJ=1,JSNO
+      JX=JCO(IJ)
+17    CM(IPR,JX)=CM(IPR,JX)+ETK*AX(IJ)+ETS*BX(IJ)+ETC*CX(IJ)
+      GO TO 23
+18    IF (ITRP.EQ.2) GO TO 20
+C     TRANSPOSED FILL
+      DO 19 IJ=1,JSNO
+      JX=JCO(IJ)
+19    CM(JX,IPR)=CM(JX,IPR)+ETK*AX(IJ)+ETS*BX(IJ)+ETC*CX(IJ)
+      GO TO 23
+C     TRANS. FILL FOR C(WW) - TEST FOR ELEMENTS FOR D(WW)PRIME.  (=CW)
+20    DO 22 IJ=1,JSNO
+      JX=JCO(IJ)
+      IF (JX.GT.NR) GO TO 21
+      CM(JX,IPR)=CM(JX,IPR)+ETK*AX(IJ)+ETS*BX(IJ)+ETC*CX(IJ)
+      GO TO 22
+21    JX=JX-NR
+      CW(JX,IPR)=CW(JX,IPR)+ETK*AX(IJ)+ETS*BX(IJ)+ETC*CX(IJ)
+22    CONTINUE
+23    CONTINUE
+      RETURN
+      END

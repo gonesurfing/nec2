@@ -1,0 +1,145 @@
+C     TBF.F - Compute basis function
+C     Computes the triangular basis function for segment I, storing
+C     components in the SEGJ common block arrays.
+C
+      SUBROUTINE TBF (I,ICAP)
+      USE NEC2_COMMON
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+C     INCLUDE/PARAMETER now from USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C     COMPUTE BASIS FUNCTION I
+      COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
+     1ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
+     2ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
+      COMMON /SEGJ/ AX(JMAX),BX(JMAX),CX(JMAX),JCO(JMAX),
+     1JSNO,ISCON(50),NSCON,IPCON(10),NPCON
+      DATA PI/3.141592654D+0/
+      JSNO=0
+      PP=0.
+      JCOX=ICON1(I)
+      IF (JCOX.GT.10000) JCOX=I
+      JEND=-1
+      IEND=-1
+      SIG=-1.
+      IF (JCOX) 1,10,2
+1     JCOX=-JCOX
+      GO TO 3
+2     SIG=-SIG
+      JEND=-JEND
+3     JSNO=JSNO+1
+      IF (JSNO.GE.JMAX) GO TO 28
+      JCO(JSNO)=JCOX
+      D=PI*SI(JCOX)
+      SDH=SIN(D)
+      CDH=COS(D)
+      SD=2.*SDH*CDH
+      IF (D.GT.0.015) GO TO 4
+      OMC=4.*D*D
+      OMC=((1.3888889D-3*OMC-4.1666666667D-2)*OMC+.5)*OMC
+      GO TO 5
+4     OMC=1.-CDH*CDH+SDH*SDH
+5     AJ=1./(LOG(1./(PI*BI(JCOX)))-.577215664D+0)
+      PP=PP-OMC/SD*AJ
+      AX(JSNO)=AJ/SD*SIG
+      BX(JSNO)=AJ/(2.*CDH)
+      CX(JSNO)=-AJ/(2.*SDH)*SIG
+      IF (JCOX.EQ.I) GO TO 8
+      IF (JEND.EQ.1) GO TO 6
+      JCOX=ICON1(JCOX)
+      GO TO 7
+6     JCOX=ICON2(JCOX)
+7     IF (IABS(JCOX).EQ.I) GO TO 9
+      IF (JCOX) 1,28,2
+8     BX(JSNO)=-BX(JSNO)
+9     IF (IEND.EQ.1) GO TO 11
+10    PM=-PP
+      PP=0.
+      NJUN1=JSNO
+      JCOX=ICON2(I)
+      IF (JCOX.GT.10000) JCOX=I
+      JEND=1
+      IEND=1
+      SIG=-1.
+      IF (JCOX) 1,11,2
+11    NJUN2=JSNO-NJUN1
+      JSNOP=JSNO+1
+      JCO(JSNOP)=I
+      D=PI*SI(I)
+      SDH=SIN(D)
+      CDH=COS(D)
+      SD=2.*SDH*CDH
+      CD=CDH*CDH-SDH*SDH
+      IF (D.GT.0.015) GO TO 12
+      OMC=4.*D*D
+      OMC=((1.3888889D-3*OMC-4.1666666667D-2)*OMC+.5)*OMC
+      GO TO 13
+12    OMC=1.-CD
+13    AP=1./(LOG(1./(PI*BI(I)))-.577215664D+0)
+      AJ=AP
+      IF (NJUN1.EQ.0) GO TO 16
+      IF (NJUN2.EQ.0) GO TO 20
+      QP=SD*(PM*PP+AJ*AP)+CD*(PM*AP-PP*AJ)
+      QM=(AP*OMC-PP*SD)/QP
+      QP=-(AJ*OMC+PM*SD)/QP
+      BX(JSNOP)=(AJ*QM+AP*QP)*SDH/SD
+      CX(JSNOP)=(AJ*QM-AP*QP)*CDH/SD
+      DO 14 IEND=1,NJUN1
+      AX(IEND)=AX(IEND)*QM
+      BX(IEND)=BX(IEND)*QM
+14    CX(IEND)=CX(IEND)*QM
+      JEND=NJUN1+1
+      DO 15 IEND=JEND,JSNO
+      AX(IEND)=-AX(IEND)*QP
+      BX(IEND)=BX(IEND)*QP
+15    CX(IEND)=-CX(IEND)*QP
+      GO TO 27
+16    IF (NJUN2.EQ.0) GO TO 24
+      IF (ICAP.NE.0) GO TO 17
+      XXI=0.
+      GO TO 18
+17    QP=PI*BI(I)
+      XXI=QP*QP
+      XXI=QP*(1.-.5*XXI)/(1.-XXI)
+18    QP=-(OMC+XXI*SD)/(SD*(AP+XXI*PP)+CD*(XXI*AP-PP))
+      D=CD-XXI*SD
+      BX(JSNOP)=(SDH+AP*QP*(CDH-XXI*SDH))/D
+      CX(JSNOP)=(CDH+AP*QP*(SDH+XXI*CDH))/D
+      DO 19 IEND=1,NJUN2
+      AX(IEND)=-AX(IEND)*QP
+      BX(IEND)=BX(IEND)*QP
+19    CX(IEND)=-CX(IEND)*QP
+      GO TO 27
+20    IF (ICAP.NE.0) GO TO 21
+      XXI=0.
+      GO TO 22
+21    QM=PI*BI(I)
+      XXI=QM*QM
+      XXI=QM*(1.-.5*XXI)/(1.-XXI)
+22    QM=(OMC+XXI*SD)/(SD*(AJ-XXI*PM)+CD*(PM+XXI*AJ))
+      D=CD-XXI*SD
+      BX(JSNOP)=(AJ*QM*(CDH-XXI*SDH)-SDH)/D
+      CX(JSNOP)=(CDH-AJ*QM*(SDH+XXI*CDH))/D
+      DO 23 IEND=1,NJUN1
+      AX(IEND)=AX(IEND)*QM
+      BX(IEND)=BX(IEND)*QM
+23    CX(IEND)=CX(IEND)*QM
+      GO TO 27
+24    BX(JSNOP)=0.
+      IF (ICAP.NE.0) GO TO 25
+      XXI=0.
+      GO TO 26
+25    QP=PI*BI(I)
+      XXI=QP*QP
+      XXI=QP*(1.-.5*XXI)/(1.-XXI)
+26    CX(JSNOP)=1./(CDH-XXI*SDH)
+27    JSNO=JSNOP
+      AX(JSNO)=-1.
+      RETURN
+28    WRITE(*,29)  I
+      STOP
+C
+29    FORMAT (43H TBF - SEGMENT CONNECTION ERROR FOR SEGMENT,I5)
+      END

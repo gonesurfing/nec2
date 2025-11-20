@@ -1,0 +1,114 @@
+C     NHFLD.F - Near magnetic field computation
+C     This subroutine computes the near magnetic field at specified points
+C     in space after the structure currents have been computed.
+C
+      SUBROUTINE NHFLD (XOB,YOB,ZOB,HX,HY,HZ)
+C
+C     NHFLD COMPUTES THE NEAR FIELD AT SPECIFIED POINTS IN SPACE AFTER
+C     THE STRUCTURE CURRENTS HAVE BEEN COMPUTED.
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+      COMPLEX*16 HX,HY,HZ,CUR,ACX,BCX,CCX,EXK,EYK,EZK,EXS,EYS,EZS,EXC,
+     1EYC,EZC
+C***************************************
+      COMPLEX*16 ZRATI,ZRATI2,FRATI,T1,CON
+      COMPLEX*16 EXPX,EXMX,EXPY,EXMY,EXPZ,EXMZ
+      COMPLEX*16 EYPX,EYMX,EYPY,EYMY,EYPZ,EYMZ
+      COMPLEX*16 EZPX,EZMX,EZPY,EZMY,EZPZ,EZMZ
+      COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL,
+     1KSYMP,IFAR,IPERF
+C***************************************
+      COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
+     1ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
+     2ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
+      COMMON /ANGL/ SALP(MAXSEG)
+      COMMON /CRNT/ AIR(MAXSEG),AII(MAXSEG),BIR(MAXSEG),BII(MAXSEG),
+     1CIR(MAXSEG),CII(MAXSEG),CUR(3*MAXSEG)
+      COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
+     1EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
+      DIMENSION CAB(1), SAB(1)
+      DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1), XS(1), Y
+     1S(1), ZS(1)
+      EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON
+     12), (T2Z,ITAG), (XS,X), (YS,Y), (ZS,Z)
+      EQUIVALENCE (T1XJ,CABJ), (T1YJ,SABJ), (T1ZJ,SALPJ), (T2XJ,B), (T2Y
+     1J,IND1), (T2ZJ,IND2)
+      EQUIVALENCE (CAB,ALP), (SAB,BET)
+C***************************************
+      IF (IPERF.EQ.2) GO TO 6
+C***************************************
+      HX=(0.,0.)
+      HY=(0.,0.)
+      HZ=(0.,0.)
+      AX=0.
+      IF (N.EQ.0) GO TO 4
+      DO 1 I=1,N
+      XJ=XOB-X(I)
+      YJ=YOB-Y(I)
+      ZJ=ZOB-Z(I)
+      ZP=CAB(I)*XJ+SAB(I)*YJ+SALP(I)*ZJ
+      IF (ABS(ZP).GT.0.5001*SI(I)) GO TO 1
+      ZP=XJ*XJ+YJ*YJ+ZJ*ZJ-ZP*ZP
+      XJ=BI(I)
+      IF (ZP.GT.0.9*XJ*XJ) GO TO 1
+      AX=XJ
+      GO TO 2
+1     CONTINUE
+2     DO 3 I=1,N
+      S=SI(I)
+      B=BI(I)
+      XJ=X(I)
+      YJ=Y(I)
+      ZJ=Z(I)
+      CABJ=CAB(I)
+      SABJ=SAB(I)
+      SALPJ=SALP(I)
+      CALL HSFLD (XOB,YOB,ZOB,AX)
+      ACX=DCMPLX(AIR(I),AII(I))
+      BCX=DCMPLX(BIR(I),BII(I))
+      CCX=DCMPLX(CIR(I),CII(I))
+      HX=HX+EXK*ACX+EXS*BCX+EXC*CCX
+      HY=HY+EYK*ACX+EYS*BCX+EYC*CCX
+3     HZ=HZ+EZK*ACX+EZS*BCX+EZC*CCX
+      IF (M.EQ.0) RETURN
+4     JC=N
+      JL=LD+1
+      DO 5 I=1,M
+      JL=JL-1
+      S=BI(JL)
+      XJ=X(JL)
+      YJ=Y(JL)
+      ZJ=Z(JL)
+      T1XJ=T1X(JL)
+      T1YJ=T1Y(JL)
+      T1ZJ=T1Z(JL)
+      T2XJ=T2X(JL)
+      T2YJ=T2Y(JL)
+      T2ZJ=T2Z(JL)
+      CALL HINTG (XOB,YOB,ZOB)
+      JC=JC+3
+      ACX=T1XJ*CUR(JC-2)+T1YJ*CUR(JC-1)+T1ZJ*CUR(JC)
+      BCX=T2XJ*CUR(JC-2)+T2YJ*CUR(JC-1)+T2ZJ*CUR(JC)
+      HX=HX+ACX*EXK+BCX*EXS
+      HY=HY+ACX*EYK+BCX*EYS
+5     HZ=HZ+ACX*EZK+BCX*EZS
+      RETURN
+C
+C     GET H BY FINITE DIFFERENCE OF E FOR SOMMERFELD GROUND
+C     CON=j/(2*pi*eta)
+C     DELT is the increment for getting central differences
+C
+6     DELT=1.E-3
+      CON=(0.,4.2246E-4)
+      CALL NEFLD (XOB+DELT,YOB,ZOB,EXPX,EYPX,EZPX)
+      CALL NEFLD (XOB-DELT,YOB,ZOB,EXMX,EYMX,EZMX)
+      CALL NEFLD (XOB,YOB+DELT,ZOB,EXPY,EYPY,EZPY)
+      CALL NEFLD (XOB,YOB-DELT,ZOB,EXMY,EYMY,EZMY)
+      CALL NEFLD (XOB,YOB,ZOB+DELT,EXPZ,EYPZ,EZPZ)
+      CALL NEFLD (XOB,YOB,ZOB-DELT,EXMZ,EYMZ,EZMZ)
+      HX=CON*(EZPY-EZMY-EYPZ+EYMZ)/(2.*DELT)
+      HY=CON*(EXPZ-EXMZ-EZPX+EZMX)/(2.*DELT)
+      HZ=CON*(EYPX-EYMX-EXPY+EXMY)/(2.*DELT)
+      RETURN
+      END

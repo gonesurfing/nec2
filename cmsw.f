@@ -1,0 +1,153 @@
+C     CMSW.F - Surface-wire matrix elements subroutine
+C
+C     CMSW computes matrix elements for E along wires due to patch current.
+C     This subroutine handles the interaction between surface patches and
+C     wire segments, including ground plane effects and singular component
+C     integration for wire-patch connections.
+C
+      SUBROUTINE CMSW (J1,J2,I1,I2,CM,CW,NCW,NROW,ITRP)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C     COMPUTES MATRIX ELEMENTS FOR E ALONG WIRES DUE TO PATCH CURRENT
+      COMPLEX*16 CM,ZRATI,ZRATI2,T1,EXK,EYK,EZK,EXS,EYS,EZS,EXC,EYC,EZC
+     1,EMEL,CW,FRATI
+      COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG),
+     1ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG),
+     2ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
+      COMMON /ANGL/ SALP(MAXSEG)
+      COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL,
+     1KSYMP,IFAR,IPERF
+      COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
+     1EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
+      COMMON /SEGJ/ AX(JMAX),BX(JMAX),CX(JMAX),JCO(JMAX),
+     1JSNO,ISCON(50),NSCON,IPCON(10),NPCON
+      DIMENSION CAB(1), SAB(1), CM(NROW,1), CW(NROW,1)
+      DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1), EMEL(9)
+      EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON
+     12), (T2Z,ITAG), (CAB,ALP), (SAB,BET)
+      EQUIVALENCE (T1XJ,CABJ), (T1YJ,SABJ), (T1ZJ,SALPJ), (T2XJ,B), (T2Y
+     1J,IND1), (T2ZJ,IND2)
+      DATA PI/3.141592654D+0/
+      LDP=LD+1
+      NEQS=N-N1+2*(M-M1)
+      IF (ITRP.LT.0) GO TO 13
+      K=0
+      ICGO=1
+C     OBSERVATION LOOP
+      DO 12 I=I1,I2
+      K=K+1
+      XI=X(I)
+      YI=Y(I)
+      ZI=Z(I)
+      CABI=CAB(I)
+      SABI=SAB(I)
+      SALPI=SALP(I)
+      IPCH=0
+      IF (ICON1(I).LT.10000) GO TO 1
+      IPCH=ICON1(I)-10000
+      FSIGN=-1.
+1     IF (ICON2(I).LT.10000) GO TO 2
+      IPCH=ICON2(I)-10000
+      FSIGN=1.
+2     JL=0
+C     SOURCE LOOP
+      DO 12 J=J1,J2
+      JS=LDP-J
+      JL=JL+2
+      T1XJ=T1X(JS)
+      T1YJ=T1Y(JS)
+      T1ZJ=T1Z(JS)
+      T2XJ=T2X(JS)
+      T2YJ=T2Y(JS)
+      T2ZJ=T2Z(JS)
+      XJ=X(JS)
+      YJ=Y(JS)
+      ZJ=Z(JS)
+      S=BI(JS)
+C     GROUND LOOP
+      DO 12 IP=1,KSYMP
+      IPGND=IP
+      IF (IPCH.NE.J.AND.ICGO.EQ.1) GO TO 9
+      IF (IP.EQ.2) GO TO 9
+      IF (ICGO.GT.1) GO TO 6
+      CALL PCINT (XI,YI,ZI,CABI,SABI,SALPI,EMEL)
+      PY=PI*SI(I)*FSIGN
+      PX=SIN(PY)
+      PY=COS(PY)
+      EXC=EMEL(9)*FSIGN
+      CALL TRIO (I)
+      IF (I.GT.N1) GO TO 3
+      IL=NEQS+ICONX(I)
+      GO TO 4
+3     IL=I-NCW
+      IF (I.LE.NP) IL=((IL-1)/NP)*2*MP+IL
+4     IF (ITRP.NE.0) GO TO 5
+      CW(K,IL)=CW(K,IL)+EXC*(AX(JSNO)+BX(JSNO)*PX+CX(JSNO)*PY)
+      GO TO 6
+5     CW(IL,K)=CW(IL,K)+EXC*(AX(JSNO)+BX(JSNO)*PX+CX(JSNO)*PY)
+6     IF (ITRP.NE.0) GO TO 7
+      CM(K,JL-1)=EMEL(ICGO)
+      CM(K,JL)=EMEL(ICGO+4)
+      GO TO 8
+7     CM(JL-1,K)=EMEL(ICGO)
+      CM(JL,K)=EMEL(ICGO+4)
+8     ICGO=ICGO+1
+      IF (ICGO.EQ.5) ICGO=1
+      GO TO 11
+9     CALL UNERE (XI,YI,ZI)
+      IF (ITRP.NE.0) GO TO 10
+C     NORMAL FILL
+      CM(K,JL-1)=CM(K,JL-1)+EXK*CABI+EYK*SABI+EZK*SALPI
+      CM(K,JL)=CM(K,JL)+EXS*CABI+EYS*SABI+EZS*SALPI
+      GO TO 11
+C     TRANSPOSED FILL
+10    CM(JL-1,K)=CM(JL-1,K)+EXK*CABI+EYK*SABI+EZK*SALPI
+      CM(JL,K)=CM(JL,K)+EXS*CABI+EYS*SABI+EZS*SALPI
+11    CONTINUE
+12    CONTINUE
+      RETURN
+C     FOR OLD SEG. CONNECTING TO OLD PATCH ON ONE END AND NEW SEG. ON
+C     OTHER END INTEGRATE SINGULAR COMPONENT (9) OF SURFACE CURRENT ONLY
+13    IF (J1.LT.I1.OR.J1.GT.I2) GO TO 16
+      IPCH=ICON1(J1)
+      IF (IPCH.LT.10000) GO TO 14
+      IPCH=IPCH-10000
+      FSIGN=-1.
+      GO TO 15
+14    IPCH=ICON2(J1)
+      IF (IPCH.LT.10000) GO TO 16
+      IPCH=IPCH-10000
+      FSIGN=1.
+15    IF (IPCH.GT.M1) GO TO 16
+      JS=LDP-IPCH
+      IPGND=1
+      T1XJ=T1X(JS)
+      T1YJ=T1Y(JS)
+      T1ZJ=T1Z(JS)
+      T2XJ=T2X(JS)
+      T2YJ=T2Y(JS)
+      T2ZJ=T2Z(JS)
+      XJ=X(JS)
+      YJ=Y(JS)
+      ZJ=Z(JS)
+      S=BI(JS)
+      XI=X(J1)
+      YI=Y(J1)
+      ZI=Z(J1)
+      CABI=CAB(J1)
+      SABI=SAB(J1)
+      SALPI=SALP(J1)
+      CALL PCINT (XI,YI,ZI,CABI,SABI,SALPI,EMEL)
+      PY=PI*SI(J1)*FSIGN
+      PX=SIN(PY)
+      PY=COS(PY)
+      EXC=EMEL(9)*FSIGN
+      IL=JCO(JSNO)
+      K=J1-I1+1
+      CW(K,IL)=CW(K,IL)+EXC*(AX(JSNO)+BX(JSNO)*PX+CX(JSNO)*PY)
+16    RETURN
+      END

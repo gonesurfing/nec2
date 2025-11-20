@@ -1,0 +1,116 @@
+C     INTX.F - Numerical integration of EXP(JKR)/R
+C     Performs numerical integration by the method of variable interval
+C     width Romberg integration. The integrand value is supplied by
+C     subroutine GF.
+C
+      SUBROUTINE INTX (EL1,EL2,B,IJ,SGR,SGI)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C
+C     INTX PERFORMS NUMERICAL INTEGRATION OF EXP(JKR)/R BY THE METHOD OF
+C     VARIABLE INTERVAL WIDTH ROMBERG INTEGRATION.  THE INTEGRAND VALUE
+C     IS SUPPLIED BY SUBROUTINE GF.
+C
+      DATA NX,NM,NTS,RX/1,65536,4,1.D-4/
+      Z=EL1
+      ZE=EL2
+      IF (IJ.EQ.0) ZE=0.
+      S=ZE-Z
+      FNM=NM
+      EP=S/(10.*FNM)
+      ZEND=ZE-EP
+      SGR=0.
+      SGI=0.
+      NS=NX
+      NT=0
+      CALL GF (Z,G1R,G1I)
+1     FNS=NS
+      DZ=S/FNS
+      ZP=Z+DZ
+      IF (ZP-ZE) 3,3,2
+2     DZ=ZE-Z
+      IF (ABS(DZ)-EP) 17,17,3
+3     DZOT=DZ*.5
+      ZP=Z+DZOT
+      CALL GF (ZP,G3R,G3I)
+      ZP=Z+DZ
+      CALL GF (ZP,G5R,G5I)
+4     T00R=(G1R+G5R)*DZOT
+      T00I=(G1I+G5I)*DZOT
+      T01R=(T00R+DZ*G3R)*0.5
+      T01I=(T00I+DZ*G3I)*0.5
+      T10R=(4.0*T01R-T00R)/3.0
+      T10I=(4.0*T01I-T00I)/3.0
+C
+C     TEST CONVERGENCE OF 3 POINT ROMBERG RESULT.
+C
+      CALL TEST (T01R,T10R,TE1R,T01I,T10I,TE1I,0.D0)
+      IF (TE1I-RX) 5,5,6
+5     IF (TE1R-RX) 8,8,6
+6     ZP=Z+DZ*0.25
+      CALL GF (ZP,G2R,G2I)
+      ZP=Z+DZ*0.75
+      CALL GF (ZP,G4R,G4I)
+      T02R=(T01R+DZOT*(G2R+G4R))*0.5
+      T02I=(T01I+DZOT*(G2I+G4I))*0.5
+      T11R=(4.0*T02R-T01R)/3.0
+      T11I=(4.0*T02I-T01I)/3.0
+      T20R=(16.0*T11R-T10R)/15.0
+      T20I=(16.0*T11I-T10I)/15.0
+C
+C     TEST CONVERGENCE OF 5 POINT ROMBERG RESULT.
+C
+      CALL TEST (T11R,T20R,TE2R,T11I,T20I,TE2I,0.D0)
+      IF (TE2I-RX) 7,7,14
+7     IF (TE2R-RX) 9,9,14
+8     SGR=SGR+T10R
+      SGI=SGI+T10I
+      NT=NT+2
+      GO TO 10
+9     SGR=SGR+T20R
+      SGI=SGI+T20I
+      NT=NT+1
+10    Z=Z+DZ
+      IF (Z-ZEND) 11,17,17
+11    G1R=G5R
+      G1I=G5I
+      IF (NT-NTS) 1,12,12
+12    IF (NS-NX) 1,1,13
+C
+C     DOUBLE STEP SIZE
+C
+13    NS=NS/2
+      NT=1
+      GO TO 1
+14    NT=0
+      IF (NS-NM) 16,15,15
+15    WRITE(*,20)  Z
+      GO TO 9
+C
+C     HALVE STEP SIZE
+C
+16    NS=NS*2
+      FNS=NS
+      DZ=S/FNS
+      DZOT=DZ*0.5
+      G5R=G3R
+      G5I=G3I
+      G3R=G2R
+      G3I=G2I
+      GO TO 4
+17    CONTINUE
+      IF (IJ) 19,18,19
+C
+C     ADD CONTRIBUTION OF NEAR SINGULARITY FOR DIAGONAL TERM
+C
+18    SGR=2.*(SGR+LOG((SQRT(B*B+S*S)+S)/B))
+      SGI=2.*SGI
+19    CONTINUE
+      RETURN
+C
+20    FORMAT (24H STEP SIZE LIMITED AT Z=,F10.5)
+      END

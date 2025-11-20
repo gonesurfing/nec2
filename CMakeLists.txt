@@ -23,31 +23,55 @@ set(SOURCES
     # I/O routines
     io_utils.f
     stopwtch.f
+    parsit.f
+    gfil.f
+    gfout.f
 
     # Geometry routines
     geometry_utils.f
     datagn.f
     reflc.f
     conect.f
+    patch.f
+    intrp.f
+    load.f
+    tbf.f
+    sbf.f
+    move.f
 
     # Green's function routines
     greens_utils.f
     som2d.f
     etmns.f
+    intx.f
+    gshank.f
+    rom2.f
 
     # Solver routines
     solve_utils.f
     cmngf.f
+    cmset.f
+    cmsw.f
+    cmww.f
+    solves.f
+    solgf.f
+    lfactr.f
 
     # Field calculation routines
     fields_utils.f
     ffld.f
     rdpat.f
     efld.f
+    gfld.f
+    nefld.f
+    sflds.f
+    hsfld.f
+    nhfld.f
 
     # Network routines
     network_utils.f
     netwk.f
+    qdsrc.f
 
     # Main program
     nec2dxs.f

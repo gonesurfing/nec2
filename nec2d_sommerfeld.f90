@@ -318,7 +318,7 @@ subroutine gshank(start, dela, sum, nans, seed, ibk, bk, delb)
     sum(i) = 0.5d0 * (q1(i, inx) + q2(i, inx))
   end do
 
-24 format(46h **** NO CONVERGENCE IN subroutine GSHANK ****)
+24 format(46h **** no convergence in subroutine gshank ****)
 25 format(1x, 1p10e12.5)
 end subroutine gshank
 

@@ -128,7 +128,7 @@ subroutine hfk(el1,el2,rhk,zpkx,sgr,sgi)
   sgr=sgr*rhk*0.5d0
   sgi=sgi*rhk*0.5d0
 
-18 format(24h STEP SIZE LIMITED AT Z=,f10.5)
+18 format(24h step size limited at z=,f10.5)
 
 end subroutine hfk
 
@@ -213,6 +213,6 @@ subroutine factr(n,a,ip,ndim)
     end if
   end do
 
-10 format(1h ,6hPIVOT(,i3,2h)=,1p,e16.8)
+10 format(1h ,6hpivot(,i3,2h)=,1p,e16.8)
 
 end subroutine factr

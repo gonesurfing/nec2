@@ -340,13 +340,13 @@ subroutine fbngf(neq,neq2,iresrv,ib11,ic11,id11,ix11)
   write(*,9) nbbx, npbx, nlbx
   write(*,10) nbbl, npbl, nlbl
 
-7 format (55h ERROR - INSUFFICIENT STORAGE FOR INTERACTION MATRICIES, &
-          24h  IRESRV,IMAT,NEQ,NEQ2 =,4i5)
-8 format (48h FILE STORAGE FOR NEW MATRIX SECTIONS -  ICASX =,i2)
-9 format (19h B FILLED BY ROWS -,15x,12hNO. BLOCKS =,i3,3x, &
-          16hROWS PER BLOCK =,i3,3x,20hROWS IN LAST BLOCK =,i3)
-10 format (32h B BY COLUMNS, C AND D BY ROWS -,2x,12hNO. BLOCKS =,i3, &
-           4x,15hR/C PER BLOCK =,i3,4x,19hR/C IN LAST BLOCK =,i3)
-11 format (//,35h N.G.F. - NUMBER OF NEW UNKNOWNS IS,i4)
+7 format (55h error - insufficient storage for interaction matricies, &
+          24h  iresrv,imat,neq,neq2 =,4i5)
+8 format (48h file storage for new matrix sections -  icasx =,i2)
+9 format (19h b filled by rows -,15x,12hno. blocks =,i3,3x, &
+          16hrows per block =,i3,3x,20hrows in last block =,i3)
+10 format (32h b by columns, c and d by rows -,2x,12hno. blocks =,i3, &
+           4x,15hr/c per block =,i3,4x,19hr/c in last block =,i3)
+11 format (//,35h n.g.f. - number of new unknowns is,i4)
 
 end subroutine fbngf

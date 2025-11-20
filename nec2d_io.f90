@@ -393,7 +393,7 @@ subroutine gfil(iprt)
 15 format (5x,3h** ,19a4,3h **)
 16 format (////)
 17 format (5x,2h**,80x,2h**)
-18 format (5x,29h** numerical green'S function,53X,2H**,/, &
+18 format (5x,29h** numerical green's function,53x,2h**,/, &
            5x,17h** no. segments =,i4,10x,13hno. patches =,i4,34x,2h**)
 19 format (5x,27h** no. symmetric sections =,i4,51x,2h**)
 20 format (5x,34h** n.g.f. matrix -  core storage =,i7, &
@@ -404,7 +404,7 @@ subroutine gfil(iprt)
 24 format (5x,44h** ground parameters - dielectric constant =,1p, &
            e12.5,26x,2h**,/,5x,2h**,21x,14hconductivity =,e12.5, &
            8h mhos/m.,25x,2h**)
-25 format (39x,31hnumerical green'S function data,/, &
+25 format (39x,31hnumerical green's function data,/, &
            41x,27hcoordinates of segment ends,/,51x,8h(meters),/, &
            5x,4hseg.,11x,19h- - - end one - - -,26x, &
            19h- - - end two - - -,/,6x,3hno.,6x,1hx,14x,1hy,14x,1hz, &
@@ -526,7 +526,7 @@ subroutine gfout
   rewind igfl
   write(*,13) igfl, imat
 
-13 format (///,44h ****numerical green'S function FILE ON TAPE,I3, &
+13 format (///,44h ****numerical green's function file on tape,i3, &
            5h****,/,5x,16hmatrix storage -,i7,16h complex numbers,///)
 
 end subroutine gfout

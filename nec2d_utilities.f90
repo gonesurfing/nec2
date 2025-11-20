@@ -340,7 +340,7 @@ subroutine rom1(n, sum, nx)
     end if
   end do main_loop
 
-18 format(38h ROM1 -- STEP SIZE LIMITED AT LAMBDA =, 1p2e12.5)
+18 format(38h rom1 -- step size limited at lambda =, 1p2e12.5)
 19 format(1x, 1p10e12.5)
 
 end subroutine rom1

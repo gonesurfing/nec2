@@ -7,40 +7,40 @@
 module nec2d_isegno
   use nec2d_params
   use nec2d_commons
-  implicit NONE
+  implicit none
 
   contains
 
 !***********************************************************************
-      function ISEGNO (ITAGI,MX)
+      function isegno (itagi,mx)
 !***********************************************************************
 !     ISEGNO RETURNS THE SEGMENT NUMBER OF THE MTH SEGMENT HAVING THE
 !     TAG NUMBER ITAGI.  IF ITAGI=0 SEGMENT NUMBER M IS RETURNED.
 !***********************************************************************
-      implicit real*8(A-H,O-Z)
-      integer :: ISEGNO, ITAGI, MX, ICNT, I
+      implicit real*8(a-h,o-z)
+      integer :: isegno, itagi, mx, icnt, i
 
-      if (MX.gt.0) GO TO 1
+      if (mx.gt.0) go to 1
       write(*,6)
       stop
-1     ICNT=0
-      if (ITAGI.ne.0) GO TO 2
-      ISEGNO=MX
+1     icnt=0
+      if (itagi.ne.0) go to 2
+      isegno=mx
       return
-2     if (N.lt.1) GO TO 4
-      do 3 I=1,N
-      if (ITAG(I).NE.ITAGI) GO TO 3
-      ICNT=ICNT+1
-      if (ICNT.eq.MX) GO TO 5
+2     if (n.lt.1) go to 4
+      do 3 i=1,n
+      if (itag(i).ne.itagi) go to 3
+      icnt=icnt+1
+      if (icnt.eq.mx) go to 5
 3     continue
-4     write(*,7)  ITAGI
+4     write(*,7)  itagi
       stop
-5     ISEGNO=I
+5     isegno=i
       return
 
-6     format (4X,'CHECK DATA, PARAMETER SPECIFYING SEGMENT POSITION IN',&
+6     format (4x,'CHECK DATA, PARAMETER SPECIFYING SEGMENT POSITION IN',&
      &' A GROUP OF EQUAL TAGS MUST NOT BE ZERO')
-7     format (///,10X,'NO SEGMENT HAS AN ITAG OF ',I5)
-      end function ISEGNO
+7     format (///,10x,'NO SEGMENT HAS AN ITAG OF ',i5)
+      end function isegno
 
 end module nec2d_isegno

@@ -5,347 +5,347 @@
 ! Contains: SFLDS, FACGF, GFLD
 ! GOTOs eliminated: 2
 ! =============================================================================
-  complex*16 function FBAR(P)
+  complex*16 function fbar(p)
   ! ***
   ! DOUBLE PRECISION 6/4/85
   !
-  implicit real*8(A-H,O-Z)
+  implicit real*8(a-h,o-z)
   ! ***
   !
   ! FBAR IS SOMMERFELD ATTENUATION FUNCTION FOR NUMERICAL DISTANCE P
   !
-  complex*16 :: Z, ZS, SUM, POW, TERM, P, FJ
-  dimension FJX(2)
-  equivalence (FJ, FJX)
-  data TOSP/1.128379167D+0/, ACCS/1.D-12/, SP/1.772453851D+0/, &
-       FJX/0., 1./
+  complex*16 :: z, zs, sum, pow, term, p, fj
+  dimension fjx(2)
+  equivalence (fj, fjx)
+  data tosp/1.128379167d+0/, accs/1.d-12/, sp/1.772453851d+0/, &
+       fjx/0., 1./
 
-  Z = FJ * SQRT(P)
+  z = fj * sqrt(p)
 
   ! Choose between series expansion and asymptotic expansion
-  if (ABS(Z) .GT. 3.D0) then
+  if (abs(z) .gt. 3.d0) then
     !
     ! ASYMPTOTIC EXPANSION
     !
     ! Determine sign handling
-    if (DREAL(Z) .GE. 0.D0) then
-      MINUS = 0
+    if (dreal(z) .ge. 0.d0) then
+      minus = 0
     else
-      MINUS = 1
-      Z = -Z
+      minus = 1
+      z = -z
     end if
 
-    ZS = 0.5D0 / (Z * Z)
-    SUM = (0.D0, 0.D0)
-    TERM = (1.D0, 0.D0)
+    zs = 0.5d0 / (z * z)
+    sum = (0.d0, 0.d0)
+    term = (1.d0, 0.d0)
 
-    do I = 1, 6
-      TERM = -TERM * (2.D0 * I - 1.D0) * ZS
-      SUM = SUM + TERM
+    do i = 1, 6
+      term = -term * (2.d0 * i - 1.d0) * zs
+      sum = sum + term
     end do
 
-    if (MINUS .EQ. 1) SUM = SUM - 2.D0 * SP * Z * EXP(Z * Z)
-    FBAR = -SUM
+    if (minus .eq. 1) sum = sum - 2.d0 * sp * z * exp(z * z)
+    fbar = -sum
 
   else
     !
     ! SERIES EXPANSION
     !
-    ZS = Z * Z
-    SUM = Z
-    POW = Z
+    zs = z * z
+    sum = z
+    pow = z
 
-    do I = 1, 100
-      POW = -POW * ZS / DFLOAT(I)
-      TERM = POW / (2.D0 * I + 1.D0)
-      SUM = SUM + TERM
-      TMS = DREAL(TERM * DCONJG(TERM))
-      SMS = DREAL(SUM * DCONJG(SUM))
+    do i = 1, 100
+      pow = -pow * zs / dfloat(i)
+      term = pow / (2.d0 * i + 1.d0)
+      sum = sum + term
+      tms = dreal(term * dconjg(term))
+      sms = dreal(sum * dconjg(sum))
       ! Exit loop when convergence criterion is met
-      if (TMS / SMS .LT. ACCS) exit
+      if (tms / sms .lt. accs) exit
     end do
 
-    FBAR = 1.D0 - (1.D0 - SUM * TOSP) * Z * EXP(ZS) * SP
+    fbar = 1.d0 - (1.d0 - sum * tosp) * z * exp(zs) * sp
 
   end if
 
   return
-  end function FBAR
-complex*16 function ZINT(SIGL, ROLAM)
+  end function fbar
+complex*16 function zint(sigl, rolam)
 ! ***
 ! DOUBLE PRECISION 6/4/85
 !
-  implicit real*8(A-H, O-Z)
+  implicit real*8(a-h, o-z)
 ! ***
 !
 ! ZINT COMPUTES THE INTERNAL IMPEDANCE OF A CIRCULAR WIRE
 !
 !
-  complex*16 TH, PH, F, G, FJ, CN, BR1, BR2
-  complex*16 CC1, CC2, CC3, CC4, CC5, CC6, CC7, CC8, CC9, CC10, CC11, CC12, &
-             CC13, CC14
-  dimension FJX(2), CNX(2), CCN(28)
-  equivalence (FJ, FJX), (CN, CNX), (CC1, CCN(1)), (CC2, CCN(3)), (CC3, &
-              CCN(5)), (CC4, CCN(7)), (CC5, CCN(9)), (CC6, CCN(11)), (CC7, CCN(13)), &
-              (CC8, CCN(15)), (CC9, CCN(17)), (CC10, CCN(19)), (CC11, CCN(21)), (CC12, &
-              CCN(23)), (CC13, CCN(25)), (CC14, CCN(27))
-  data PI, POT, TP, TPCMU/3.1415926D+0, 1.5707963D+0, 6.2831853D+0, &
-                          2.368705D+3/
-  data CMOTP/60.00/, FJX/0., 1./, CNX/.70710678D+0, .70710678D+0/
-  data CCN/6.D-7, 1.9D-6, -3.4D-6, 5.1D-6, -2.52D-5, 0., -9.06D-5, -9.01D-5, &
-          0., -9.765D-4, .0110486D+0, -.0110485D+0, 0., -.3926991D+0, 1.6D-6, &
-          -3.2D-6, 1.17D-5, -2.4D-6, 3.46D-5, 3.38D-5, 5.D-7, 2.452D-4, -1.3813D-3, &
-          1.3811D-3, -6.25001D-2, -1.D-7, .7071068D+0, .7071068D+0/
-  TH(D) = (((((CC1*D + CC2)*D + CC3)*D + CC4)*D + CC5)*D + CC6)*D + CC7
-  PH(D) = (((((CC8*D + CC9)*D + CC10)*D + CC11)*D + CC12)*D + CC13)*D + CC14
-  F(D) = SQRT(POT/D) * EXP(-CN*D + TH(-8./X))
-  G(D) = EXP(CN*D + TH(8./X)) / SQRT(TP*D)
-  X = SQRT(TPCMU*SIGL) * ROLAM
+  complex*16 th, ph, f, g, fj, cn, br1, br2
+  complex*16 cc1, cc2, cc3, cc4, cc5, cc6, cc7, cc8, cc9, cc10, cc11, cc12, &
+             cc13, cc14
+  dimension fjx(2), cnx(2), ccn(28)
+  equivalence (fj, fjx), (cn, cnx), (cc1, ccn(1)), (cc2, ccn(3)), (cc3, &
+              ccn(5)), (cc4, ccn(7)), (cc5, ccn(9)), (cc6, ccn(11)), (cc7, ccn(13)), &
+              (cc8, ccn(15)), (cc9, ccn(17)), (cc10, ccn(19)), (cc11, ccn(21)), (cc12, &
+              ccn(23)), (cc13, ccn(25)), (cc14, ccn(27))
+  data pi, pot, tp, tpcmu/3.1415926d+0, 1.5707963d+0, 6.2831853d+0, &
+                          2.368705d+3/
+  data cmotp/60.00/, fjx/0., 1./, cnx/.70710678d+0, .70710678d+0/
+  data ccn/6.d-7, 1.9d-6, -3.4d-6, 5.1d-6, -2.52d-5, 0., -9.06d-5, -9.01d-5, &
+          0., -9.765d-4, .0110486d+0, -.0110485d+0, 0., -.3926991d+0, 1.6d-6, &
+          -3.2d-6, 1.17d-5, -2.4d-6, 3.46d-5, 3.38d-5, 5.d-7, 2.452d-4, -1.3813d-3, &
+          1.3811d-3, -6.25001d-2, -1.d-7, .7071068d+0, .7071068d+0/
+  th(d) = (((((cc1*d + cc2)*d + cc3)*d + cc4)*d + cc5)*d + cc6)*d + cc7
+  ph(d) = (((((cc8*d + cc9)*d + cc10)*d + cc11)*d + cc12)*d + cc13)*d + cc14
+  f(d) = sqrt(pot/d) * exp(-cn*d + th(-8./x))
+  g(d) = exp(cn*d + th(8./x)) / sqrt(tp*d)
+  x = sqrt(tpcmu*sigl) * rolam
 
   ! Structured control flow replacing GOTOs (lines 3733-3734, 3749, 3754)
-  if (X > 110.0D0) then
+  if (x > 110.0d0) then
     ! Label 2: Large X approximation (line 3755)
-    BR1 = DCMPLX(.70710678D+0, -.70710678D+0)
-  else if (X > 8.0D0) then
+    br1 = dcmplx(.70710678d+0, -.70710678d+0)
+  else if (x > 8.0d0) then
     ! Label 1: Medium X using asymptotic forms (lines 3750-3753)
-    BR2 = FJ * F(X) / PI
-    BR1 = G(X) + BR2
-    BR2 = G(X) * PH(8./X) - BR2 * PH(-8./X)
-    BR1 = BR1 / BR2
+    br2 = fj * f(x) / pi
+    br1 = g(x) + br2
+    br2 = g(x) * ph(8./x) - br2 * ph(-8./x)
+    br1 = br1 / br2
   else
     ! Small X using series expansion (lines 3735-3748)
-    Y = X / 8.
-    Y = Y * Y
-    S = Y * Y
-    BER = ((((((-9.01D-6*S + 1.22552D-3)*S - .08349609D+0)*S + 2.6419140D+0) &
-          *S - 32.363456D+0)*S + 113.77778D+0)*S - 64.)*S + 1.
-    BEI = ((((((1.1346D-4*S - .01103667D+0)*S + .52185615D+0)*S - &
-          10.567658D+0)*S + 72.817777D+0)*S - 113.77778D+0)*S + 16.)*Y
-    BR1 = DCMPLX(BER, BEI)
-    BER = (((((((-3.94D-6*S + 4.5957D-4)*S - .02609253D+0)*S + .66047849D+0) &
-          *S - 6.0681481D+0)*S + 14.222222D+0)*S - 4.)*Y)*X
-    BEI = ((((((4.609D-5*S - 3.79386D-3)*S + .14677204D+0)*S - 2.3116751D+0) &
-          *S + 11.377778D+0)*S - 10.666667D+0)*S + .5)*X
-    BR2 = DCMPLX(BER, BEI)
-    BR1 = BR1 / BR2
+    y = x / 8.
+    y = y * y
+    s = y * y
+    ber = ((((((-9.01d-6*s + 1.22552d-3)*s - .08349609d+0)*s + 2.6419140d+0) &
+          *s - 32.363456d+0)*s + 113.77778d+0)*s - 64.)*s + 1.
+    bei = ((((((1.1346d-4*s - .01103667d+0)*s + .52185615d+0)*s - &
+          10.567658d+0)*s + 72.817777d+0)*s - 113.77778d+0)*s + 16.)*y
+    br1 = dcmplx(ber, bei)
+    ber = (((((((-3.94d-6*s + 4.5957d-4)*s - .02609253d+0)*s + .66047849d+0) &
+          *s - 6.0681481d+0)*s + 14.222222d+0)*s - 4.)*y)*x
+    bei = ((((((4.609d-5*s - 3.79386d-3)*s + .14677204d+0)*s - 2.3116751d+0) &
+          *s + 11.377778d+0)*s - 10.666667d+0)*s + .5)*x
+    br2 = dcmplx(ber, bei)
+    br1 = br1 / br2
   end if
 
   ! Label 3: Final computation (line 3756)
-  ZINT = FJ * SQRT(CMOTP/SIGL) * BR1 / ROLAM
+  zint = fj * sqrt(cmotp/sigl) * br1 / rolam
   return
-end function ZINT
-subroutine SFLDS(T, E)
+end function zint
+subroutine sflds(t, e)
   ! ***
   ! DOUBLE PRECISION 6/4/85
   !
-  implicit real*8(A-H,O-Z)
+  implicit real*8(a-h,o-z)
   ! ***
   !
   ! SFLDX RETURNS THE FIELD DUE TO GROUND FOR A CURRENT ELEMENT ON
   ! THE SOURCE SEGMENT AT T RELATIVE TO THE SEGMENT CENTER.
   !
-  complex*16 E, ERV, EZV, ERH, EZH, EPH, T1, EXK, EYK, EZK, EXS, EYS, EZS, EXC, &
-             EYC, EZC, XX1, XX2, U, U2, ZRATI, ZRATI2, FRATI, ER, ET, HRV, HZV, HRH
-  common /DATAJ/ S, B, XJ, YJ, ZJ, CABJ, SABJ, SALPJ, EXK, EYK, EZK, EXS, EYS, &
-                 EZS, EXC, EYC, EZC, RKH, IND1, INDD1, IND2, INDD2, IEXK, IPGND
-  common /INCOM/ XO, YO, ZO, SN, XSN, YSN, ISNOR
-  common /GWAV/ U, U2, XX1, XX2, R1, R2, ZMH, ZPH
-  common /GND/ ZRATI, ZRATI2, FRATI, T1, T2, CL, CH, SCRWL, SCRWR, NRADL, &
-               KSYMP, IFAR, IPERF
-  dimension E(9)
-  data PI/3.141592654D+0/, TP/6.283185308D+0/, POT/1.570796327D+0/
+  complex*16 e, erv, ezv, erh, ezh, eph, t1, exk, eyk, ezk, exs, eys, ezs, exc, &
+             eyc, ezc, xx1, xx2, u, u2, zrati, zrati2, frati, er, et, hrv, hzv, hrh
+  common /dataj/ s, b, xj, yj, zj, cabj, sabj, salpj, exk, eyk, ezk, exs, eys, &
+                 ezs, exc, eyc, ezc, rkh, ind1, indd1, ind2, indd2, iexk, ipgnd
+  common /incom/ xo, yo, zo, sn, xsn, ysn, isnor
+  common /gwav/ u, u2, xx1, xx2, r1, r2, zmh, zph
+  common /gnd/ zrati, zrati2, frati, t1, t2, cl, ch, scrwl, scrwr, nradl, &
+               ksymp, ifar, iperf
+  dimension e(9)
+  data pi/3.141592654d+0/, tp/6.283185308d+0/, pot/1.570796327d+0/
 
-  XT = XJ + T*CABJ
-  YT = YJ + T*SABJ
-  ZT = ZJ + T*SALPJ
-  RHX = XO - XT
-  RHY = YO - YT
-  RHS = RHX*RHX + RHY*RHY
-  RHO = SQRT(RHS)
+  xt = xj + t*cabj
+  yt = yj + t*sabj
+  zt = zj + t*salpj
+  rhx = xo - xt
+  rhy = yo - yt
+  rhs = rhx*rhx + rhy*rhy
+  rho = sqrt(rhs)
 
   ! *** GOTO 1/2 eliminated: IF/ELSE for RHO handling (lines 3472-3477)
-  if (RHO .GT. 0.D0) then
-    RHX = RHX/RHO
-    RHY = RHY/RHO
-    PHX = -RHY
-    PHY = RHX
+  if (rho .gt. 0.d0) then
+    rhx = rhx/rho
+    rhy = rhy/rho
+    phx = -rhy
+    phy = rhx
   else
-    RHX = 1.D0
-    RHY = 0.D0
-    PHX = 0.D0
-    PHY = 1.D0
+    rhx = 1.d0
+    rhy = 0.d0
+    phx = 0.d0
+    phy = 1.d0
   end if
 
-  CPH = RHX*XSN + RHY*YSN
-  SPH = RHY*XSN - RHX*YSN
-  if (ABS(CPH) .LT. 1.D-10) CPH = 0.D0
-  if (ABS(SPH) .LT. 1.D-10) SPH = 0.D0
-  ZPH = ZO + ZT
-  ZPHS = ZPH*ZPH
-  R2S = RHS + ZPHS
-  R2 = SQRT(R2S)
-  RK = R2*TP
-  XX2 = DCMPLX(COS(RK), -SIN(RK))
+  cph = rhx*xsn + rhy*ysn
+  sph = rhy*xsn - rhx*ysn
+  if (abs(cph) .lt. 1.d-10) cph = 0.d0
+  if (abs(sph) .lt. 1.d-10) sph = 0.d0
+  zph = zo + zt
+  zphs = zph*zph
+  r2s = rhs + zphs
+  r2 = sqrt(r2s)
+  rk = r2*tp
+  xx2 = dcmplx(cos(rk), -sin(rk))
 
   ! *** GOTO 3 eliminated: IF/ELSE for Norton vs Sommerfeld (line 3492)
-  if (ISNOR .EQ. 1) then
+  if (isnor .eq. 1) then
     !
     ! INTERPOLATE IN SOMMERFELD FIELD TABLES
     !
     ! *** GOTO 4/5 eliminated: IF/ELSE for THET calculation (lines 3534-3537)
-    if (RHO .LT. 1.D-12) then
-      THET = POT
+    if (rho .lt. 1.d-12) then
+      thet = pot
     else
-      THET = ATAN(ZPH/RHO)
+      thet = atan(zph/rho)
     end if
 
-    call INTRP(R2, THET, ERV, EZV, ERH, EPH)
+    call intrp(r2, thet, erv, ezv, erh, eph)
     ! COMBINE VERTICAL AND HORIZONTAL COMPONENTS AND CONVERT TO X,Y,Z
     ! COMPONENTS.  MULTIPLY BY EXP(-JKR)/R.
-    XX2 = XX2/R2
-    SFAC = SN*CPH
-    ERH = XX2*(SALPJ*ERV + SFAC*ERH)
-    EZH = XX2*(SALPJ*EZV - SFAC*ERV)
-    EPH = SN*SPH*XX2*EPH
+    xx2 = xx2/r2
+    sfac = sn*cph
+    erh = xx2*(salpj*erv + sfac*erh)
+    ezh = xx2*(salpj*ezv - sfac*erv)
+    eph = sn*sph*xx2*eph
     ! X,Y,Z FIELDS FOR CONSTANT CURRENT
-    E(1) = ERH*RHX + EPH*PHX
-    E(2) = ERH*RHY + EPH*PHY
-    E(3) = EZH
-    RK = TP*T
+    e(1) = erh*rhx + eph*phx
+    e(2) = erh*rhy + eph*phy
+    e(3) = ezh
+    rk = tp*t
     ! X,Y,Z FIELDS FOR SINE CURRENT
-    SFAC = SIN(RK)
-    E(4) = E(1)*SFAC
-    E(5) = E(2)*SFAC
-    E(6) = E(3)*SFAC
+    sfac = sin(rk)
+    e(4) = e(1)*sfac
+    e(5) = e(2)*sfac
+    e(6) = e(3)*sfac
     ! X,Y,Z FIELDS FOR COSINE CURRENT
-    SFAC = COS(RK)
-    E(7) = E(1)*SFAC
-    E(8) = E(2)*SFAC
-    E(9) = E(3)*SFAC
+    sfac = cos(rk)
+    e(7) = e(1)*sfac
+    e(8) = e(2)*sfac
+    e(9) = e(3)*sfac
   else
     !
     ! USE NORTON APPROXIMATION FOR FIELD DUE TO GROUND.  CURRENT IS
     ! LUMPED AT SEGMENT CENTER WITH CURRENT MOMENT FOR CONSTANT, SINE,
     ! OR COSINE DISTRIBUTION.
     !
-    ZMH = 1.D0
-    R1 = 1.D0
-    XX1 = 0.D0
-    call GWAVE(ERV, EZV, ERH, EZH, EPH)
-    ET = -(0.D0, 4.77134D0)*FRATI*XX2/(R2S*R2)
-    ER = 2.D0*ET*DCMPLX(1.D+0, RK)
-    ET = ET*DCMPLX(1.D+0 - RK*RK, RK)
-    HRV = (ER + ET)*RHO*ZPH/R2S
-    HZV = (ZPHS*ER - RHS*ET)/R2S
-    HRH = (RHS*ER - ZPHS*ET)/R2S
-    ERV = ERV - HRV
-    EZV = EZV - HZV
-    ERH = ERH + HRH
-    EZH = EZH + HRV
-    EPH = EPH + ET
-    ERV = ERV*SALPJ
-    EZV = EZV*SALPJ
-    ERH = ERH*SN*CPH
-    EZH = EZH*SN*CPH
-    EPH = EPH*SN*SPH
-    ERH = ERV + ERH
-    E(1) = (ERH*RHX + EPH*PHX)*S
-    E(2) = (ERH*RHY + EPH*PHY)*S
-    E(3) = (EZV + EZH)*S
-    E(4) = 0.D0
-    E(5) = 0.D0
-    E(6) = 0.D0
-    SFAC = PI*S
-    SFAC = SIN(SFAC)/SFAC
-    E(7) = E(1)*SFAC
-    E(8) = E(2)*SFAC
-    E(9) = E(3)*SFAC
+    zmh = 1.d0
+    r1 = 1.d0
+    xx1 = 0.d0
+    call gwave(erv, ezv, erh, ezh, eph)
+    et = -(0.d0, 4.77134d0)*frati*xx2/(r2s*r2)
+    er = 2.d0*et*dcmplx(1.d+0, rk)
+    et = et*dcmplx(1.d+0 - rk*rk, rk)
+    hrv = (er + et)*rho*zph/r2s
+    hzv = (zphs*er - rhs*et)/r2s
+    hrh = (rhs*er - zphs*et)/r2s
+    erv = erv - hrv
+    ezv = ezv - hzv
+    erh = erh + hrh
+    ezh = ezh + hrv
+    eph = eph + et
+    erv = erv*salpj
+    ezv = ezv*salpj
+    erh = erh*sn*cph
+    ezh = ezh*sn*cph
+    eph = eph*sn*sph
+    erh = erv + erh
+    e(1) = (erh*rhx + eph*phx)*s
+    e(2) = (erh*rhy + eph*phy)*s
+    e(3) = (ezv + ezh)*s
+    e(4) = 0.d0
+    e(5) = 0.d0
+    e(6) = 0.d0
+    sfac = pi*s
+    sfac = sin(sfac)/sfac
+    e(7) = e(1)*sfac
+    e(8) = e(2)*sfac
+    e(9) = e(3)*sfac
   end if
 
   return
-end subroutine SFLDS
-subroutine FACGF(A, B, C, D, BX, IP, IX, NP, N1, MP, M1, N1C, N2C)
+end subroutine sflds
+subroutine facgf(a, b, c, d, bx, ip, ix, np, n1, mp, m1, n1c, n2c)
   !
   ! FACGF COMPUTES AND FACTORS D-C(INV(A)B).
   ! DOUBLE PRECISION 6/4/85
   !
-  implicit real*8(A-H,O-Z)
-  complex*16 A, B, C, D, BX, SUM
-  common /MATPAR/ ICASE, NBLOKS, NPBLK, NLAST, NBLSYM, NPSYM, NLSYM, IMAT, &
-                  ICASX, NBBX, NPBX, NLBX, NBBL, NPBL, NLBL
-  dimension A(1), B(N1C,1), C(N1C,1), D(N2C,1), BX(N1C,1), IP(1), IX(1)
+  implicit real*8(a-h,o-z)
+  complex*16 a, b, c, d, bx, sum
+  common /matpar/ icase, nbloks, npblk, nlast, nblsym, npsym, nlsym, imat, &
+                  icasx, nbbx, npbx, nlbx, nbbl, npbl, nlbl
+  dimension a(1), b(n1c,1), c(n1c,1), d(n2c,1), bx(n1c,1), ip(1), ix(1)
 
-  if (N2C == 0) return
+  if (n2c == 0) return
 
   ! Initialize tape unit flag
-  IBFL = 14
+  ibfl = 14
 
   ! Convert B from blocks of rows on T14 to blocks of columns on T16 if needed
-  if (ICASX >= 3) then
-    call REBLK(B, C, N1C, NPBX, N2C)
-    IBFL = 16
+  if (icasx >= 3) then
+    call reblk(b, c, n1c, npbx, n2c)
+    ibfl = 16
   end if
 
   ! Label 1: Compute INV(A)B and write on TAPE14
-  NPB = NPBL
-  if (ICASX == 2) rewind 14
+  npb = npbl
+  if (icasx == 2) rewind 14
 
-  do IB = 1, NBBL
-    if (IB == NBBL) NPB = NLBL
-    if (ICASX > 1) read (IBFL) ((BX(I,J), I=1,N1C), J=1,NPB)
-    call SOLVES(A, IP, BX, N1C, NPB, NP, N1, MP, M1, 13, 13)
-    if (ICASX == 2) rewind 14
-    if (ICASX > 1) write (14) ((BX(I,J), I=1,N1C), J=1,NPB)
+  do ib = 1, nbbl
+    if (ib == nbbl) npb = nlbl
+    if (icasx > 1) read (ibfl) ((bx(i,j), i=1,n1c), j=1,npb)
+    call solves(a, ip, bx, n1c, npb, np, n1, mp, m1, 13, 13)
+    if (icasx == 2) rewind 14
+    if (icasx > 1) write (14) ((bx(i,j), i=1,n1c), j=1,npb)
   end do
 
   ! Rewind tapes if ICASX /= 1
-  if (ICASX /= 1) then
+  if (icasx /= 1) then
     rewind 11
     rewind 12
     rewind 15
-    rewind IBFL
+    rewind ibfl
   end if
 
   ! Label 3: Compute D-C(INV(A)B) and write on TAPE11
-  NPC = NPBL
+  npc = npbl
 
-  do IC = 1, NBBL
-    if (IC == NBBL) NPC = NLBL
+  do ic = 1, nbbl
+    if (ic == nbbl) npc = nlbl
 
     ! Read C and D matrices if ICASX /= 1
-    if (ICASX /= 1) then
-      read (15) ((C(I,J), I=1,N1C), J=1,NPC)
-      read (12) ((D(I,J), I=1,N2C), J=1,NPC)
+    if (icasx /= 1) then
+      read (15) ((c(i,j), i=1,n1c), j=1,npc)
+      read (12) ((d(i,j), i=1,n2c), j=1,npc)
       rewind 14
     end if
 
     ! Label 4: Compute matrix product and update D
-    NPB = NPBL
-    NIC = 0
+    npb = npbl
+    nic = 0
 
-    do IB = 1, NBBL
-      if (IB == NBBL) NPB = NLBL
-      if (ICASX > 1) read (14) ((B(I,J), I=1,N1C), J=1,NPB)
+    do ib = 1, nbbl
+      if (ib == nbbl) npb = nlbl
+      if (icasx > 1) read (14) ((b(i,j), i=1,n1c), j=1,npb)
 
-      do I = 1, NPB
-        II = I + NIC
-        do J = 1, NPC
-          SUM = (0.0D0, 0.0D0)
-          do K = 1, N1C
-            SUM = SUM + B(K,I) * C(K,J)
+      do i = 1, npb
+        ii = i + nic
+        do j = 1, npc
+          sum = (0.0d0, 0.0d0)
+          do k = 1, n1c
+            sum = sum + b(k,i) * c(k,j)
           end do
-          D(II,J) = D(II,J) - SUM
+          d(ii,j) = d(ii,j) - sum
         end do
       end do
 
-      NIC = NIC + NPBL
+      nic = nic + npbl
     end do
 
-    if (ICASX > 1) write (11) ((D(I,J), I=1,N2C), J=1,NPBL)
+    if (icasx > 1) write (11) ((d(i,j), i=1,n2c), j=1,npbl)
   end do
 
   ! Rewind tapes if ICASX /= 1
-  if (ICASX /= 1) then
+  if (icasx /= 1) then
     rewind 11
     rewind 12
     rewind 14
@@ -353,53 +353,53 @@ subroutine FACGF(A, B, C, D, BX, IP, IX, NP, N1, MP, M1, N1C, N2C)
   end if
 
   ! Label 9: Factor D-C(INV(A)B)
-  N1CP = N1C + 1
+  n1cp = n1c + 1
 
   ! Branch based on ICASX value
-  if (ICASX <= 1) then
+  if (icasx <= 1) then
     ! Case: ICASX = 0 or 1
-    call FACTR(N2C, D, IP(N1CP), N2C)
+    call factr(n2c, d, ip(n1cp), n2c)
 
-  else if (ICASX == 4) then
+  else if (icasx == 4) then
     ! Label 12: Case ICASX = 4 - Use FACIO/LUNSCR for factorization
-    NBLSYS = NBLSYM
-    NPSYS = NPSYM
-    NLSYS = NLSYM
-    ICASS = ICASE
-    NBLSYM = NBBL
-    NPSYM = NPBL
-    NLSYM = NLBL
-    ICASE = 3
-    call FACIO(B, N2C, 1, IX(N1CP), 11, 12, 16, 11)
-    call LUNSCR(B, N2C, 1, IP(N1CP), IX(N1CP), 12, 11, 16)
+    nblsys = nblsym
+    npsys = npsym
+    nlsys = nlsym
+    icass = icase
+    nblsym = nbbl
+    npsym = npbl
+    nlsym = nlbl
+    icase = 3
+    call facio(b, n2c, 1, ix(n1cp), 11, 12, 16, 11)
+    call lunscr(b, n2c, 1, ip(n1cp), ix(n1cp), 12, 11, 16)
     ! Restore original values
-    NBLSYM = NBLSYS
-    NPSYM = NPSYS
-    NLSYM = NLSYS
-    ICASE = ICASS
+    nblsym = nblsys
+    npsym = npsys
+    nlsym = nlsys
+    icase = icass
 
   else
     ! Label 10: Case ICASX = 2 or 3
-    NPB = NPBL
-    IC = 0
+    npb = npbl
+    ic = 0
 
-    do IB = 1, NBBL
-      if (IB == NBBL) NPB = NLBL
-      II = IC + 1
-      IC = IC + N2C * NPB
-      read (11) (B(I,1), I=II,IC)
+    do ib = 1, nbbl
+      if (ib == nbbl) npb = nlbl
+      ii = ic + 1
+      ic = ic + n2c * npb
+      read (11) (b(i,1), i=ii,ic)
     end do
 
     rewind 11
-    call FACTR(N2C, B, IP(N1CP), N2C)
-    NIC = N2C * N2C
-    write (11) (B(I,1), I=1,NIC)
+    call factr(n2c, b, ip(n1cp), n2c)
+    nic = n2c * n2c
+    write (11) (b(i,1), i=1,nic)
     rewind 11
   end if
 
   ! Label 13: Return
   return
-end subroutine FACGF
+end subroutine facgf
 subroutine gfld(rho, phi, rz, eth, epi, erd, ux, ksymp)
   !
   ! GFLD computes the radiated field including ground wave.

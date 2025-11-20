@@ -7,73 +7,73 @@
 module nec2d_utils
   use nec2d_params
   use nec2d_commons
-  implicit NONE
+  implicit none
 
   contains
 
 !***********************************************************************
-      function ATGN2 (X,Y)
+      function atgn2 (x,y)
 !***********************************************************************
 !     ATGN2 IS ARCTANGENT FUNCTION MODIFIED TO RETURN 0. WHEN X=Y=0.
 !***********************************************************************
-      implicit real*8(A-H,O-Z)
-      real*8 :: ATGN2, X, Y
+      implicit real*8(a-h,o-z)
+      real*8 :: atgn2, x, y
 
-      if (X) 3,1,3
-1     if (Y) 3,2,3
-2     ATGN2=0.
+      if (x) 3,1,3
+1     if (y) 3,2,3
+2     atgn2=0.
       return
-3     ATGN2=ATAN2(X,Y)
+3     atgn2=atan2(x,y)
       return
-      end function ATGN2
+      end function atgn2
 
 !***********************************************************************
-      function CANG (Z)
+      function cang (z)
 !***********************************************************************
 !     CANG RETURNS THE PHASE ANGLE OF A COMPLEX NUMBER IN DEGREES.
 !***********************************************************************
-      implicit real*8(A-H,O-Z)
-      complex*16 :: Z
-      real*8 :: CANG
+      implicit real*8(a-h,o-z)
+      complex*16 :: z
+      real*8 :: cang
 
-      CANG=ATGN2(DIMAG(Z),DREAL(Z))*57.29577951D+0
+      cang=atgn2(dimag(z),dreal(z))*57.29577951d+0
       return
-      end function CANG
+      end function cang
 
 !***********************************************************************
-      function DB10 (X)
+      function db10 (x)
 !***********************************************************************
 !     FUNCTION DB-- RETURNS DB FOR MAGNITUDE (FIELD) OR MAG**2 (POWER)
 !***********************************************************************
-      implicit real*8(A-H,O-Z)
-      real*8 :: DB10, DB20, X, F
+      implicit real*8(a-h,o-z)
+      real*8 :: db10, db20, x, f
 
-      F=10.
-      GO TO 1
-      ENTRY DB20(X)
-      F=20.
-1     if (X.lt.1.D-20) GO TO 2
-      DB10=F*LOG10(X)
+      f=10.
+      go to 1
+      entry db20(x)
+      f=20.
+1     if (x.lt.1.d-20) go to 2
+      db10=f*log10(x)
       return
-2     DB10=-999.99
+2     db10=-999.99
       return
-      end function DB10
+      end function db10
 
 !***********************************************************************
-      subroutine CPUSEC (CPUSECD)
+      subroutine cpusec (cpusecd)
 !***********************************************************************
 !     CPUSEC returns cpu time in seconds.
 !***********************************************************************
-      real*8 :: CPUSECD
-      real :: CPUSECS, WALLTOT, CPUSPLT, WALLSPLT
+      real*8 :: cpusecd
+      real :: cpusecs, walltot, cpusplt, wallsplt
 
-      call STOPWTCH(CPUSECS,WALLTOT,CPUSPLT,WALLSPLT)
-      CPUSECD=60.*CPUSECS
+      call stopwtch(cpusecs,walltot,cpusplt,wallsplt)
+      cpusecd=60.*cpusecs
       return
-      end subroutine CPUSEC
+      end subroutine cpusec
 
 !***********************************************************************
-      subroutine STOPWTCH(cputot,walltot,cpusplt,wallsplt)
+      subroutine stopwtch(cputot,walltot,cpusplt,wallsplt)
 !***********************************************************************
 !     This routine operates as a stopwatch.
 !     When first called, the routine initializes the clock.
@@ -114,6 +114,6 @@ module nec2d_utils
       walllast = wallnow
 
       return
-      end subroutine STOPWTCH
+      end subroutine stopwtch
 
 end module nec2d_utils

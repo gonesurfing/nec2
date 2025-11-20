@@ -5,7 +5,7 @@
 ! Contains: FBLOCK, SOLGF, SOLVES
 ! GOTOs eliminated: 14
 ! =============================================================================
-subroutine FBLOCK (NROW,NCOL,IMAX,IRNGF,IPSYM)
+subroutine fblock (nrow,ncol,imax,irngf,ipsym)
 ! ============================================================================
 ! Modernized from: nec2dxs_integrated.f, lines 1763-1869
 ! GOTOs eliminated: 14 (converted to structured IF/THEN/ELSE control flow)
@@ -18,151 +18,151 @@ subroutine FBLOCK (NROW,NCOL,IMAX,IRNGF,IPSYM)
 ! ============================================================================
 ! FBLOCK SETS PARAMETERS FOR OUT-OF-CORE SOLUTION FOR THE PRIMARY MATRIX (A)
 !
-  implicit real*8(A-H,O-Z)
+  implicit real*8(a-h,o-z)
   include 'NEC2D3000.INC'
 
-  complex*16 SSX,DETER
-  common /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,ICASX, &
-                  NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  common /SMAT/ SSX(16,16)
+  complex*16 ssx,deter
+  common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat,icasx, &
+                  nbbx,npbx,nlbx,nbbl,npbl,nlbl
+  common /smat/ ssx(16,16)
 
-  logical :: NEED_SYMMETRY_SETUP
+  logical :: need_symmetry_setup
 
-  IMX1=IMAX-IRNGF
-  NEED_SYMMETRY_SETUP = .FALSE.
+  imx1=imax-irngf
+  need_symmetry_setup = .false.
 
   ! Original GOTO 2 (line 1776) eliminated: restructured as IF/ELSE block
-  if (NROW*NCOL <= IMX1) then
+  if (nrow*ncol <= imx1) then
     ! Matrix fits in core - simple case
-    NBLOKS=1
-    NPBLK=NROW
-    NLAST=NROW
-    IMAT=NROW*NCOL
+    nbloks=1
+    npblk=nrow
+    nlast=nrow
+    imat=nrow*ncol
     ! Original GOTO 1 (line 1781) eliminated: restructured as IF/ELSE
-    if (NROW == NCOL) then
-      ICASE=1
+    if (nrow == ncol) then
+      icase=1
       return  ! Early return for symmetric in-core case
     else
       ! Label 1: Non-symmetric in-core case
-      ICASE=2
+      icase=2
       ! Original GOTO 5 (line 1785) eliminated: set flag to continue to symmetry setup
-      NEED_SYMMETRY_SETUP = .TRUE.
+      need_symmetry_setup = .true.
     end if
   else
     ! Label 2: Matrix doesn't fit in core - out-of-core solution needed
     ! Original GOTO 3 (line 1786) eliminated: restructured as IF/ELSE
-    if (NROW == NCOL) then
+    if (nrow == ncol) then
       ! Symmetric matrix out-of-core partitioning
-      ICASE=3
-      NPBLK=IMAX/(2*NCOL)
-      NPSYM=IMX1/NCOL
-      if (NPSYM < NPBLK) NPBLK=NPSYM
+      icase=3
+      npblk=imax/(2*ncol)
+      npsym=imx1/ncol
+      if (npsym < npblk) npblk=npsym
       ! Original GOTO 12 (line 1791) eliminated: structured error check
-      if (NPBLK < 1) then
+      if (npblk < 1) then
         ! Label 12: Error - insufficient storage
-        write(*,17) NROW,NCOL
+        write(*,17) nrow,ncol
         stop
       end if
-      NBLOKS=(NROW-1)/NPBLK
-      NLAST=NROW-NBLOKS*NPBLK
-      NBLOKS=NBLOKS+1
-      NBLSYM=NBLOKS
-      NPSYM=NPBLK
-      NLSYM=NLAST
-      IMAT=NPBLK*NCOL
-      write(*,14) NBLOKS,NPBLK,NLAST
+      nbloks=(nrow-1)/npblk
+      nlast=nrow-nbloks*npblk
+      nbloks=nbloks+1
+      nblsym=nbloks
+      npsym=npblk
+      nlsym=nlast
+      imat=npblk*ncol
+      write(*,14) nbloks,npblk,nlast
       ! Original GOTO 11 (line 1800) eliminated: direct RETURN
       return  ! Early return for symmetric out-of-core case
     else
       ! Label 3: Non-symmetric matrix out-of-core partitioning
-      NPBLK=IMAX/NCOL
+      npblk=imax/ncol
       ! Original GOTO 12 (line 1802) eliminated: structured error check
-      if (NPBLK < 1) then
+      if (npblk < 1) then
         ! Label 12: Error - insufficient storage
-        write(*,17) NROW,NCOL
+        write(*,17) nrow,ncol
         stop
       end if
-      if (NPBLK > NROW) NPBLK=NROW
-      NBLOKS=(NROW-1)/NPBLK
-      NLAST=NROW-NBLOKS*NPBLK
-      NBLOKS=NBLOKS+1
-      write(*,14) NBLOKS,NPBLK,NLAST
+      if (npblk > nrow) npblk=nrow
+      nbloks=(nrow-1)/npblk
+      nlast=nrow-nbloks*npblk
+      nbloks=nbloks+1
+      write(*,14) nbloks,npblk,nlast
       ! Original GOTO 4 (line 1808) eliminated: restructured as IF/ELSE
-      if (NROW*NROW <= IMX1) then
+      if (nrow*nrow <= imx1) then
         ! Label 4: Submatrices fit in core
-        ICASE=4
-        NBLSYM=1
-        NPSYM=NROW
-        NLSYM=NROW
-        IMAT=NROW*NROW
+        icase=4
+        nblsym=1
+        npsym=nrow
+        nlsym=nrow
+        imat=nrow*nrow
         write(*,15)
         ! Original GOTO 5 (line 1815) eliminated: set flag to continue to symmetry setup
-        NEED_SYMMETRY_SETUP = .TRUE.
+        need_symmetry_setup = .true.
       else
         ! Submatrix partitioning needed
-        ICASE=5
-        NPSYM=IMAX/(2*NROW)
-        NBLSYM=IMX1/NROW
-        if (NBLSYM < NPSYM) NPSYM=NBLSYM
+        icase=5
+        npsym=imax/(2*nrow)
+        nblsym=imx1/nrow
+        if (nblsym < npsym) npsym=nblsym
         ! Original GOTO 12 (line 1820) eliminated: structured error check
-        if (NPSYM < 1) then
+        if (npsym < 1) then
           ! Label 12: Error - insufficient storage
-          write(*,17) NROW,NCOL
+          write(*,17) nrow,ncol
           stop
         end if
-        NBLSYM=(NROW-1)/NPSYM
-        NLSYM=NROW-NBLSYM*NPSYM
-        NBLSYM=NBLSYM+1
-        write(*,16) NBLSYM,NPSYM,NLSYM
-        IMAT=NPSYM*NROW
+        nblsym=(nrow-1)/npsym
+        nlsym=nrow-nblsym*npsym
+        nblsym=nblsym+1
+        write(*,16) nblsym,npsym,nlsym
+        imat=npsym*nrow
         ! Fall through to symmetry setup (ICASE=5 always needs it)
-        NEED_SYMMETRY_SETUP = .TRUE.
+        need_symmetry_setup = .true.
       end if
     end if
   end if
 
   ! Only execute symmetry setup for cases that need it (ICASE 2, 4, 5)
-  if (NEED_SYMMETRY_SETUP) then
+  if (need_symmetry_setup) then
     ! Label 5: Symmetry setup section
-    NOP=NCOL/NROW
+    nop=ncol/nrow
     ! Original GOTO 13 (line 1827) eliminated: structured error check
-    if (NOP*NROW /= NCOL) then
+    if (nop*nrow /= ncol) then
       ! Label 13: Symmetry error
-      write(*,18) NROW,NCOL
+      write(*,18) nrow,ncol
       stop
     end if
 
     ! Original GOTO 7 (line 1828) eliminated: restructured as IF/ELSE
-    if (IPSYM > 0) then
+    if (ipsym > 0) then
       ! Label 7: SET UP SSX MATRIX FOR PLANE SYMMETRY
-      KK=1
-      SSX(1,1)=(1.,0.)
+      kk=1
+      ssx(1,1)=(1.,0.)
       ! Original GOTO 8 (line 1844) eliminated: structured error check
-      if ((NOP /= 2) .AND. (NOP /= 4) .AND. (NOP /= 8)) then
+      if ((nop /= 2) .and. (nop /= 4) .and. (nop /= 8)) then
         stop
       end if
       ! Label 8: Continue plane symmetry setup
-      KA=NOP/2
-      if (NOP == 8) KA=3
-      do K=1,KA
-        do I=1,KK
-          do J=1,KK
-            DETER=SSX(I,J)
-            SSX(I,J+KK)=DETER
-            SSX(I+KK,J+KK)=-DETER
-            SSX(I+KK,J)=DETER
+      ka=nop/2
+      if (nop == 8) ka=3
+      do k=1,ka
+        do i=1,kk
+          do j=1,kk
+            deter=ssx(i,j)
+            ssx(i,j+kk)=deter
+            ssx(i+kk,j+kk)=-deter
+            ssx(i+kk,j)=deter
           end do
         end do
-        KK=KK*2
+        kk=kk*2
       end do
     else
       ! SET UP SSX MATRIX FOR ROTATIONAL SYMMETRY
-      PHAZ=6.2831853072D+0/NOP
-      do I=2,NOP
-        do J=I,NOP
-          ARG=PHAZ*DFLOAT(I-1)*DFLOAT(J-1)
-          SSX(I,J)=DCMPLX(COS(ARG),SIN(ARG))
-          SSX(J,I)=SSX(I,J)
+      phaz=6.2831853072d+0/nop
+      do i=2,nop
+        do j=i,nop
+          arg=phaz*dfloat(i-1)*dfloat(j-1)
+          ssx(i,j)=dcmplx(cos(arg),sin(arg))
+          ssx(j,i)=ssx(i,j)
         end do
       end do
       ! Original GOTO 11 (line 1838) eliminated: fall through to return
@@ -172,15 +172,15 @@ subroutine FBLOCK (NROW,NCOL,IMAX,IRNGF,IPSYM)
   ! Label 11: Normal return point
   return
 
-14 format (//35H MATRIX FILE STORAGE -  NO. BLOCKS=,I5, &
-           19H COLUMNS PER BLOCK=,I5,23H COLUMNS IN LAST BLOCK=,I5)
-15 format (25H SUBMATRICIES FIT IN CORE)
-16 format (38H SUBMATRIX PARTITIONING -  NO. BLOCKS=,I5, &
-           19H COLUMNS PER BLOCK=,I5,23H COLUMNS IN LAST BLOCK=,I5)
-17 format (40H ERROR - INSUFFICIENT STORAGE FOR MATRIX,2I5)
-18 format (28H SYMMETRY ERROR - NROW,NCOL=,2I5)
+14 format (//35h matrix file storage -  no. blocks=,i5, &
+           19h columns per block=,i5,23h columns in last block=,i5)
+15 format (25h submatricies fit in core)
+16 format (38h submatrix partitioning -  no. blocks=,i5, &
+           19h columns per block=,i5,23h columns in last block=,i5)
+17 format (40h error - insufficient storage for matrix,2i5)
+18 format (28h symmetry error - nrow,ncol=,2i5)
 
-end subroutine FBLOCK
+end subroutine fblock
 
 
 !===============================================================================
@@ -201,167 +201,167 @@ end subroutine FBLOCK
 !   9. Line 4221: IF (N1.EQ.N.OR.M1.EQ.0) GO TO 20 → IF-THEN for conditional skip
 !  10. Line 4233: IF (NSCON.EQ.0) GO TO 22 → IF-THEN for conditional execution
 !===============================================================================
-subroutine SOLGF (A,B,C,D,XY,IP,NP,N1,N,MP,M1,M,N1C,N2C,N2CZ)
+subroutine solgf (a,b,c,d,xy,ip,np,n1,n,mp,m1,m,n1c,n2c,n2cz)
   ! DOUBLE PRECISION 6/4/85
   !
   include 'NEC2D3000.INC'
-  implicit real*8(A-H,O-Z)
+  implicit real*8(a-h,o-z)
   ! SOLVE FOR CURRENT IN N.G.F. PROCEDURE
-  complex*16 A,B,C,D,SUM,XY,Y
-  common /SCRATM/ Y(2*MAXSEG)
-  common /SEGJ/ AX(JMAX),BX(JMAX),CX(JMAX),JCO(JMAX), &
-    JSNO,ISCON(50),NSCON,IPCON(10),NPCON
-  common /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT, &
-    ICASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  dimension A(1), B(N1C,1), C(N1C,1), D(N2CZ,1), IP(1), XY(1)
+  complex*16 a,b,c,d,sum,xy,y
+  common /scratm/ y(2*maxseg)
+  common /segj/ ax(jmax),bx(jmax),cx(jmax),jco(jmax), &
+    jsno,iscon(50),nscon,ipcon(10),npcon
+  common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat, &
+    icasx,nbbx,npbx,nlbx,nbbl,npbl,nlbl
+  dimension a(1), b(n1c,1), c(n1c,1), d(n2cz,1), ip(1), xy(1)
 
-  IFL=14
-  if (ICASX.gt.0) IFL=13
+  ifl=14
+  if (icasx.gt.0) ifl=13
 
   ! GOTO 1,2 eliminated: Restructured as IF-THEN-ELSE
-  if (N2C.gt.0) then
+  if (n2c.gt.0) then
     ! N.G.F. SOLUTION
 
     ! GOTO 3 eliminated: Conditional execution with IF-THEN
-    if (N1.ne.N .AND. M1.ne.0) then
+    if (n1.ne.n .and. m1.ne.0) then
       ! REORDER EXCITATION ARRAY
-      N2=N1+1
-      JJ=N+1
-      NPM=N+2*M1
-      do I=N2,NPM
-        Y(I)=XY(I)
+      n2=n1+1
+      jj=n+1
+      npm=n+2*m1
+      do i=n2,npm
+        y(i)=xy(i)
       end do
-      J=N1
-      do I=JJ,NPM
-        J=J+1
-        XY(J)=Y(I)
+      j=n1
+      do i=jj,npm
+        j=j+1
+        xy(j)=y(i)
       end do
-      do I=N2,N
-        J=J+1
-        XY(J)=Y(I)
+      do i=n2,n
+        j=j+1
+        xy(j)=y(i)
       end do
     end if
 
-    NEQS=NSCON+2*NPCON
+    neqs=nscon+2*npcon
 
     ! GOTO 4 eliminated: Conditional execution with IF-THEN
-    if (NEQS.ne.0) then
-      NEQ=N1C+N2C
-      NEQS=NEQ-NEQS+1
+    if (neqs.ne.0) then
+      neq=n1c+n2c
+      neqs=neq-neqs+1
       ! COMPUTE INV(A)E1
-      do I=NEQS,NEQ
-        XY(I)=(0.,0.)
+      do i=neqs,neq
+        xy(i)=(0.,0.)
       end do
     end if
 
-    call SOLVES (A,IP,XY,N1C,1,NP,N1,MP,M1,13,IFL)
-    NI=0
-    NPB=NPBL
+    call solves (a,ip,xy,n1c,1,np,n1,mp,m1,13,ifl)
+    ni=0
+    npb=npbl
 
     ! COMPUTE E2-C(INV(A)E1)
-    do JJ=1,NBBL
-      if (JJ.eq.NBBL) NPB=NLBL
-      if (ICASX.gt.1) read (15) ((C(I,J),I=1,N1C),J=1,NPB)
-      II=N1C+NI
-      do I=1,NPB
-        SUM=(0.,0.)
-        do J=1,N1C
-          SUM=SUM+C(J,I)*XY(J)
+    do jj=1,nbbl
+      if (jj.eq.nbbl) npb=nlbl
+      if (icasx.gt.1) read (15) ((c(i,j),i=1,n1c),j=1,npb)
+      ii=n1c+ni
+      do i=1,npb
+        sum=(0.,0.)
+        do j=1,n1c
+          sum=sum+c(j,i)*xy(j)
         end do
-        J=II+I
-        XY(J)=XY(J)-SUM
+        j=ii+i
+        xy(j)=xy(j)-sum
       end do
-      NI=NI+NPBL
+      ni=ni+npbl
     end do
-    if (ICASX.gt.1) rewind 15
-    JJ=N1C+1
+    if (icasx.gt.1) rewind 15
+    jj=n1c+1
 
     ! COMPUTE INV(D)(E2-C(INV(A)E1)) = I2
     ! GOTO 5,6,7,8 eliminated: Restructured as nested IF-THEN-ELSE
-    if (ICASX.le.1) then
-      call SOLVE (N2C,D,IP(JJ),XY(JJ),N2C)
+    if (icasx.le.1) then
+      call solve (n2c,d,ip(jj),xy(jj),n2c)
     else
-      if (ICASX.ne.4) then
-        NI=N2C*N2C
-        read (11) (B(J,1),J=1,NI)
+      if (icasx.ne.4) then
+        ni=n2c*n2c
+        read (11) (b(j,1),j=1,ni)
         rewind 11
-        call SOLVE (N2C,B,IP(JJ),XY(JJ),N2C)
+        call solve (n2c,b,ip(jj),xy(jj),n2c)
       else
-        NBLSYS=NBLSYM
-        NPSYS=NPSYM
-        NLSYS=NLSYM
-        ICASS=ICASE
-        NBLSYM=NBBL
-        NPSYM=NPBL
-        NLSYM=NLBL
-        ICASE=3
+        nblsys=nblsym
+        npsys=npsym
+        nlsys=nlsym
+        icass=icase
+        nblsym=nbbl
+        npsym=npbl
+        nlsym=nlbl
+        icase=3
         rewind 11
         rewind 16
-        call LTSOLV (B,N2C,IP(JJ),XY(JJ),N2C,1,11,16)
+        call ltsolv (b,n2c,ip(jj),xy(jj),n2c,1,11,16)
         rewind 11
         rewind 16
-        NBLSYM=NBLSYS
-        NPSYM=NPSYS
-        NLSYM=NLSYS
-        ICASE=ICASS
+        nblsym=nblsys
+        npsym=npsys
+        nlsym=nlsys
+        icase=icass
       end if
     end if
 
-    NI=0
-    NPB=NPBL
+    ni=0
+    npb=npbl
 
     ! COMPUTE INV(A)E1-(INV(A)B)I2 = I1
-    do JJ=1,NBBL
-      if (JJ.eq.NBBL) NPB=NLBL
-      if (ICASX.gt.1) read (14) ((B(I,J),I=1,N1C),J=1,NPB)
-      II=N1C+NI
-      do I=1,N1C
-        SUM=(0.,0.)
-        do J=1,NPB
-          JP=II+J
-          SUM=SUM+B(I,J)*XY(JP)
+    do jj=1,nbbl
+      if (jj.eq.nbbl) npb=nlbl
+      if (icasx.gt.1) read (14) ((b(i,j),i=1,n1c),j=1,npb)
+      ii=n1c+ni
+      do i=1,n1c
+        sum=(0.,0.)
+        do j=1,npb
+          jp=ii+j
+          sum=sum+b(i,j)*xy(jp)
         end do
-        XY(I)=XY(I)-SUM
+        xy(i)=xy(i)-sum
       end do
-      NI=NI+NPBL
+      ni=ni+npbl
     end do
-    if (ICASX.gt.1) rewind 14
+    if (icasx.gt.1) rewind 14
 
     ! GOTO 9 eliminated: Conditional execution with IF-THEN
-    if (N1.ne.N .AND. M1.ne.0) then
+    if (n1.ne.n .and. m1.ne.0) then
       ! REORDER CURRENT ARRAY
-      do I=N2,NPM
-        Y(I)=XY(I)
+      do i=n2,npm
+        y(i)=xy(i)
       end do
-      JJ=N1C+1
-      J=N1
-      do I=JJ,NPM
-        J=J+1
-        XY(J)=Y(I)
+      jj=n1c+1
+      j=n1
+      do i=jj,npm
+        j=j+1
+        xy(j)=y(i)
       end do
-      do I=N2,N1C
-        J=J+1
-        XY(J)=Y(I)
+      do i=n2,n1c
+        j=j+1
+        xy(j)=y(i)
       end do
     end if
 
     ! GOTO 10 eliminated: Conditional execution with IF-THEN
-    if (NSCON.ne.0) then
-      J=NEQS-1
-      do I=1,NSCON
-        J=J+1
-        JJ=ISCON(I)
-        XY(JJ)=XY(J)
+    if (nscon.ne.0) then
+      j=neqs-1
+      do i=1,nscon
+        j=j+1
+        jj=iscon(i)
+        xy(jj)=xy(j)
       end do
     end if
 
   else
     ! NORMAL SOLUTION. NOT N.G.F.
-    call SOLVES (A,IP,XY,N1C,1,NP,N,MP,M,13,IFL)
+    call solves (a,ip,xy,n1c,1,np,n,mp,m,13,ifl)
   end if
 
   return
-end subroutine SOLGF
+end subroutine solgf
 
 
 ! ============================================================================
@@ -370,58 +370,58 @@ end subroutine SOLGF
 ! GOTOs eliminated: 11
 ! Modernization: Replaced all GOTO statements with structured control flow
 ! ============================================================================
-subroutine SOLVES (A,IP,B,NEQ,NRH,NP,N,MP,M,IFL1,IFL2)
+subroutine solves (a,ip,b,neq,nrh,np,n,mp,m,ifl1,ifl2)
   include 'NEC2D3000.INC'
-  implicit real*8(A-H,O-Z)
+  implicit real*8(a-h,o-z)
 !
 ! SUBROUTINE SOLVES, FOR SYMMETRIC STRUCTURES, HANDLES THE
 ! TRANSFORMATION OF THE RIGHT HAND SIDE VECTOR AND SOLUTION OF THE
 ! MATRIX EQ.
 !
-  complex*16 A,B,Y,SUM,SSX
-  common /SMAT/ SSX(16,16)
-  common /SCRATM/ Y(2*MAXSEG)
-  common /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,&
-    ICASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  dimension A(1), IP(1), B(NEQ,NRH)
+  complex*16 a,b,y,sum,ssx
+  common /smat/ ssx(16,16)
+  common /scratm/ y(2*maxseg)
+  common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat,&
+    icasx,nbbx,npbx,nlbx,nbbl,npbl,nlbl
+  dimension a(1), ip(1), b(neq,nrh)
 
-  NPEQ=NP+2*MP
-  NOP=NEQ/NPEQ
-  FNOP=NOP
-  FNORM=1./FNOP
-  NROW=NEQ
-  if (ICASE.gt.3) NROW=NPEQ
+  npeq=np+2*mp
+  nop=neq/npeq
+  fnop=nop
+  fnorm=1./fnop
+  nrow=neq
+  if (icase.gt.3) nrow=npeq
 
   ! GOTO 1 eliminated: IF (NOP.EQ.1) GO TO 11 (line 4265)
   ! Replaced with IF-ELSE to skip forward transformation when NOP=1
-  if (NOP.ne.1) then
-    do IC=1,NRH
+  if (nop.ne.1) then
+    do ic=1,nrh
       ! GOTO 2 eliminated: IF (N.EQ.0.OR.M.EQ.0) GO TO 6 (line 4267)
       ! Replaced with IF-ELSE to conditionally execute reordering
-      if (N.ne.0 .AND. M.ne.0) then
-        do I=1,NEQ
-          Y(I)=B(I,IC)
+      if (n.ne.0 .and. m.ne.0) then
+        do i=1,neq
+          y(i)=b(i,ic)
         end do
-        KK=2*MP
-        IA=NP
-        IB=N
-        J=NP
-        do K=1,NOP
+        kk=2*mp
+        ia=np
+        ib=n
+        j=np
+        do k=1,nop
           ! GOTO 3 eliminated: IF (K.EQ.1) GO TO 3 (line 4275)
           ! GOTO 4 eliminated: IF (K.EQ.NOP) GO TO 5 (line 4280)
           ! Replaced with IF-ELSE to handle first/last iterations differently
-          if (K.ne.1) then
-            do I=1,NP
-              IA=IA+1
-              J=J+1
-              B(J,IC)=Y(IA)
+          if (k.ne.1) then
+            do i=1,np
+              ia=ia+1
+              j=j+1
+              b(j,ic)=y(ia)
             end do
           end if
-          if (K.ne.NOP) then
-            do I=1,KK
-              IB=IB+1
-              J=J+1
-              B(J,IC)=Y(IB)
+          if (k.ne.nop) then
+            do i=1,kk
+              ib=ib+1
+              j=j+1
+              b(j,ic)=y(ib)
             end do
           end if
         end do
@@ -429,23 +429,23 @@ subroutine SOLVES (A,IP,B,NEQ,NRH,NP,N,MP,M,IFL1,IFL2)
 
       ! TRANSFORM MATRIX EQ. RHS VECTOR ACCORDING TO SYMMETRY MODES
       ! (label 6 in original code)
-      do I=1,NPEQ
-        do K=1,NOP
-          IA=I+(K-1)*NPEQ
-          Y(K)=B(IA,IC)
+      do i=1,npeq
+        do k=1,nop
+          ia=i+(k-1)*npeq
+          y(k)=b(ia,ic)
         end do
-        SUM=Y(1)
-        do K=2,NOP
-          SUM=SUM+Y(K)
+        sum=y(1)
+        do k=2,nop
+          sum=sum+y(k)
         end do
-        B(I,IC)=SUM*FNORM
-        do K=2,NOP
-          IA=I+(K-1)*NPEQ
-          SUM=Y(1)
-          do J=2,NOP
-            SUM=SUM+Y(J)*DCONJG(SSX(K,J))
+        b(i,ic)=sum*fnorm
+        do k=2,nop
+          ia=i+(k-1)*npeq
+          sum=y(1)
+          do j=2,nop
+            sum=sum+y(j)*dconjg(ssx(k,j))
           end do
-          B(IA,IC)=SUM*FNORM
+          b(ia,ic)=sum*fnorm
         end do
       end do
     end do
@@ -454,88 +454,88 @@ subroutine SOLVES (A,IP,B,NEQ,NRH,NP,N,MP,M,IFL1,IFL2)
   ! GOTO 5 eliminated: IF (ICASE.LT.3) GO TO 12 (line 4303)
   ! Replaced with IF-ELSE to conditionally rewind files
   ! (label 11 in original code)
-  if (ICASE.ge.3) then
-    rewind IFL1
-    rewind IFL2
+  if (icase.ge.3) then
+    rewind ifl1
+    rewind ifl2
   end if
 
   ! SOLVE EACH MODE EQUATION
   ! (label 12 in original code)
-  do KK=1,NOP
-    IA=(KK-1)*NPEQ+1
-    IB=IA
+  do kk=1,nop
+    ia=(kk-1)*npeq+1
+    ib=ia
     ! GOTO 6 eliminated: IF (ICASE.NE.4) GO TO 13 (line 4312)
     ! Replaced with IF-ELSE to conditionally read matrix
-    if (ICASE.eq.4) then
-      I=NPEQ*NPEQ
-      read (IFL1) (A(J),J=1,I)
-      IB=1
+    if (icase.eq.4) then
+      i=npeq*npeq
+      read (ifl1) (a(j),j=1,i)
+      ib=1
     end if
     ! (label 13 in original code)
     ! GOTO 7 eliminated: IF (ICASE.EQ.3.OR.ICASE.EQ.5) GO TO 15 (line 4316)
     ! GOTO 8 eliminated: GO TO 16 (line 4319)
     ! Replaced with IF-ELSE-IF to select appropriate solver
-    if (ICASE.eq.3 .OR. ICASE.eq.5) then
+    if (icase.eq.3 .or. icase.eq.5) then
       ! (label 15 in original code)
-      call LTSOLV (A,NPEQ,IP(IA),B(IA,1),NEQ,NRH,IFL1,IFL2)
+      call ltsolv (a,npeq,ip(ia),b(ia,1),neq,nrh,ifl1,ifl2)
     else
-      do IC=1,NRH
-        call SOLVE (NPEQ,A(IB),IP(IA),B(IA,IC),NROW)
+      do ic=1,nrh
+        call solve (npeq,a(ib),ip(ia),b(ia,ic),nrow)
       end do
     end if
     ! (label 16 in original code)
   end do
 
-  if (NOP.eq.1) return
+  if (nop.eq.1) return
 
   ! INVERSE TRANSFORM THE MODE SOLUTIONS
-  do IC=1,NRH
-    do I=1,NPEQ
-      do K=1,NOP
-        IA=I+(K-1)*NPEQ
-        Y(K)=B(IA,IC)
+  do ic=1,nrh
+    do i=1,npeq
+      do k=1,nop
+        ia=i+(k-1)*npeq
+        y(k)=b(ia,ic)
       end do
-      SUM=Y(1)
-      do K=2,NOP
-        SUM=SUM+Y(K)
+      sum=y(1)
+      do k=2,nop
+        sum=sum+y(k)
       end do
-      B(I,IC)=SUM
-      do K=2,NOP
-        IA=I+(K-1)*NPEQ
-        SUM=Y(1)
-        do J=2,NOP
-          SUM=SUM+Y(J)*SSX(K,J)
+      b(i,ic)=sum
+      do k=2,nop
+        ia=i+(k-1)*npeq
+        sum=y(1)
+        do j=2,nop
+          sum=sum+y(j)*ssx(k,j)
         end do
-        B(IA,IC)=SUM
+        b(ia,ic)=sum
       end do
     end do
 
     ! GOTO 9 eliminated: IF (N.EQ.0.OR.M.EQ.0) GO TO 26 (line 4341)
     ! Replaced with IF-ELSE to conditionally execute inverse reordering
-    if (N.ne.0 .AND. M.ne.0) then
-      do I=1,NEQ
-        Y(I)=B(I,IC)
+    if (n.ne.0 .and. m.ne.0) then
+      do i=1,neq
+        y(i)=b(i,ic)
       end do
-      KK=2*MP
-      IA=NP
-      IB=N
-      J=NP
-      do K=1,NOP
+      kk=2*mp
+      ia=np
+      ib=n
+      j=np
+      do k=1,nop
         ! GOTO 10 eliminated: IF (K.EQ.1) GO TO 23 (line 4349)
         ! GOTO 11 eliminated: IF (K.EQ.NOP) GO TO 25 (line 4354)
         ! Replaced with IF-ELSE to handle first/last iterations differently
-        if (K.ne.1) then
-          do I=1,NP
-            IA=IA+1
-            J=J+1
-            B(IA,IC)=Y(J)
+        if (k.ne.1) then
+          do i=1,np
+            ia=ia+1
+            j=j+1
+            b(ia,ic)=y(j)
           end do
         end if
-        if (K.ne.NOP) then
-          do I=1,KK
-            IB=IB+1
-            J=J+1
-            B(IB,IC)=Y(J)
+        if (k.ne.nop) then
+          do i=1,kk
+            ib=ib+1
+            j=j+1
+            b(ib,ic)=y(j)
           end do
         end if
       end do
@@ -544,4 +544,4 @@ subroutine SOLVES (A,IP,B,NEQ,NRH,NP,N,MP,M,IFL1,IFL2)
   end do
 
   return
-end subroutine SOLVES
+end subroutine solves

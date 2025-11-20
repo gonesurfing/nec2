@@ -80,7 +80,7 @@ subroutine ekscx(bx,s,z,rhx,xk,ij,inx1,inx2,ezs,ers,ezc,erc,ezk,erk)
   use nec2d_params
   use nec2d_commons, only: &
     ! /TMI/ - TM mode integration variables (with aliases for original names)
-    zpk => ZPK_TMI, rkb2 => RKB2, ijx => IJX_TMI
+    zpk => zpk_tmi, rkb2 => rkb2, ijx => ijx_tmi
 !
 ! ekscx computes e field of sine, cosine, and constant current filaments
 ! by extended thin wire approximation.

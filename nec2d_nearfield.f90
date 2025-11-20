@@ -136,7 +136,7 @@ subroutine intx(el1,el2,b,ij,sgr,sgi)
     sgi=2.d0*sgi
   end if
 
-20 format(24h STEP SIZE LIMITED AT Z=,f10.5)
+20 format(24h step size limited at z=,f10.5)
 
 end subroutine intx
 

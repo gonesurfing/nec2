@@ -9,7 +9,7 @@ subroutine cmsw(j1, j2, i1, i2, cm, cw, ncw, nrow, itrp)
 !
 ! cmsw computes matrix elements for e along wires due to patch current
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 cm, zrati, zrati2, t1, exk, eyk, ezk, exs, eys, ezs, exc, eyc, ezc
   complex*16 emel, cw, frati
@@ -210,7 +210,7 @@ subroutine cmws(j, i1, i2, cm, nr, cw, nw, itrp)
 !
 ! cmws computes matrix elements for wire-surface interactions
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 
   complex*16 cm, cw, etk, ets, etc, exk, eyk, ezk, exs, eys, ezs, exc, eyc, ezc
@@ -308,7 +308,7 @@ subroutine cmww(j, i1, i2, cm, nr, cw, nw, itrp)
 !
 ! cmww computes matrix elements for wire-wire interactions
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 
   complex*16 cm, cw, etk, ets, etc, exk, eyk, ezk, exs, eys, ezs, exc, eyc, ezc

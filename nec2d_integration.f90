@@ -140,7 +140,7 @@ subroutine factr(n,a,ip,ndim)
 ! numerical analysis. comments below refer to comments in ralstons
 ! text. (matrix transposed.)
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 a,d,arj
   dimension a(ndim,ndim), ip(ndim)

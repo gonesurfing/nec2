@@ -115,7 +115,7 @@ subroutine couple(cur,wlam)
 !
 ! couple computes the maximum coupling between pairs of segments.
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 y11a,y12a,cur,y11,y12,y22,yl,yin,zl,zin,rho,vqd,vsant,vqds
   common /yparm/ y11a(5),y12a(20),ncoup,icoup,nctag(5),ncseg(5)

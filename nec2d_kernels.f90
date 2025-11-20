@@ -90,7 +90,7 @@ subroutine solve(n,a,ip,b,ndim)
 ! in a. the rhs vector b is input and the solution is returned through
 ! vector b.
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 a,b,y,sum
   integer pi

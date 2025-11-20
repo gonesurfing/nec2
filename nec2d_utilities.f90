@@ -9,7 +9,7 @@ subroutine trio(j)
 !
 ! trio computes the components of all basis functions on segment j
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   common /data/ x(maxseg), y(maxseg), z(maxseg), si(maxseg), bi(maxseg), &
                 alp(maxseg), bet(maxseg), wlam, icon1(2*maxseg), icon2(2*maxseg), &

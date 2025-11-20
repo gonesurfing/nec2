@@ -145,7 +145,7 @@ subroutine nhfld(xob,yob,zob,hx,hy,hz)
 ! nhfld computes the near field at specified points in space after
 ! the structure currents have been computed.
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 hx,hy,hz,cur,acx,bcx,ccx,exk,eyk,ezk,exs,eys,ezs,exc,eyc,ezc
   complex*16 zrati,zrati2,frati,t1,con

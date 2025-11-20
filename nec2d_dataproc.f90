@@ -20,7 +20,7 @@ subroutine datagn
 ! DATAGN IS THE MAIN ROUTINE FOR INPUT OF GEOMETRY DATA.
 !
 ! ***
-      include 'NEC2D3000.INC'
+      use nec2d_params
       implicit real*8(a-h,o-z)
 ! ***
       character*2 gm,atst
@@ -848,7 +848,7 @@ subroutine etmns (p1,p2,p3,p4,p5,p6,ipr,e)
 ! ***
 ! DOUBLE PRECISION 6/4/85
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 ! ***
 !

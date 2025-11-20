@@ -18,8 +18,8 @@ subroutine fblock (nrow,ncol,imax,irngf,ipsym)
 ! ============================================================================
 ! FBLOCK SETS PARAMETERS FOR OUT-OF-CORE SOLUTION FOR THE PRIMARY MATRIX (A)
 !
+  use nec2d_params
   implicit real*8(a-h,o-z)
-  include 'NEC2D3000.INC'
 
   complex*16 ssx,deter
   common /matpar/ icase,nbloks,npblk,nlast,nblsym,npsym,nlsym,imat,icasx, &
@@ -204,7 +204,7 @@ end subroutine fblock
 subroutine solgf (a,b,c,d,xy,ip,np,n1,n,mp,m1,m,n1c,n2c,n2cz)
   ! DOUBLE PRECISION 6/4/85
   !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   ! SOLVE FOR CURRENT IN N.G.F. PROCEDURE
   complex*16 a,b,c,d,sum,xy,y
@@ -371,7 +371,7 @@ end subroutine solgf
 ! Modernization: Replaced all GOTO statements with structured control flow
 ! ============================================================================
 subroutine solves (a,ip,b,neq,nrh,np,n,mp,m,ifl1,ifl2)
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 !
 ! SUBROUTINE SOLVES, FOR SYMMETRIC STRUCTURES, HANDLES THE

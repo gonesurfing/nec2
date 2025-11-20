@@ -156,7 +156,7 @@ end subroutine hsfld
 ! GOTOs eliminated: 14 (labels 1-16)
 !==============================================================================
 subroutine lfactr(a, nrow, ix1, ix2, ip)
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 
   complex*16 a, d, ajr
@@ -293,7 +293,7 @@ subroutine patch (nx,ny,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4)
 !
 ! DOUBLE PRECISION 6/4/85
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 !
 ! PATCH GENERATES AND MODIFIES PATCH GEOMETRY DATA
@@ -470,7 +470,7 @@ end subroutine patch
 ! Purpose: Subdivides a patch or creates sub-patches
 !==============================================================================
 subroutine subph (nx,ny,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4)
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 
   common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &

@@ -15,7 +15,7 @@ subroutine reflc (ix,iy,iz,itx,nop)
 ! REFLC reflects partial structure along X, Y, or Z axes or rotates
 ! structure to complete a symmetric structure.
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 
   common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &
@@ -291,7 +291,7 @@ end subroutine reflc
 subroutine sbf(i, is, aa, bb, cc)
   ! COMPUTE COMPONENT OF BASIS FUNCTION I ON SEGMENT IS.
 
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 
   common /data/ x(maxseg), y(maxseg), z(maxseg), si(maxseg), bi(maxseg), &
@@ -622,7 +622,7 @@ end subroutine sbf
 subroutine nfpat
   ! COMPUTE NEAR E OR H FIELDS OVER A RANGE OF POINTS
 
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
 
   complex*16 ex,ey,ez

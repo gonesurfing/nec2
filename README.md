@@ -12,14 +12,39 @@ Before you start, adapt the file `NEC2DPAR.INC` to your needs. You can choose
 the maximum number of segments used by the program here. A default is already
 configured.
 
-The `gfortran` compiler is needed to build the program. A `Makefile` is included so that you simply have to run `make` to compile the
-source:
+## Building
 
-        $ make
+The `gfortran` compiler and CMake are needed to build the program.
 
-You might test the program with the included example:
+```bash
+mkdir build && cd build
+cmake ..
+make
+```
 
-        $ nec2dxs < example1.nec > example1.out
+The executable `nec2dxs` will be created in the `build` directory.
+
+## Testing
+
+Run the test suite:
+
+```bash
+cd build
+ctest
+```
+
+Options:
+- `ctest -V` - verbose output
+- `ctest -j4` - run tests in parallel
+- `ctest -R dip` - filter tests by name
+
+## Usage
+
+Test the program with the included example:
+
+```bash
+./build/nec2dxs < example1.nec > example1.out
+```
 
 If you have installed [Xnecview], you can check the results graphically. Start it from the command line with input and output filenames as arguments:
 

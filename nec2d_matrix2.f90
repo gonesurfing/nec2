@@ -9,7 +9,7 @@ subroutine cmset(nrow,cm,rkhx,iexkx)
 !
 ! cmset sets up the complex structure matrix in the array cm
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 cm,zarray,zaj,exk,eyk,ezk,exs,eys,ezs,exc,eyc,ezc,ssx, &
              d,deter
@@ -158,7 +158,7 @@ subroutine cmss(j1,j2,im1,im2,cm,nrow,itrp)
 !
 ! cmss computes matrix elements for surface-surface interactions
 !
-  include 'NEC2D3000.INC'
+  use nec2d_params
   implicit real*8(a-h,o-z)
   complex*16 g11,g12,g21,g22,cm,exk,eyk,ezk,exs,eys,ezs,exc,eyc,ezc
   common /data/ x(maxseg),y(maxseg),z(maxseg),si(maxseg),bi(maxseg), &

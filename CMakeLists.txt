@@ -14,8 +14,9 @@ find_program(BASH_PROGRAM bash)
 # Option for built-in SOMNEC
 option(BUILTIN_SOMNEC "Use built-in SOMNEC" OFF)
 
-# Source files
+# Source files (order matters for module dependencies)
 set(SOURCES
+    nec2_parameters.f
     nec2_common.f
     nec2_io.f
     nec2_geometry.f

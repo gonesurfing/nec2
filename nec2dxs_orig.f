@@ -5947,6 +5947,14 @@ C
      1,YSA(3))
       DATA IXS,IYS,IGRS/-10,-10,-10/,DX,DY,XS,YS/1.,1.,0.,0./
       DATA NDA/11,17,9/,NDPA/110,85,72/,IXEG,IYEG/0,0/
+C
+C     BUG: These DATA-initialized variables need explicit SAVE statements
+C     to ensure they persist between calls. Without SAVE, splitting the code
+C     into multiple compilation units causes NaN values or segfaults due to
+C     uninitialized variables. Required SAVE variables:
+C       IXS,IYS,IGRS,DX,DY,XS,YS,NDA,NDPA,IXEG,IYEG,A,B,C,D,XZ,YZ
+C       NXM2,NYM2,NXMS,NYMS,ND,NDP
+C
       IF (X.LT.XS.OR.Y.LT.YS) GO TO 1
       IX=INT((X-XS)/DX)+1
       IY=INT((Y-YS)/DY)+1

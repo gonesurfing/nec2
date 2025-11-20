@@ -16,10 +16,10 @@ FFLAGS = -O0 -std=legacy -Wall -Wno-unused-parameter
 # -Wno-unused-parameter: Suppress warnings for unused PARAMETERs
 
 # Executable name
-TARGET = nec2dxs_integrated
+TARGET = nec2dxs_modern
 
 # Main program object file
-MAIN_OBJ = nec2dxs_integrated.o
+MAIN_OBJ = nec2dxs_modern.o
 
 # Module object files (order matters for dependencies)
 # These must be compiled BEFORE files that USE them

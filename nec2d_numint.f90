@@ -1,32 +1,10 @@
-! ***********************************************************************
-!     NEC2D NUMERICAL INTEGRATION AND INTERPOLATION MODULE
-!     Modernized numerical methods for integration and interpolation
-!     Contains: ROM2, INTRP, SOM2D
-!     GOTOs eliminated: 36 → 0
-! ***********************************************************************
-
-!==============================================================================
-! ROM2 - Romberg Integration for Sommerfeld Ground Field
-!==============================================================================
-! Modernized from nec2dxs_integrated.f (lines 4362-4474)
-! Original: Fixed-form Fortran 77 with 14 GOTOs
-! Modernized: Free-form Fortran 90, structured control flow
-!
-! Purpose: For Sommerfeld ground option, integrates over source segment to
-!          obtain total field due to ground using variable interval width
-!          Romberg integration. There are 9 field components - the X, Y, and Z
-!          components due to constant, sine, and cosine current distributions.
-!
-! Parameters:
-!   A    - Start of integration interval
-!   B    - End of integration interval
-!   SUM  - Array of 9 complex field components (output)
-!   DMIN - Minimum convergence parameter
-!
-! GOTOs eliminated: 14 (labels 1-18)
-! Control flow: Nested DO WHILE loops with structured EXIT/CYCLE
-!==============================================================================
-
+! =============================================================================
+! nec2d_numint - Numerical Integration
+! =============================================================================
+! Purpose: Sommerfeld integral evaluation and ROM integration
+! Contains: ROM2, INTRP, SOM2D
+! GOTOs eliminated: 36
+! =============================================================================
 subroutine ROM2 (A,B,SUM,DMIN)
 
   implicit real*8(A-H,O-Z)
@@ -204,77 +182,77 @@ end subroutine ROM2
 ! - Changed comment syntax from C to !
 ! - Maintained IMPLICIT REAL*8, COMMON blocks, and EQUIVALENCE statements
 !==============================================================================
-SUBROUTINE INTRP(X, Y, F1, F2, F3, F4)
-  IMPLICIT REAL*8(A-H, O-Z)
+subroutine INTRP(X, Y, F1, F2, F3, F4)
+  implicit real*8(A-H, O-Z)
 
   ! INTRP uses bivariate cubic interpolation to obtain the values of
   ! 4 functions at the point (X,Y).
 
-  COMPLEX*16 F1, F2, F3, F4, A, B, C, D, FX1, FX2, FX3, FX4, P1, P2, P3, P4
-  COMPLEX*16 A11, A12, A13, A14, A21, A22, A23, A24, A31, A32, A33, A34
-  COMPLEX*16 A41, A42, A43, A44, B11, B12, B13, B14, B21, B22, B23, B24
-  COMPLEX*16 B31, B32, B33, B34, B41, B42, B43, B44, C11, C12, C13, C14
-  COMPLEX*16 C21, C22, C23, C24, C31, C32, C33, C34, C41, C42, C43, C44
-  COMPLEX*16 D11, D12, D13, D14, D21, D22, D23, D24, D31, D32, D33, D34
-  COMPLEX*16 D41, D42, D43, D44
-  COMPLEX*16 AR1, AR2, AR3, ARL1, ARL2, ARL3, EPSCF
+  complex*16 F1, F2, F3, F4, A, B, C, D, FX1, FX2, FX3, FX4, P1, P2, P3, P4
+  complex*16 A11, A12, A13, A14, A21, A22, A23, A24, A31, A32, A33, A34
+  complex*16 A41, A42, A43, A44, B11, B12, B13, B14, B21, B22, B23, B24
+  complex*16 B31, B32, B33, B34, B41, B42, B43, B44, C11, C12, C13, C14
+  complex*16 C21, C22, C23, C24, C31, C32, C33, C34, C41, C42, C43, C44
+  complex*16 D11, D12, D13, D14, D21, D22, D23, D24, D31, D32, D33, D34
+  complex*16 D41, D42, D43, D44
+  complex*16 AR1, AR2, AR3, ARL1, ARL2, ARL3, EPSCF
 
-  COMMON /GGRID/ AR1(11,10,4), AR2(17,5,4), AR3(9,8,4), EPSCF, DXA(3), &
+  common /GGRID/ AR1(11,10,4), AR2(17,5,4), AR3(9,8,4), EPSCF, DXA(3), &
                  DYA(3), XSA(3), YSA(3), NXA(3), NYA(3)
 
-  DIMENSION NDA(3), NDPA(3)
-  DIMENSION A(4,4), B(4,4), C(4,4), D(4,4), ARL1(1), ARL2(1), ARL3(1)
+  dimension NDA(3), NDPA(3)
+  dimension A(4,4), B(4,4), C(4,4), D(4,4), ARL1(1), ARL2(1), ARL3(1)
 
-  EQUIVALENCE (A(1,1),A11), (A(1,2),A12), (A(1,3),A13), (A(1,4),A14)
-  EQUIVALENCE (A(2,1),A21), (A(2,2),A22), (A(2,3),A23), (A(2,4),A24)
-  EQUIVALENCE (A(3,1),A31), (A(3,2),A32), (A(3,3),A33), (A(3,4),A34)
-  EQUIVALENCE (A(4,1),A41), (A(4,2),A42), (A(4,3),A43), (A(4,4),A44)
-  EQUIVALENCE (B(1,1),B11), (B(1,2),B12), (B(1,3),B13), (B(1,4),B14)
-  EQUIVALENCE (B(2,1),B21), (B(2,2),B22), (B(2,3),B23), (B(2,4),B24)
-  EQUIVALENCE (B(3,1),B31), (B(3,2),B32), (B(3,3),B33), (B(3,4),B34)
-  EQUIVALENCE (B(4,1),B41), (B(4,2),B42), (B(4,3),B43), (B(4,4),B44)
-  EQUIVALENCE (C(1,1),C11), (C(1,2),C12), (C(1,3),C13), (C(1,4),C14)
-  EQUIVALENCE (C(2,1),C21), (C(2,2),C22), (C(2,3),C23), (C(2,4),C24)
-  EQUIVALENCE (C(3,1),C31), (C(3,2),C32), (C(3,3),C33), (C(3,4),C34)
-  EQUIVALENCE (C(4,1),C41), (C(4,2),C42), (C(4,3),C43), (C(4,4),C44)
-  EQUIVALENCE (D(1,1),D11), (D(1,2),D12), (D(1,3),D13), (D(1,4),D14)
-  EQUIVALENCE (D(2,1),D21), (D(2,2),D22), (D(2,3),D23), (D(2,4),D24)
-  EQUIVALENCE (D(3,1),D31), (D(3,2),D32), (D(3,3),D33), (D(3,4),D34)
-  EQUIVALENCE (D(4,1),D41), (D(4,2),D42), (D(4,3),D43), (D(4,4),D44)
-  EQUIVALENCE (ARL1,AR1), (ARL2,AR2), (ARL3,AR3), (XS2,XSA(2)), &
+  equivalence (A(1,1),A11), (A(1,2),A12), (A(1,3),A13), (A(1,4),A14)
+  equivalence (A(2,1),A21), (A(2,2),A22), (A(2,3),A23), (A(2,4),A24)
+  equivalence (A(3,1),A31), (A(3,2),A32), (A(3,3),A33), (A(3,4),A34)
+  equivalence (A(4,1),A41), (A(4,2),A42), (A(4,3),A43), (A(4,4),A44)
+  equivalence (B(1,1),B11), (B(1,2),B12), (B(1,3),B13), (B(1,4),B14)
+  equivalence (B(2,1),B21), (B(2,2),B22), (B(2,3),B23), (B(2,4),B24)
+  equivalence (B(3,1),B31), (B(3,2),B32), (B(3,3),B33), (B(3,4),B34)
+  equivalence (B(4,1),B41), (B(4,2),B42), (B(4,3),B43), (B(4,4),B44)
+  equivalence (C(1,1),C11), (C(1,2),C12), (C(1,3),C13), (C(1,4),C14)
+  equivalence (C(2,1),C21), (C(2,2),C22), (C(2,3),C23), (C(2,4),C24)
+  equivalence (C(3,1),C31), (C(3,2),C32), (C(3,3),C33), (C(3,4),C34)
+  equivalence (C(4,1),C41), (C(4,2),C42), (C(4,3),C43), (C(4,4),C44)
+  equivalence (D(1,1),D11), (D(1,2),D12), (D(1,3),D13), (D(1,4),D14)
+  equivalence (D(2,1),D21), (D(2,2),D22), (D(2,3),D23), (D(2,4),D24)
+  equivalence (D(3,1),D31), (D(3,2),D32), (D(3,3),D33), (D(3,4),D34)
+  equivalence (D(4,1),D41), (D(4,2),D42), (D(4,3),D43), (D(4,4),D44)
+  equivalence (ARL1,AR1), (ARL2,AR2), (ARL3,AR3), (XS2,XSA(2)), &
               (YS3,YSA(3))
 
-  DATA IXS, IYS, IGRS / -10, -10, -10 /, DX, DY, XS, YS / 1., 1., 0., 0. /
-  DATA NDA / 11, 17, 9 /, NDPA / 110, 85, 72 /, IXEG, IYEG / 0, 0 /
+  data IXS, IYS, IGRS / -10, -10, -10 /, DX, DY, XS, YS / 1., 1., 0., 0. /
+  data NDA / 11, 17, 9 /, NDPA / 110, 85, 72 /, IXEG, IYEG / 0, 0 /
 
-  LOGICAL :: cache_hit
+  logical :: cache_hit
 
   ! Check if point lies in same 4 by 4 point region as previous point
   ! If so, old values are reused (cache hit)
   cache_hit = .FALSE.
 
-  IF (X .GE. XS .AND. Y .GE. YS) THEN
+  if (X .GE. XS .AND. Y .GE. YS) then
     IX = INT((X - XS) / DX) + 1
     IY = INT((Y - YS) / DY) + 1
 
-    IF (IX .GE. IXEG .AND. IY .GE. IYEG) THEN
-      IF (IABS(IX - IXS) .LT. 2 .AND. IABS(IY - IYS) .LT. 2) THEN
+    if (IX .GE. IXEG .AND. IY .GE. IYEG) then
+      if (IABS(IX - IXS) .LT. 2 .AND. IABS(IY - IYS) .LT. 2) then
         cache_hit = .TRUE.
-      END IF
-    END IF
-  END IF
+      end if
+    end if
+  end if
 
-  IF (.NOT. cache_hit) THEN
+  if (.NOT. cache_hit) then
     ! Determine correct grid and grid region (original labels 1-3)
-    IF (X .GT. XS2) THEN
+    if (X .GT. XS2) then
       IGR = 2
-      IF (Y .GT. YS3) IGR = 3
-    ELSE
+      if (Y .GT. YS3) IGR = 3
+    else
       IGR = 1
-    END IF
+    end if
 
     ! Update grid parameters if grid changed (original label 3)
-    IF (IGR .NE. IGRS) THEN
+    if (IGR .NE. IGRS) then
       IGRS = IGR
       DX = DXA(IGRS)
       DY = DYA(IGRS)
@@ -288,70 +266,70 @@ SUBROUTINE INTRP(X, Y, F1, F2, F3, F4)
       NDP = NDPA(IGRS)
       IX = INT((X - XS) / DX) + 1
       IY = INT((Y - YS) / DY) + 1
-    END IF
+    end if
 
     ! Compute IXS (original label 4)
     IXS = ((IX - 1) / 3) * 3 + 2
-    IF (IXS .LT. 2) IXS = 2
+    if (IXS .LT. 2) IXS = 2
     IXEG = -10000
 
     ! Adjust IXS if needed (original label 5)
-    IF (IXS .GT. NXM2) THEN
+    if (IXS .GT. NXM2) then
       IXS = NXM2
       IXEG = NXMS
-    END IF
+    end if
 
     ! Compute IYS (original label 5 continued)
     IYS = ((IY - 1) / 3) * 3 + 2
-    IF (IYS .LT. 2) IYS = 2
+    if (IYS .LT. 2) IYS = 2
     IYEG = -10000
 
     ! Adjust IYS if needed (original label 6)
-    IF (IYS .GT. NYM2) THEN
+    if (IYS .GT. NYM2) then
       IYS = NYM2
       IYEG = NYMS
-    END IF
+    end if
 
     ! Compute coefficients of 4 cubic polynomials in X for the 4 grid
     ! values of Y for each of the 4 functions (original labels 6-11)
     IADZ = IXS + (IYS - 3) * ND - NDP
 
-    DO K = 1, 4
+    do K = 1, 4
       IADZ = IADZ + NDP
       IADD = IADZ
 
-      DO I = 1, 4
+      do I = 1, 4
         IADD = IADD + ND
 
         ! Select grid and load values (original labels 7-10)
-        IF (IGRS .EQ. 1) THEN
+        if (IGRS .EQ. 1) then
           P1 = ARL1(IADD - 1)
           P2 = ARL1(IADD)
           P3 = ARL1(IADD + 1)
           P4 = ARL1(IADD + 2)
-        ELSE IF (IGRS .EQ. 2) THEN
+        else if (IGRS .EQ. 2) then
           P1 = ARL2(IADD - 1)
           P2 = ARL2(IADD)
           P3 = ARL2(IADD + 1)
           P4 = ARL2(IADD + 2)
-        ELSE
+        else
           P1 = ARL3(IADD - 1)
           P2 = ARL3(IADD)
           P3 = ARL3(IADD + 1)
           P4 = ARL3(IADD + 2)
-        END IF
+        end if
 
         ! Compute coefficients (original label 10)
         A(I, K) = (P4 - P1 + 3.*(P2 - P3)) * 0.1666666667D+0
         B(I, K) = (P1 - 2.*P2 + P3) * 0.5D+0
         C(I, K) = P3 - (2.*P1 + 3.*P2 + P4) * 0.1666666667D+0
         D(I, K) = P2
-      END DO
-    END DO
+      end do
+    end do
 
     XZ = (IXS - 1) * DX + XS
     YZ = (IYS - 1) * DY + YS
-  END IF
+  end if
 
   ! Evaluate polynomials in X and then use cubic interpolation in Y
   ! for each of the 4 functions (original label 12)
@@ -394,7 +372,7 @@ SUBROUTINE INTRP(X, Y, F1, F2, F3, F4)
   P3 = 6.*FX3 - 2.*FX1 - 3.*FX2 - FX4
   F4 = ((P1*YY + P2)*YY + P3)*YY*0.1666666667D+0 + FX2
 
-END SUBROUTINE INTRP
+end subroutine INTRP
 
 !==============================================================================
 ! SOM2D - Generate Sommerfeld Ground Field Interpolation Grids
@@ -404,7 +382,7 @@ END SUBROUTINE INTRP
 ! Original: 11 GOTOs using labels 1,2,3,4,5,6,7,8,9
 ! Replaced with: IF/THEN/ELSE blocks and SELECT CASE structures
 !==============================================================================
-SUBROUTINE SOM2D(RMHZ,REPR,RSIG)
+subroutine SOM2D(RMHZ,REPR,RSIG)
 !
 !     PROGRAM TO GENERATE NEC INTERPOLATION GRIDS FOR FIELDS DUE TO
 !     GROUND.  FIELD COMPONENTS ARE COMPUTED BY NUMERICAL EVALUATION
@@ -422,16 +400,16 @@ SUBROUTINE SOM2D(RMHZ,REPR,RSIG)
 !         Parameter 0. --> 0.D0 in calling of routine TEST
 !         Status of output files set to 'UNKNOWN'
 !
-  IMPLICIT REAL*8(A-H,O-Z)
+  implicit real*8(A-H,O-Z)
 !
-  COMPLEX*16 CK1,CK1SQ,ERV,EZV,ERH,EPH,CKSM,CT1,CT2,CT3,CL1,CL2,CON, &
+  complex*16 CK1,CK1SQ,ERV,EZV,ERH,EPH,CKSM,CT1,CT2,CT3,CL1,CL2,CON, &
              AR1,AR2,AR3,EPSCF
-  COMMON /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG, &
+  common /EVLCOM/ CKSM,CT1,CT2,CT3,CK1,CK1SQ,CK2,CK2SQ,TKMAG,TSMAG, &
                   CK1R,ZPH,RHO,JH
-  COMMON /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DYA(3), &
+  common /GGRID/ AR1(11,10,4),AR2(17,5,4),AR3(9,8,4),EPSCF,DXA(3),DYA(3), &
                  XSA(3),YSA(3),NXA(3),NYA(3)
-  CHARACTER*3  LCOMP(4)
-  DATA LCOMP/'ERV','EZV','ERH','EPH'/
+  character*3  LCOMP(4)
+  data LCOMP/'ERV','EZV','ERH','EPH'/
 !
 !     READ GROUND PARAMETERS - EPR = RELATIVE DIELECTRIC CONSTANT
 !                              SIG = CONDUCTIVITY (MHOS/M)
@@ -443,12 +421,12 @@ SUBROUTINE SOM2D(RMHZ,REPR,RSIG)
   IPT=0
 !
 ! GOTO elimination: Labels 1, 2 replaced with IF/THEN/ELSE block
-  IF (SIG.LT.0.D0) THEN
+  if (SIG.lt.0.D0) then
     EPSCF=DCMPLX(EPR,SIG)
-  ELSE
+  else
     WLAM=299.8D0/FMHZ
     EPSCF=DCMPLX(EPR,-SIG*WLAM*59.96D0)
-  END IF
+  end if
 !
   CK2=6.283185308D0
   CK2SQ=CK2*CK2
@@ -473,55 +451,55 @@ SUBROUTINE SOM2D(RMHZ,REPR,RSIG)
 !
 !     LOOP OVER 3 GRID REGIONS
 !
-  DO K=1,3
+  do K=1,3
     NR=NXA(K)
     NTH=NYA(K)
     DR=DXA(K)
     DTH=DYA(K)
     R=XSA(K)-DR
     IRS=1
-    IF (K.EQ.1) R=XSA(K)
-    IF (K.EQ.1) IRS=2
+    if (K.eq.1) R=XSA(K)
+    if (K.eq.1) IRS=2
 !
 !     LOOP OVER R.  (R=SQRT(RHO**2 + (Z+H)**2))
 !
-    DO IR=IRS,NR
+    do IR=IRS,NR
       R=R+DR
       THET=YSA(K)-DTH
 !
 !     LOOP OVER THETA.  (THETA=ATAN((Z+H)/RHO))
 !
-      DO ITH=1,NTH
+      do ITH=1,NTH
         THET=THET+DTH
         RHO=R*COS(THET)
         ZPH=R*SIN(THET)
-        IF (RHO.LT.1.D-7) RHO=1.D-8
-        IF (ZPH.LT.1.D-7) ZPH=0.D0
-        CALL EVLUA (ERV,EZV,ERH,EPH)
+        if (RHO.lt.1.D-7) RHO=1.D-8
+        if (ZPH.lt.1.D-7) ZPH=0.D0
+        call EVLUA (ERV,EZV,ERH,EPH)
         RK=CK2*R
         CON=-(0.D0,4.77147D0)*R/DCMPLX(COS(RK),-SIN(RK))
 !
 ! GOTO elimination: Computed GOTO (labels 3,4,5,6) replaced with SELECT CASE
-        SELECT CASE (K)
-          CASE (1)
+        select case (K)
+          case (1)
             AR1(IR,ITH,1)=ERV*CON
             AR1(IR,ITH,2)=EZV*CON
             AR1(IR,ITH,3)=ERH*CON
             AR1(IR,ITH,4)=EPH*CON
-          CASE (2)
+          case (2)
             AR2(IR,ITH,1)=ERV*CON
             AR2(IR,ITH,2)=EZV*CON
             AR2(IR,ITH,3)=ERH*CON
             AR2(IR,ITH,4)=EPH*CON
-          CASE (3)
+          case (3)
             AR3(IR,ITH,1)=ERV*CON
             AR3(IR,ITH,2)=EZV*CON
             AR3(IR,ITH,3)=ERH*CON
             AR3(IR,ITH,4)=EPH*CON
-        END SELECT
-      END DO
-    END DO
-  END DO
+        end select
+      end do
+    end do
+  end do
 !
 !     FILL GRID 1 FOR R EQUAL TO ZERO.
 !
@@ -532,25 +510,25 @@ SUBROUTINE SOM2D(RMHZ,REPR,RSIG)
   NTH=NYA(1)
 !
 ! GOTO elimination: Labels 7,8,9 replaced with IF/THEN/ELSE within DO loop
-  DO ITH=1,NTH
+  do ITH=1,NTH
     THET=THET+DTH
-    IF (ITH.EQ.NTH) THEN
+    if (ITH.eq.NTH) then
       ERV=0.D0
       ERH=CL2-0.5D0*CL1
       EPH=-ERH
-    ELSE
+    else
       TFAC2=COS(THET)
       TFAC1=(1.D0-SIN(THET))/TFAC2
       TFAC2=TFAC1/TFAC2
       ERV=EPSCF*CL1*TFAC1
       ERH=CL1*(TFAC2-1.D0)+CL2
       EPH=CL1*TFAC2-CL2
-    END IF
+    end if
     AR1(1,ITH,1)=ERV
     AR1(1,ITH,2)=EZV
     AR1(1,ITH,3)=ERH
     AR1(1,ITH,4)=EPH
-  END DO
+  end do
 !
 !     WRITE GRID ON TAPE21
 !
@@ -558,41 +536,41 @@ SUBROUTINE SOM2D(RMHZ,REPR,RSIG)
 ! WRITE (21) AR1,AR2,AR3,EPSCF,DXA,DYA,XSA,YSA,NXA,NYA
 ! REWIND 21
 ! IF (IPT.EQ.0) RETURN
-  IF (IPT.EQ.0) RETURN
+  if (IPT.eq.0) return
 !
 !     PRINT GRID
 !
-  OPEN (UNIT=9,FILE='SOM2D.OUT',STATUS='UNKNOWN',ERR=14)
-  WRITE(*,17) EPSCF
-  DO K=1,3
+  open (UNIT=9,FILE='SOM2D.OUT',STATUS='UNKNOWN',ERR=14)
+  write(*,17) EPSCF
+  do K=1,3
     NR=NXA(K)
     NTH=NYA(K)
-    WRITE(9,18) K,XSA(K),DXA(K),NR,YSA(K),DYA(K),NTH
-    DO L=1,4
-      WRITE(9,19) LCOMP(L)
-      DO IR=1,NR
+    write(9,18) K,XSA(K),DXA(K),NR,YSA(K),DYA(K),NTH
+    do L=1,4
+      write(9,19) LCOMP(L)
+      do IR=1,NR
 ! GOTO elimination: Computed GOTO (labels 10,11,12,13) replaced with SELECT CASE
-        SELECT CASE (K)
-          CASE (1)
-            WRITE(9,20) IR,(AR1(IR,ITH,L),ITH=1,NTH)
-          CASE (2)
-            WRITE(9,20) IR,(AR2(IR,ITH,L),ITH=1,NTH)
-          CASE (3)
-            WRITE(9,20) IR,(AR3(IR,ITH,L),ITH=1,NTH)
-        END SELECT
-      END DO
-    END DO
-  END DO
+        select case (K)
+          case (1)
+            write(9,20) IR,(AR1(IR,ITH,L),ITH=1,NTH)
+          case (2)
+            write(9,20) IR,(AR2(IR,ITH,L),ITH=1,NTH)
+          case (3)
+            write(9,20) IR,(AR3(IR,ITH,L),ITH=1,NTH)
+        end select
+      end do
+    end do
+  end do
 ! Label 14: RETURN
-14 RETURN
+14 return
 !
-16 FORMAT (6H TIME=,1PE12.5)
-17 FORMAT (30H1NEC GROUND INTERPOLATION GRID,/,21H DIELECTRIC CONSTANT=, &
+16 format (6H TIME=,1PE12.5)
+17 format (30H1NEC GROUND INTERPOLATION GRID,/,21H DIELECTRIC CONSTANT=, &
            1P2E12.5)
-18 FORMAT (///,5H GRID,I2,/,4X,5HR(1)=,F7.4,4X,3HDR=,F7.4,4X,3HNR=,I3, &
+18 format (///,5H GRID,I2,/,4X,5HR(1)=,F7.4,4X,3HDR=,F7.4,4X,3HNR=,I3, &
            /,9H THET(1)=,F7.4,3X,4HDTH=,F7.4,3X,4HNTH=,I3,//)
-19 FORMAT (///,1X,A3)
-20 FORMAT (4H IR=,I3,/,1X,(1P10E12.5))
-21 FORMAT(' ENTER EPR,SIG,FMHZ,IPT > ',$)
-22 FORMAT(' STARTING COMPUTATION OF SOMMERFELD INTEGRAL TABLES')
-END SUBROUTINE SOM2D
+19 format (///,1X,A3)
+20 format (4H IR=,I3,/,1X,(1P10E12.5))
+21 format(' ENTER EPR,SIG,FMHZ,IPT > ',$)
+22 format(' STARTING COMPUTATION OF SOMMERFELD INTEGRAL TABLES')
+end subroutine SOM2D

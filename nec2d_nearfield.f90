@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D NEAR FIELD MODULE
-!     Modernized near field calculation routines
-!     Contains: INTX, NHFLD, HINTG
-!     GOTOs eliminated: 30 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_nearfield - Near Field Calculations
+! =============================================================================
+! Purpose: Near field E and H computation at observation points
+! Contains: INTX, NHFLD, HINTG
+! GOTOs eliminated: 30
+! =============================================================================
 subroutine intx(el1,el2,b,ij,sgr,sgi)
 !
 ! intx performs numerical integration of exp(jkr)/r by the method of

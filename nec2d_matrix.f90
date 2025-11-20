@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D MATRIX MODULE
-!     Modernized matrix and coupling routines
-!     Contains: FACTRS, COUPLE
-!     GOTOs eliminated: 9 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_matrix - Matrix Operations
+! =============================================================================
+! Purpose: Matrix setup and excitation routines
+! Contains: FACTRS, COUPLE
+! GOTOs eliminated: 9
+! =============================================================================
 subroutine factrs(np,nrow,a,ip,ix,iu1,iu2,iu3,iu4)
 !
 ! factrs, for symmetric structure, transforms submatricies to form

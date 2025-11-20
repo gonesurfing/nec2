@@ -1,19 +1,9 @@
-!***********************************************************************
-!                           NEC2D_IO.F90
-!***********************************************************************
-!
-!     Input/Output Subroutines for NEC2D - MODERNIZED
-!
-!     Phase 2 Modernization Complete:
-!     ✓ Free-form Fortran 90 format  
-!     ✓ All 20 GOTO statements eliminated
-!     ✓ Modern DO...END DO loops (no statement labels)
-!     ✓ Structured control flow
-!     • Kept IMPLICIT REAL*8 for COMMON block compatibility
-!     • Kept COMMON blocks (convert to modules in Phase 4)
-!
-!***********************************************************************
-
+! =============================================================================
+! nec2d_io - Input/Output Routines
+! =============================================================================
+! Purpose: File I/O, NGF file handling, block storage
+! Contains: READGM, READMN, PARSIT, UPCASE, PRNT, GFIL, GFOUT, BLCKOT, BLCKIN, REBLK
+! =============================================================================
 subroutine readgm(inunit,code,i1,i2,r1,r2,r3,r4,r5,r6,r7)
   ! READGM reads a geometry record and parses it.
   implicit real*8(a-h,o-z)
@@ -403,7 +393,7 @@ subroutine gfil(iprt)
 15 format (5x,3h** ,19a4,3h **)
 16 format (////)
 17 format (5x,2h**,80x,2h**)
-18 format (5x,29h** numerical green'S FUNCTION,53X,2H**,/, &
+18 format (5x,29h** numerical green'S function,53X,2H**,/, &
            5x,17h** no. segments =,i4,10x,13hno. patches =,i4,34x,2h**)
 19 format (5x,27h** no. symmetric sections =,i4,51x,2h**)
 20 format (5x,34h** n.g.f. matrix -  core storage =,i7, &
@@ -414,7 +404,7 @@ subroutine gfil(iprt)
 24 format (5x,44h** ground parameters - dielectric constant =,1p, &
            e12.5,26x,2h**,/,5x,2h**,21x,14hconductivity =,e12.5, &
            8h mhos/m.,25x,2h**)
-25 format (39x,31hnumerical green'S FUNCTION DATA,/, &
+25 format (39x,31hnumerical green'S function data,/, &
            41x,27hcoordinates of segment ends,/,51x,8h(meters),/, &
            5x,4hseg.,11x,19h- - - end one - - -,26x, &
            19h- - - end two - - -,/,6x,3hno.,6x,1hx,14x,1hy,14x,1hz, &
@@ -536,7 +526,7 @@ subroutine gfout
   rewind igfl
   write(*,13) igfl, imat
 
-13 format (///,44h ****numerical green'S FUNCTION FILE ON TAPE,I3, &
+13 format (///,44h ****numerical green'S function FILE ON TAPE,I3, &
            5h****,/,5x,16hmatrix storage -,i7,16h complex numbers,///)
 
 end subroutine gfout

@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D MATRIX MODULE 2
-!     Modernized matrix computation routines
-!     Contains: CMSET, CMSS, FBNGF
-!     GOTOs eliminated: 22 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_matrix2 - Matrix Filling Routines
+! =============================================================================
+! Purpose: Interaction matrix computation and filling
+! Contains: CMSET, CMSS, FBNGF
+! GOTOs eliminated: 22
+! =============================================================================
 subroutine cmset(nrow,cm,rkhx,iexkx)
 !
 ! cmset sets up the complex structure matrix in the array cm

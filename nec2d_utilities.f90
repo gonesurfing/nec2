@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D UTILITIES MODULE
-!     Modernized utility and computation routines
-!     Contains: TRIO, UNERE, ROM1
-!     GOTOs eliminated: 32 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_utilities - Utility Routines
+! =============================================================================
+! Purpose: Network parameter setup and general utilities
+! Contains: TRIO, UNERE, ROM1
+! GOTOs eliminated: 32
+! =============================================================================
 subroutine trio(j)
 !
 ! trio computes the components of all basis functions on segment j

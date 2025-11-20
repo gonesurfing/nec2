@@ -1,9 +1,9 @@
-! ***********************************************************************
-! nec2d mathematical utilities module
-! contains subroutines for mathematical operations and field calculations
-! modernized from fixed-form fortran
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_mathutil - Mathematical Utilities
+! =============================================================================
+! Purpose: Complex arithmetic and special function helpers
+! Contains: GH, GX, GXX, LAMBDA, GWAVE, PCINT, FFLDS, CPUSEC, CANG, ATGN2, DB10
+! =============================================================================
 subroutine gh (zk,hr,hi)
 ! integrand for h field of a wire
   implicit real*8(a-h,o-z)

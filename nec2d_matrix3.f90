@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D MATRIX MODULE 3
-!     Modernized wire-surface and wire-wire interaction routines
-!     Contains: CMSW, CMWS, CMWW
-!     GOTOs eliminated: 60 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_matrix3 - Patch and Wire Matrix Routines
+! =============================================================================
+! Purpose: Patch-to-patch and wire-to-patch interactions
+! Contains: CMSW, CMWS, CMWW
+! GOTOs eliminated: 60
+! =============================================================================
 subroutine cmsw(j1, j2, i1, i2, cm, cw, ncw, nrow, itrp)
 !
 ! cmsw computes matrix elements for e along wires due to patch current

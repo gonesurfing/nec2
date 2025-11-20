@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D FIELDS MODULE
-!     Modernized field calculation routines
-!     Contains: HSFLX, EKSCX
-!     GOTOs eliminated: 12 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_fields - Field Calculations
+! =============================================================================
+! Purpose: H field and kernel functions for segments
+! Contains: HSFLX, EKSCX
+! GOTOs eliminated: 12
+! =============================================================================
 subroutine hsflx(s,rh,zpx,hpk,hps,hpc)
 !
 ! hsflx calculates h field of sine, cosine, and constant current of segment

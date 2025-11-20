@@ -1,10 +1,9 @@
-! ***********************************************************************
-! nec2d simple computation routines
-! contains routines with simple control flow (originally 1-2 gotos each)
-! contains: facio, test, cabc, ltsolv, lunscr
-! modernized from fixed-form fortran
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_simple - Simple Helper Routines
+! =============================================================================
+! Purpose: Basic utility functions and calculations
+! Contains: FACIO, TEST, CABC, LTSOLV, LUNSCR
+! =============================================================================
 subroutine facio (a,nrow,nop,ip,iu1,iu2,iu3,iu4)
 ! facio controls i/o for out-of-core factorization
   implicit real*8(a-h,o-z)

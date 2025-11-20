@@ -1,6 +1,12 @@
-FUNCTION ISEGNO(ITAGI, MX)
-  USE nec2d_params
-  USE nec2d_commons, ONLY: &
+! =============================================================================
+! nec2d_segment - Segment Lookup
+! =============================================================================
+! Purpose: Find segment number from tag number
+! Contains: ISEGNO
+! =============================================================================
+function ISEGNO(ITAGI, MX)
+  use nec2d_params
+  use nec2d_commons, only: &
     ! /DATA/ - Only variables actually used: ITAG, N
     ITAG, N
   ! ***
@@ -12,48 +18,48 @@ FUNCTION ISEGNO(ITAGI, MX)
   ! Modernized: Eliminated 5 GOTOs using structured control flow
   ! COMMON blocks: Converted to USE...ONLY (2025-11-19)
   !
-  IMPLICIT REAL*8(A-H,O-Z)
+  implicit real*8(A-H,O-Z)
 
   ! Validate MX parameter (GOTO 1 eliminated)
-  IF (MX .LE. 0) THEN
-    WRITE(*,6)
-    STOP
-  END IF
+  if (MX .LE. 0) then
+    write(*,6)
+    stop
+  end if
 
   ICNT = 0
 
   ! Handle ITAGI=0 case (GOTO 2 eliminated)
-  IF (ITAGI .EQ. 0) THEN
+  if (ITAGI .EQ. 0) then
     ISEGNO = MX
-    RETURN
-  END IF
+    return
+  end if
 
   ! Validate N parameter (GOTO 4 eliminated)
-  IF (N .LT. 1) THEN
-    WRITE(*,7) ITAGI
-    STOP
-  END IF
+  if (N .LT. 1) then
+    write(*,7) ITAGI
+    stop
+  end if
 
   ! Search for Mth segment with tag ITAGI
-  DO I = 1, N
+  do I = 1, N
     ! GOTO 3 eliminated with CYCLE
-    IF (ITAG(I) .NE. ITAGI) CYCLE
+    if (ITAG(I) .NE. ITAGI) cycle
 
     ICNT = ICNT + 1
 
     ! GOTO 5 eliminated - return when found
-    IF (ICNT .EQ. MX) THEN
+    if (ICNT .EQ. MX) then
       ISEGNO = I
-      RETURN
-    END IF
-  END DO
+      return
+    end if
+  end do
 
   ! If we reach here, tag not found (GOTO 4 path)
-  WRITE(*,7) ITAGI
-  STOP
+  write(*,7) ITAGI
+  stop
 
-6 FORMAT(4X, 'CHECK DATA, PARAMETER SPECIFYING SEGMENT POSITION IN ', &
+6 format(4X, 'CHECK DATA, PARAMETER SPECIFYING SEGMENT POSITION IN ', &
            'A GROUP OF EQUAL TAGS MUST NOT BE ZERO')
-7 FORMAT(///, 10X, 'NO SEGMENT HAS AN ITAG OF ', I5)
+7 format(///, 10X, 'NO SEGMENT HAS AN ITAG OF ', I5)
 
-END FUNCTION ISEGNO
+end function ISEGNO

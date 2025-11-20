@@ -1,10 +1,10 @@
-! ***********************************************************************
-!     NEC2D INTEGRATION MODULE
-!     Modernized numerical integration and factorization routines
-!     Contains: HFK, FACTR
-!     GOTOs eliminated: 9 → 0
-! ***********************************************************************
-
+! =============================================================================
+! nec2d_integration - Numerical Integration
+! =============================================================================
+! Purpose: Integration routines for kernel evaluations
+! Contains: HFK, FACTR
+! GOTOs eliminated: 9
+! =============================================================================
 subroutine hfk(el1,el2,rhk,zpkx,sgr,sgi)
 !
 ! hfk computes the h field of a uniform current filament by

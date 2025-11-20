@@ -1,47 +1,29 @@
-! ***********************************************************************
-!     NEC2D GEOMETRY PROCESSING MODULE
-!     Modernized geometry and matrix processing routines
-!     Contains: HSFLD, LFACTR, PATCH
-!     GOTOs eliminated: 39 → 0
-! ***********************************************************************
+! =============================================================================
+! nec2d_geomproc - Geometry and Matrix Processing
+! =============================================================================
+! Purpose: H field computation, matrix factorization, patch subdivision
+! Contains: HSFLD, LFACTR, PATCH, SUBPH
+! GOTOs eliminated: 39
+! =============================================================================
+subroutine HSFLD (XI,YI,ZI,AI)
+  implicit real*8(A-H,O-Z)
 
-!==============================================================================
-! HSFLD - H Field Computation with Ground Effects
-!==============================================================================
-! Modernized from nec2dxs_integrated.f (lines 2239-2349)
-! Tier 2 Modernization: Free-form Fortran 90, all GOTOs eliminated
-!
-! Purpose: Computes the H field for constant, sine, and cosine current
-!          on a segment including ground effects.
-!
-! GOTOs eliminated: 10 (labels: 1, 2, 3, 4, 5, 6, 7)
-!
-! Modifications:
-!   - Converted to free-form Fortran 90
-!   - Changed C comments to ! comments
-!   - Eliminated all 10 GOTOs using structured IF/THEN/ELSE
-!   - Converted labeled DO loop to modern DO...END DO
-!   - Maintained numerical equivalence with original code
-!==============================================================================
-SUBROUTINE HSFLD (XI,YI,ZI,AI)
-  IMPLICIT REAL*8(A-H,O-Z)
+  complex*16 EXK,EYK,EZK,EXS,EYS,EZS,EXC,EYC,EZC,ZRATI,ZRATI2,T1
+  complex*16 HPK,HPS,HPC,QX,QY,QZ,RRV,RRH,ZRATX,FRATI
 
-  COMPLEX*16 EXK,EYK,EZK,EXS,EYS,EZS,EXC,EYC,EZC,ZRATI,ZRATI2,T1
-  COMPLEX*16 HPK,HPS,HPC,QX,QY,QZ,RRV,RRH,ZRATX,FRATI
-
-  COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS, &
+  common /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS, &
                  EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
-  COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL, &
+  common /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL, &
               KSYMP,IFAR,IPERF
 
-  DATA ETA/376.73/
+  data ETA/376.73/
 
   XIJ=XI-XJ
   YIJ=YI-YJ
   RFL=-1.
 
   ! Symmetry loop (formerly DO 7)
-  DO IP=1,KSYMP
+  do IP=1,KSYMP
     RFL=-RFL
     SALPR=SALPJ*RFL
     ZIJ=ZI-RFL*ZJ
@@ -52,7 +34,7 @@ SUBROUTINE HSFLD (XI,YI,ZI,AI)
     RH=SQRT(RHOX*RHOX+RHOY*RHOY+RHOZ*RHOZ+AI*AI)
 
     ! Handle zero RH case (formerly GO TO 1 / GO TO 7)
-    IF (RH.LE.1.D-10) THEN
+    if (RH.le.1.D-10) then
       EXK=0.
       EYK=0.
       EZK=0.
@@ -62,8 +44,8 @@ SUBROUTINE HSFLD (XI,YI,ZI,AI)
       EXC=0.
       EYC=0.
       EZC=0.
-      CYCLE  ! Skip to next iteration
-    END IF
+      cycle  ! Skip to next iteration
+    end if
 
     ! Label 1: Normalize and compute field components
     RHOX=RHOX/RH
@@ -72,10 +54,10 @@ SUBROUTINE HSFLD (XI,YI,ZI,AI)
     PHX=SABJ*RHOZ-SALPR*RHOY
     PHY=SALPR*RHOX-CABJ*RHOZ
     PHZ=CABJ*RHOY-SABJ*RHOX
-    CALL HSFLX (S,RH,ZP,HPK,HPS,HPC)
+    call HSFLX (S,RH,ZP,HPK,HPS,HPC)
 
     ! Check iteration number (formerly GO TO 6)
-    IF (IP.NE.2) THEN
+    if (IP.ne.2) then
       ! Label 6: First iteration - set initial field values
       EXK=HPK*PHX
       EYK=HPK*PHY
@@ -86,10 +68,10 @@ SUBROUTINE HSFLD (XI,YI,ZI,AI)
       EXC=HPC*PHX
       EYC=HPC*PHY
       EZC=HPC*PHZ
-    ELSE
+    else
       ! Second iteration - apply ground effects
       ! Check for perfect ground (formerly GO TO 5)
-      IF (IPERF.EQ.1) THEN
+      if (IPERF.eq.1) then
         ! Label 5: Perfect ground case
         EXK=EXK-HPK*PHX
         EYK=EYK-HPK*PHY
@@ -100,37 +82,37 @@ SUBROUTINE HSFLD (XI,YI,ZI,AI)
         EXC=EXC-HPC*PHX
         EYC=EYC-HPC*PHY
         EZC=EZC-HPC*PHZ
-      ELSE
+      else
         ! Imperfect ground case
         ZRATX=ZRATI
         RMAG=SQRT(ZP*ZP+RH*RH)
         XYMAG=SQRT(XIJ*XIJ+YIJ*YIJ)
 
         ! Set parameters for radial wire ground screen (formerly GO TO 2)
-        IF (NRADL.NE.0) THEN
+        if (NRADL.ne.0) then
           XSPEC=(XI*ZJ+ZI*XJ)/(ZI+ZJ)
           YSPEC=(YI*ZJ+ZI*YJ)/(ZI+ZJ)
           RHOSPC=SQRT(XSPEC*XSPEC+YSPEC*YSPEC+T2*T2)
-          IF (RHOSPC.LE.SCRWL) THEN
+          if (RHOSPC.le.SCRWL) then
             RRV=T1*RHOSPC*LOG(RHOSPC/T2)
             ZRATX=(RRV*ZRATI)/(ETA*ZRATI+RRV)
-          END IF
-        END IF
+          end if
+        end if
 
         ! Label 2: Calculation of reflection coefficients when ground is specified
         ! (formerly GO TO 3 / GO TO 4)
-        IF (XYMAG.LE.1.D-6) THEN
+        if (XYMAG.le.1.D-6) then
           PX=0.
           PY=0.
           CTH=1.
           RRV=(1.,0.)
-        ELSE
+        else
           ! Label 3
           PX=-YIJ/XYMAG
           PY=XIJ/XYMAG
           CTH=ZIJ/RMAG
           RRV=SQRT(1.-ZRATX*ZRATX*(1.-CTH*CTH))
-        END IF
+        end if
 
         ! Label 4: Compute reflection coefficients
         RRH=ZRATX*CTH
@@ -150,13 +132,13 @@ SUBROUTINE HSFLD (XI,YI,ZI,AI)
         EXC=EXC-HPC*QX
         EYC=EYC-HPC*QY
         EZC=EZC-HPC*QZ
-      END IF
-    END IF
+      end if
+    end if
 
-  END DO  ! IP loop (formerly label 7)
+  end do  ! IP loop (formerly label 7)
 
-  RETURN
-END SUBROUTINE HSFLD
+  return
+end subroutine HSFLD
 
 !==============================================================================
 ! LFACTR - Gauss-Doolittle LU Factorization
@@ -173,119 +155,119 @@ END SUBROUTINE HSFLD
 !
 ! GOTOs eliminated: 14 (labels 1-16)
 !==============================================================================
-SUBROUTINE LFACTR(A, NROW, IX1, IX2, IP)
-  INCLUDE 'NEC2D3000.INC'
-  IMPLICIT REAL*8(A-H,O-Z)
+subroutine LFACTR(A, NROW, IX1, IX2, IP)
+  include 'NEC2D3000.INC'
+  implicit real*8(A-H,O-Z)
 
-  COMPLEX*16 A, D, AJR
-  INTEGER R, R1, R2, PJ, PR
-  LOGICAL L1, L2, L3
-  COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,ICASX, &
+  complex*16 A, D, AJR
+  integer R, R1, R2, PJ, PR
+  logical L1, L2, L3
+  common /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,ICASX, &
                   NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
-  COMMON /SCRATM/ D(2*MAXSEG)
-  DIMENSION A(NROW,1), IP(NROW)
+  common /SCRATM/ D(2*MAXSEG)
+  dimension A(NROW,1), IP(NROW)
 
   IFLG = 0
 
   ! Initialize R1, R2, J1, J2
-  L1 = IX1.EQ.1 .AND. IX2.EQ.2
+  L1 = IX1.eq.1 .AND. IX2.eq.2
   L2 = (IX2-1).EQ.IX1
-  L3 = IX2.EQ.NBLSYM
+  L3 = IX2.eq.NBLSYM
 
-  IF (L1) THEN
+  if (L1) then
     R1 = 1
     R2 = 2*NPSYM
     J1 = 1
     J2 = -1
-  ELSE
+  else
     R1 = NPSYM+1
     R2 = 2*NPSYM
     J1 = (IX1-1)*NPSYM+1
-    IF (L2) THEN
+    if (L2) then
       J2 = J1+NPSYM-2
-    ELSE
+    else
       J2 = J1+NPSYM-1
-    END IF
-  END IF
+    end if
+  end if
 
-  IF (L3) R2 = NPSYM+NLSYM
+  if (L3) R2 = NPSYM+NLSYM
 
-  DO R = R1, R2
+  do R = R1, R2
     ! Step 1
-    DO K = J1, NROW
+    do K = J1, NROW
       D(K) = A(K,R)
-    END DO
+    end do
 
     ! Steps 2 and 3
-    IF (L1 .OR. L2) J2 = J2+1
+    if (L1 .OR. L2) J2 = J2+1
 
-    IF (J1 .LE. J2) THEN
+    if (J1 .LE. J2) then
       IXJ = 0
-      DO J = J1, J2
+      do J = J1, J2
         IXJ = IXJ+1
         PJ = IP(J)
         AJR = D(PJ)
         A(J,R) = AJR
         D(PJ) = D(J)
         JP1 = J+1
-        DO I = JP1, NROW
+        do I = JP1, NROW
           D(I) = D(I) - A(I,IXJ)*AJR
-        END DO
-      END DO
-    END IF
+        end do
+      end do
+    end if
 
     ! Step 4
     J2P1 = J2+1
 
-    IF (L1 .OR. L2) THEN
+    if (L1 .OR. L2) then
       ! Pivot selection
       DMAX = DREAL(D(J2P1)*DCONJG(D(J2P1)))
       IP(J2P1) = J2P1
       J2P2 = J2+2
 
-      IF (J2P2 .LE. NROW) THEN
-        DO I = J2P2, NROW
+      if (J2P2 .LE. NROW) then
+        do I = J2P2, NROW
           ELMAG = DREAL(D(I)*DCONJG(D(I)))
-          IF (ELMAG .GE. DMAX) THEN
+          if (ELMAG .GE. DMAX) then
             DMAX = ELMAG
             IP(J2P1) = I
-          END IF
-        END DO
-      END IF
+          end if
+        end do
+      end if
 
-      IF (DMAX .LT. 1.D-10) IFLG = 1
+      if (DMAX .LT. 1.D-10) IFLG = 1
       PR = IP(J2P1)
       A(J2P1,R) = D(PR)
       D(PR) = D(J2P1)
 
       ! Step 5
-      IF (J2P2 .LE. NROW) THEN
+      if (J2P2 .LE. NROW) then
         AJR = 1./A(J2P1,R)
-        DO I = J2P2, NROW
+        do I = J2P2, NROW
           A(I,R) = D(I)*AJR
-        END DO
-      END IF
+        end do
+      end if
 
-      IF (IFLG .NE. 0) THEN
-        WRITE(*,17) J2, DMAX
+      if (IFLG .NE. 0) then
+        write(*,17) J2, DMAX
         IFLG = 0
-      END IF
+      end if
 
-    ELSE
+    else
       ! Non-pivot path
-      IF (NROW .GE. J2P1) THEN
-        DO I = J2P1, NROW
+      if (NROW .GE. J2P1) then
+        do I = J2P1, NROW
           A(I,R) = D(I)
-        END DO
-      END IF
-    END IF
+        end do
+      end if
+    end if
 
-  END DO
+  end do
 
-  RETURN
+  return
 
-17 FORMAT (1H ,6HPIVOT(,I3,2H)=,1P,E16.8)
-END SUBROUTINE LFACTR
+17 format (1H ,6HPIVOT(,I3,2H)=,1P,E16.8)
+end subroutine LFACTR
 
 !==============================================================================
 ! PATCH - Patch Geometry Generation
@@ -307,20 +289,20 @@ END SUBROUTINE LFACTR
 !   - Eliminated singularity handling jumps
 !   - Replaced labeled DO loops with modern DO...END DO
 !==============================================================================
-SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
+subroutine PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
 !
 ! DOUBLE PRECISION 6/4/85
 !
-  INCLUDE 'NEC2D3000.INC'
-  IMPLICIT REAL*8(A-H,O-Z)
+  include 'NEC2D3000.INC'
+  implicit real*8(A-H,O-Z)
 !
 ! PATCH GENERATES AND MODIFIES PATCH GEOMETRY DATA
-  COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
+  common /data/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
        ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG), &
        ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-  COMMON /ANGL/ SALP(MAXSEG)
-  DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
-  EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON2), &
+  common /ANGL/ SALP(MAXSEG)
+  dimension T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
+  equivalence (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON2), &
        (T2Z,ITAG)
 
 ! NEW PATCHES.  FOR NX=0, NY=1,2,3,4 PATCH IS (RESPECTIVELY)
@@ -331,9 +313,9 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
   M=M+1
   MI=LD+1-M
   NTP=NY
-  IF (NX.GT.0) NTP=2
+  if (NX.gt.0) NTP=2
 
-  IF (NTP.LE.1) THEN
+  if (NTP.le.1) then
     ! Arbitrary patch (NTP=1)
     X(MI)=X1
     Y(MI)=Y1
@@ -345,19 +327,19 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
     ZNV=SIN(X2)
     XA=SQRT(XNV*XNV+YNV*YNV)
 
-    IF (XA.LT.1.D-6) THEN
+    if (XA.lt.1.D-6) then
       ! Singularity case - normal nearly vertical
       T1X(MI)=1.
       T1Y(MI)=0.
       T1Z(MI)=0.
-    ELSE
+    else
       ! Normal case - compute tangent perpendicular to normal
       T1X(MI)=-YNV/XA
       T1Y(MI)=XNV/XA
       T1Z(MI)=0.
-    END IF
+    end if
 
-  ELSE
+  else
     ! Non-arbitrary patches (NTP=2,3,4)
     S1X=X2-X1
     S1Y=Y2-Y1
@@ -366,7 +348,7 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
     S2Y=Y3-Y2
     S2Z=Z3-Z2
 
-    IF (NX.NE.0) THEN
+    if (NX.ne.0) then
       ! For rectangular surface generation, divide sides by NX and NY
       S1X=S1X/NX
       S1Y=S1Y/NX
@@ -374,7 +356,7 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
       S2X=S2X/NY
       S2Y=S2Y/NY
       S2Z=S2Z/NY
-    END IF
+    end if
 
     ! Compute normal vector from cross product
     XNV=S1Y*S2Z-S1Z*S2Y
@@ -391,21 +373,21 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
     T1Y(MI)=S1Y/XST
     T1Z(MI)=S1Z/XST
 
-    IF (NTP.LE.2) THEN
+    if (NTP.le.2) then
       ! Rectangular patch (NTP=2)
       X(MI)=X1+.5*(S1X+S2X)
       Y(MI)=Y1+.5*(S1Y+S2Y)
       Z(MI)=Z1+.5*(S1Z+S2Z)
       BI(MI)=XA
 
-    ELSE IF (NTP.EQ.3) THEN
+    else if (NTP.eq.3) then
       ! Triangular patch (NTP=3)
       X(MI)=(X1+X2+X3)/3.
       Y(MI)=(Y1+Y2+Y3)/3.
       Z(MI)=(Z1+Z2+Z3)/3.
       BI(MI)=.5*XA
 
-    ELSE
+    else
       ! Quadrilateral patch (NTP=4)
       S1X=X3-X1
       S1Y=Y3-Y1
@@ -423,12 +405,12 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
       Z(MI)=(XA*(Z1+Z2+Z3)+XST*(Z1+Z3+Z4))*SALPN
       BI(MI)=.5*(XA+XST)
       S1X=(XNV*XN2+YNV*YN2+ZNV*ZN2)/XST
-      IF (S1X.LE.0.9998) THEN
-        WRITE(*,14)
-        STOP
-      END IF
-    END IF
-  END IF
+      if (S1X.le.0.9998) then
+        write(*,14)
+        stop
+      end if
+    end if
+  end if
 
   ! Compute second tangent vector (common to all patch types)
   T2X(MI)=YNV*T1Z(MI)-ZNV*T1Y(MI)
@@ -437,7 +419,7 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
   SALP(MI)=1.
 
   ! Generate NX×NY rectangular surface if NX>0
-  IF (NX.GT.0) THEN
+  if (NX.gt.0) then
     M=M+NX*NY-1
     XN2=X(MI)-S1X-S2X
     YN2=Y(MI)-S1Y-S2Y
@@ -450,11 +432,11 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
     ZT=T2Z(MI)
     MI=MI+1
 
-    DO IY=1,NY
+    do IY=1,NY
       XN2=XN2+S2X
       YN2=YN2+S2Y
       ZN2=ZN2+S2Z
-      DO IX=1,NX
+      do IX=1,NX
         XST=IX
         MI=MI-1
         X(MI)=XN2+XST*S1X
@@ -468,18 +450,18 @@ SUBROUTINE PATCH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
         T2X(MI)=XT
         T2Y(MI)=YT
         T2Z(MI)=ZT
-      END DO
-    END DO
-  END IF
+      end do
+    end do
+  end if
 
   IPSYM=0
   NP=N
   MP=M
-  RETURN
+  return
 
-14 FORMAT ('ERROR -- CORNERS OF QUADRILATERAL PATCH DO NOT LIE IN A PLANE')
+14 format ('ERROR -- CORNERS OF QUADRILATERAL PATCH DO NOT LIE IN A PLANE')
 
-END SUBROUTINE PATCH
+end subroutine PATCH
 
 !==============================================================================
 ! SUBPH - Sub-Patch Handler
@@ -487,23 +469,23 @@ END SUBROUTINE PATCH
 ! Modernized from nec2dxs.f (ENTRY point in PATCH, lines 7517-7576)
 ! Purpose: Subdivides a patch or creates sub-patches
 !==============================================================================
-SUBROUTINE SUBPH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
-  INCLUDE 'NEC2D3000.INC'
-  IMPLICIT REAL*8(A-H,O-Z)
+subroutine SUBPH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
+  include 'NEC2D3000.INC'
+  implicit real*8(A-H,O-Z)
 
-  COMMON /DATA/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
+  common /data/ X(MAXSEG),Y(MAXSEG),Z(MAXSEG),SI(MAXSEG),BI(MAXSEG), &
        ALP(MAXSEG),BET(MAXSEG),WLAM,ICON1(2*MAXSEG),ICON2(2*MAXSEG), &
        ITAG(2*MAXSEG),ICONX(MAXSEG),LD,N1,N2,N,NP,M1,M2,M,MP,IPSYM
-  COMMON /ANGL/ SALP(MAXSEG)
-  DIMENSION T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
-  EQUIVALENCE (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON2), &
+  common /ANGL/ SALP(MAXSEG)
+  dimension T1X(1), T1Y(1), T1Z(1), T2X(1), T2Y(1), T2Z(1)
+  equivalence (T1X,SI), (T1Y,ALP), (T1Z,BET), (T2X,ICON1), (T2Y,ICON2), &
        (T2Z,ITAG)
 
   ! Shift patches if needed (formerly GO TO 10)
-  IF (NY.LE.0 .AND. NX.NE.M) THEN
+  if (NY.le.0 .AND. NX.ne.M) then
     NXP=NX+1
     IX=LD-M
-    DO IY=NXP,M
+    do IY=NXP,M
       IX=IX+1
       NYP=IX-3
       X(NYP)=X(IX)
@@ -517,8 +499,8 @@ SUBROUTINE SUBPH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
       T2X(NYP)=T2X(IX)
       T2Y(NYP)=T2Y(IX)
       T2Z(NYP)=T2Z(IX)
-    END DO
-  END IF
+    end do
+  end if
 
   ! Label 10: Setup for subdividing patch
   MI=LD+1-NX
@@ -538,16 +520,16 @@ SUBROUTINE SUBPH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
   YT=XST
 
   ! Determine starting index (formerly GO TO 11/12)
-  IF (NY.GT.0) THEN
+  if (NY.gt.0) then
     M=M+1
     MP=MP+1
     MIA=LD+1-M
-  ELSE
+  else
     MIA=MI
-  END IF
+  end if
 
   ! Create 4 sub-patches (formerly DO 13)
-  DO IX=1,4
+  do IX=1,4
     X(MIA)=XS+XT*S1X+YT*S2X
     Y(MIA)=YS+XT*S1Y+YT*S2Y
     Z(MIA)=ZS+XT*S1Z+YT*S2Z
@@ -559,14 +541,14 @@ SUBROUTINE SUBPH (NX,NY,X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3,X4,Y4,Z4)
     T2Y(MIA)=S2Y
     T2Z(MIA)=S2Z
     SALP(MIA)=SALN
-    IF (IX.EQ.2) YT=-YT
-    IF (IX.EQ.1.OR.IX.EQ.3) XT=-XT
+    if (IX.eq.2) YT=-YT
+    if (IX.eq.1.or.IX.eq.3) XT=-XT
     MIA=MIA-1
-  END DO
+  end do
 
   M=M+3
-  IF (NX.LE.MP) MP=MP+3
-  IF (NY.GT.0) Z(MI)=10000.
+  if (NX.le.MP) MP=MP+3
+  if (NY.gt.0) Z(MI)=10000.
 
-  RETURN
-END SUBROUTINE SUBPH
+  return
+end subroutine SUBPH

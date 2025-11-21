@@ -1,0 +1,47 @@
+C     EKSC.F - Thin wire E-field computation
+C     Computes E field of sine, cosine, and constant current filaments
+C     by thin wire approximation.
+C
+      SUBROUTINE EKSC (S,Z,RH,XK,IJ,EZS,ERS,EZC,ERC,EZK,ERK)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C     COMPUTE E FIELD OF SINE, COSINE, AND CONSTANT CURRENT FILAMENTS BY
+C     THIN WIRE APPROXIMATION.
+      COMPLEX*16 CON,GZ1,GZ2,GP1,GP2,GZP1,GZP2,EZS,ERS,EZC,ERC,EZK,ERK
+      COMMON /TMI/ ZPK,RKB2,IJX
+      DIMENSION CONX(2)
+      EQUIVALENCE (CONX,CON)
+      DATA CONX/0.,4.771341189D+0/
+      IJX=IJ
+      ZPK=XK*Z
+      RHK=XK*RH
+      RKB2=RHK*RHK
+      SH=.5*S
+      SHK=XK*SH
+      SS=SIN(SHK)
+      CS=COS(SHK)
+      Z2=SH-Z
+      Z1=-(SH+Z)
+      CALL GX (Z1,RH,XK,GZ1,GP1)
+      CALL GX (Z2,RH,XK,GZ2,GP2)
+      GZP1=GP1*Z1
+      GZP2=GP2*Z2
+      EZS=CON*((GZ2-GZ1)*CS*XK-(GZP2+GZP1)*SS)
+      EZC=-CON*((GZ2+GZ1)*SS*XK+(GZP2-GZP1)*CS)
+      ERK=CON*(GP2-GP1)*RH
+      CALL INTX (-SHK,SHK,RHK,IJ,CINT,SINT)
+      EZK=-CON*(GZP2-GZP1+XK*XK*DCMPLX(CINT,-SINT))
+      GZP1=GZP1*Z1
+      GZP2=GZP2*Z2
+      IF (RH.LT.1.D-10) GO TO 1
+      ERS=-CON*((GZP2+GZP1+GZ2+GZ1)*SS-(Z2*GZ2-Z1*GZ1)*CS*XK)/RH
+      ERC=-CON*((GZP2-GZP1+GZ2-GZ1)*CS+(Z2*GZ2+Z1*GZ1)*SS*XK)/RH
+      RETURN
+1     ERS=(0.,0.)
+      ERC=(0.,0.)
+      RETURN
+      END

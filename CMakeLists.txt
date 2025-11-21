@@ -69,7 +69,7 @@ set(SOURCES
     facio.f
 
     # Field calculation routines
-    fields_utils.f
+    evlua.f
     ffld.f
     rdpat.f
     efld.f
@@ -78,6 +78,12 @@ set(SOURCES
     sflds.f
     hsfld.f
     nhfld.f
+    fflds.f
+    gwave.f
+    nfpat.f
+    unere.f
+    eksc.f
+    ekscx.f
 
     # Network routines
     couple.f

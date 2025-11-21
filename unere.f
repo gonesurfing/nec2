@@ -1,0 +1,91 @@
+C     UNERE.F - Unit current patch electric field computation
+C     Calculates the electric field due to unit current in the T1 and T2
+C     directions on a patch for near field calculations.
+C
+      SUBROUTINE UNERE (XOB,YOB,ZOB)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C     CALCULATES THE ELECTRIC FIELD DUE TO UNIT CURRENT IN THE T1 AND T2
+C     DIRECTIONS ON A PATCH
+      COMPLEX*16 EXK,EYK,EZK,EXS,EYS,EZS,EXC,EYC,EZC,ZRATI,ZRATI2,T1
+     1,ER,Q1,Q2,RRV,RRH,EDP,FRATI
+      COMMON /DATAJ/ S,B,XJ,YJ,ZJ,CABJ,SABJ,SALPJ,EXK,EYK,EZK,EXS,EYS,
+     1EZS,EXC,EYC,EZC,RKH,IND1,INDD1,IND2,INDD2,IEXK,IPGND
+      COMMON /GND/ZRATI,ZRATI2,FRATI,T1,T2,CL,CH,SCRWL,SCRWR,NRADL,
+     1KSYMP,IFAR,IPERF
+      EQUIVALENCE (T1XJ,CABJ), (T1YJ,SABJ), (T1ZJ,SALPJ), (T2XJ,B), (T2Y
+     1J,IND1), (T2ZJ,IND2)
+      DATA TPI,CONST/6.283185308D+0,4.771341188D+0/
+C     CONST=ETA/(8.*PI**2)
+      ZR=ZJ
+      T1ZR=T1ZJ
+      T2ZR=T2ZJ
+      IF (IPGND.NE.2) GO TO 1
+      ZR=-ZR
+      T1ZR=-T1ZR
+      T2ZR=-T2ZR
+1     RX=XOB-XJ
+      RY=YOB-YJ
+      RZ=ZOB-ZR
+      R2=RX*RX+RY*RY+RZ*RZ
+      IF (R2.GT.1.D-20) GO TO 2
+      EXK=(0.,0.)
+      EYK=(0.,0.)
+      EZK=(0.,0.)
+      EXS=(0.,0.)
+      EYS=(0.,0.)
+      EZS=(0.,0.)
+      RETURN
+2     R=SQRT(R2)
+      TT1=-TPI*R
+      TT2=TT1*TT1
+      RT=R2*R
+      ER=DCMPLX(SIN(TT1),-COS(TT1))*(CONST*S)
+      Q1=DCMPLX(TT2-1.,TT1)*ER/RT
+      Q2=DCMPLX(3.-TT2,-3.*TT1)*ER/(RT*R2)
+      ER=Q2*(T1XJ*RX+T1YJ*RY+T1ZR*RZ)
+      EXK=Q1*T1XJ+ER*RX
+      EYK=Q1*T1YJ+ER*RY
+      EZK=Q1*T1ZR+ER*RZ
+      ER=Q2*(T2XJ*RX+T2YJ*RY+T2ZR*RZ)
+      EXS=Q1*T2XJ+ER*RX
+      EYS=Q1*T2YJ+ER*RY
+      EZS=Q1*T2ZR+ER*RZ
+      IF (IPGND.EQ.1) GO TO 6
+      IF (IPERF.NE.1) GO TO 3
+      EXK=-EXK
+      EYK=-EYK
+      EZK=-EZK
+      EXS=-EXS
+      EYS=-EYS
+      EZS=-EZS
+      GO TO 6
+3     XYMAG=SQRT(RX*RX+RY*RY)
+      IF (XYMAG.GT.1.D-6) GO TO 4
+      PX=0.
+      PY=0.
+      CTH=1.
+      RRV=(1.,0.)
+      GO TO 5
+4     PX=-RY/XYMAG
+      PY=RX/XYMAG
+      CTH=RZ/SQRT(XYMAG*XYMAG+RZ*RZ)
+      RRV=SQRT(1.-ZRATI*ZRATI*(1.-CTH*CTH))
+5     RRH=ZRATI*CTH
+      RRH=(RRH-RRV)/(RRH+RRV)
+      RRV=ZRATI*RRV
+      RRV=-(CTH-RRV)/(CTH+RRV)
+      EDP=(EXK*PX+EYK*PY)*(RRH-RRV)
+      EXK=EXK*RRV+EDP*PX
+      EYK=EYK*RRV+EDP*PY
+      EZK=EZK*RRV
+      EDP=(EXS*PX+EYS*PY)*(RRH-RRV)
+      EXS=EXS*RRV+EDP*PX
+      EYS=EYS*RRV+EDP*PY
+      EZS=EZS*RRV
+6     RETURN
+      END

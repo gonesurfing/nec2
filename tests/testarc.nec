@@ -1,4 +1,4 @@
-CE TESTARC.NEC: Test GA (arc) geometry card
+CM TESTARC.NEC: Test GA (arc) geometry card
 CE Creates a circular arc antenna at 300 MHz
 GA 1 11 0.25 0.0 180.0 0.001
 GE 0

@@ -1,4 +1,4 @@
-CE TESTREFLECT.NEC: Test GX (reflection) geometry card
+CM TESTREFLECT.NEC: Test GX (reflection) geometry card
 CE Creates dipole with ground plane reflection at 300 MHz
 GW 1 11 0.0 0.0 0.05 0.0 0.0 0.30 0.001
 GX 0 100

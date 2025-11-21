@@ -1,4 +1,4 @@
-CE TESTHELIX.NEC: Test GH (helix) geometry card
+CM TESTHELIX.NEC: Test GH (helix) geometry card
 CE Creates a helical antenna at 300 MHz
 GH 1 10 0.1 0.5 0.05 0.05 0.05 0.05 0.001
 GE 0

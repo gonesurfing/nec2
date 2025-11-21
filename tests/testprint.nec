@@ -1,0 +1,10 @@
+CM TESTPRINT.NEC: Test PT/PQ (print control) cards
+CE Tests current and charge print controls at 300 MHz
+GW 1 11 0.0 0.0 -0.25 0.0 0.0 0.25 0.001
+GE 0
+PT 0 1 1 11
+PQ 0 1 1 11
+EX 0 1 6 0 1.0 0.0
+FR 0 1 0 0 300.0 0.0
+XQ
+EN

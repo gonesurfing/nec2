@@ -53,5 +53,11 @@ Test          Status    Fill    Factor    Run
    add_test( testpatch ${BASH_PROGRAM} ${RUN_NEC} testpatch )
    add_test( testreflect ${BASH_PROGRAM} ${RUN_NEC} testreflect )
    add_test( testnear ${BASH_PROGRAM} ${RUN_NEC} testnear )
+   add_test( testscale ${BASH_PROGRAM} ${RUN_NEC} testscale )
+   add_test( testmulti ${BASH_PROGRAM} ${RUN_NEC} testmulti )
+   add_test( testtl ${BASH_PROGRAM} ${RUN_NEC} testtl )
+   add_test( testgd ${BASH_PROGRAM} ${RUN_NEC} testgd )
+   add_test( testcp ${BASH_PROGRAM} ${RUN_NEC} testcp )
+   add_test( testprint ${BASH_PROGRAM} ${RUN_NEC} testprint )
 
 endif( UNIX )

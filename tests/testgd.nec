@@ -1,0 +1,10 @@
+CM TESTGD.NEC: Test GD (ground parameters) card
+CE Tests additional ground parameters with Sommerfeld ground
+GW 1 11 0.0 0.0 0.05 0.0 0.0 0.30 0.001
+GE 1
+GN 2 0 0 0 13.0 0.005
+GD 0.0 0.0 4.0 0.001 30.0 30.0
+EX 0 1 1 0 1.0 0.0
+FR 0 1 0 0 300.0 0.0
+RP 0 1 1 1000 90.0 0.0 0.0 0.0
+EN

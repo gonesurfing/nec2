@@ -80,9 +80,11 @@ set(SOURCES
     nhfld.f
 
     # Network routines
-    network_utils.f
+    couple.f
     netwk.f
     qdsrc.f
+    cabc.f
+    zint.f
 
     # Main program
     nec2dxs.f

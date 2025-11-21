@@ -1,0 +1,102 @@
+C     FACGF.F - NGF matrix factorization
+C
+C     This subroutine computes and factors D-C(INV(A)B) for the
+C     Numerical Green's Function method in NEC2D.
+C
+      SUBROUTINE FACGF (A,B,C,D,BX,IP,IX,NP,N1,MP,M1,N1C,N2C)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C     FACGF COMPUTES AND FACTORS D-C(INV(A)B).
+      COMPLEX*16 A,B,C,D,BX,SUM
+      COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,I
+     1CASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
+      DIMENSION A(1), B(N1C,1), C(N1C,1), D(N2C,1), BX(N1C,1), IP(1), IX
+     1(1)
+      IF (N2C.EQ.0) RETURN
+      IBFL=14
+      IF (ICASX.LT.3) GO TO 1
+C     CONVERT B FROM BLOCKS OF ROWS ON T14 TO BLOCKS OF COL. ON T16
+      CALL REBLK (B,C,N1C,NPBX,N2C)
+      IBFL=16
+1     NPB=NPBL
+      IF (ICASX.EQ.2) REWIND 14
+C     COMPUTE INV(A)B AND WRITE ON TAPE14
+      DO 2 IB=1,NBBL
+      IF (IB.EQ.NBBL) NPB=NLBL
+      IF (ICASX.GT.1) READ (IBFL) ((BX(I,J),I=1,N1C),J=1,NPB)
+      CALL SOLVES (A,IP,BX,N1C,NPB,NP,N1,MP,M1,13,13)
+      IF (ICASX.EQ.2) REWIND 14
+      IF (ICASX.GT.1) WRITE (14) ((BX(I,J),I=1,N1C),J=1,NPB)
+2     CONTINUE
+      IF (ICASX.EQ.1) GO TO 3
+      REWIND 11
+      REWIND 12
+      REWIND 15
+      REWIND IBFL
+3     NPC=NPBL
+C     COMPUTE D-C(INV(A)B) AND WRITE ON TAPE11
+      DO 8 IC=1,NBBL
+      IF (IC.EQ.NBBL) NPC=NLBL
+      IF (ICASX.EQ.1) GO TO 4
+      READ (15) ((C(I,J),I=1,N1C),J=1,NPC)
+      READ (12) ((D(I,J),I=1,N2C),J=1,NPC)
+      REWIND 14
+4     NPB=NPBL
+      NIC=0
+      DO 7 IB=1,NBBL
+      IF (IB.EQ.NBBL) NPB=NLBL
+      IF (ICASX.GT.1) READ (14) ((B(I,J),I=1,N1C),J=1,NPB)
+      DO 6 I=1,NPB
+      II=I+NIC
+      DO 6 J=1,NPC
+      SUM=(0.,0.)
+      DO 5 K=1,N1C
+5     SUM=SUM+B(K,I)*C(K,J)
+6     D(II,J)=D(II,J)-SUM
+7     NIC=NIC+NPBL
+      IF (ICASX.GT.1) WRITE (11) ((D(I,J),I=1,N2C),J=1,NPBL)
+8     CONTINUE
+      IF (ICASX.EQ.1) GO TO 9
+      REWIND 11
+      REWIND 12
+      REWIND 14
+      REWIND 15
+9     N1CP=N1C+1
+C     FACTOR D-C(INV(A)B)
+      IF (ICASX.GT.1) GO TO 10
+      CALL FACTR (N2C,D,IP(N1CP),N2C)
+      GO TO 13
+10    IF (ICASX.EQ.4) GO TO 12
+      NPB=NPBL
+      IC=0
+      DO 11 IB=1,NBBL
+      IF (IB.EQ.NBBL) NPB=NLBL
+      II=IC+1
+      IC=IC+N2C*NPB
+11    READ (11) (B(I,1),I=II,IC)
+      REWIND 11
+      CALL FACTR (N2C,B,IP(N1CP),N2C)
+      NIC=N2C*N2C
+      WRITE (11) (B(I,1),I=1,NIC)
+      REWIND 11
+      GO TO 13
+12    NBLSYS=NBLSYM
+      NPSYS=NPSYM
+      NLSYS=NLSYM
+      ICASS=ICASE
+      NBLSYM=NBBL
+      NPSYM=NPBL
+      NLSYM=NLBL
+      ICASE=3
+      CALL FACIO (B,N2C,1,IX(N1CP),11,12,16,11)
+      CALL LUNSCR (B,N2C,1,IP(N1CP),IX(N1CP),12,11,16)
+      NBLSYM=NBLSYS
+      NPSYM=NPSYS
+      NLSYM=NLSYS
+      ICASE=ICASS
+13    RETURN
+      END

@@ -1,0 +1,94 @@
+C     FACTRS.F - Symmetric structure matrix factorization
+C
+C     This subroutine transforms submatrices to form matrices of the
+C     symmetric modes and calls routine to factor matrices for NEC2D.
+C     If no symmetry, the routine is called to factor the complete matrix.
+C
+      SUBROUTINE FACTRS (NP,NROW,A,IP,IX,IU1,IU2,IU3,IU4)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C
+C     FACTRS, FOR SYMMETRIC STRUCTURE, TRANSFORMS SUBMATRICIES TO FORM
+C     MATRICIES OF THE SYMMETRIC MODES AND CALLS ROUTINE TO FACTOR
+C     MATRICIES.  IF NO SYMMETRY, THE ROUTINE IS CALLED TO FACTOR THE
+C     COMPLETE MATRIX.
+C
+      COMPLEX*16 A
+      COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,I
+     1CASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
+      DIMENSION A(1), IP(NROW), IX(NROW)
+      NOP=NROW/NP
+      IF (ICASE.GT.2) GO TO 2
+      DO 1 KK=1,NOP
+      KA=(KK-1)*NP+1
+1     CALL FACTR (NP,A(KA),IP(KA),NROW)
+      RETURN
+2     IF (ICASE.GT.3) GO TO 3
+C
+C     FACTOR SUBMATRICIES, OR FACTOR COMPLETE MATRIX IF NO SYMMETRY
+C     EXISTS.
+C
+      CALL FACIO (A,NROW,NOP,IX,IU1,IU2,IU3,IU4)
+      CALL LUNSCR (A,NROW,NOP,IP,IX,IU2,IU3,IU4)
+      RETURN
+C
+C     REWRITE THE MATRICES BY COLUMNS ON TAPE 13
+C
+3     I2=2*NPBLK*NROW
+      REWIND IU2
+      DO 5 K=1,NOP
+      REWIND IU1
+      ICOLS=NPBLK
+      IR2=K*NP
+      IR1=IR2-NP+1
+      DO 5 L=1,NBLOKS
+      IF (NBLOKS.EQ.1.AND.K.GT.1) GO TO 4
+      CALL BLCKIN (A,IU1,1,I2,1,602)
+      IF (L.EQ.NBLOKS) ICOLS=NLAST
+4     IRR1=IR1
+      IRR2=IR2
+      DO 5 ICOLDX=1,ICOLS
+      WRITE (IU2) (A(I),I=IRR1,IRR2)
+      IRR1=IRR1+NROW
+      IRR2=IRR2+NROW
+5     CONTINUE
+      REWIND IU1
+      REWIND IU2
+      IF (ICASE.EQ.5) GO TO 8
+      REWIND IU3
+      IRR1=NP*NP
+      DO 7 KK=1,NOP
+      IR1=1-NP
+      IR2=0
+      DO 6 I=1,NP
+      IR1=IR1+NP
+      IR2=IR2+NP
+6     READ (IU2) (A(J),J=IR1,IR2)
+      KA=(KK-1)*NP+1
+      CALL FACTR (NP,A,IP(KA),NP)
+      WRITE (IU3) (A(I),I=1,IRR1)
+7     CONTINUE
+      REWIND IU2
+      REWIND IU3
+      RETURN
+8     I2=2*NPSYM*NP
+      DO 10 KK=1,NOP
+      J2=NPSYM
+      DO 10 L=1,NBLSYM
+      IF (L.EQ.NBLSYM) J2=NLSYM
+      IR1=1-NP
+      IR2=0
+      DO 9 J=1,J2
+      IR1=IR1+NP
+      IR2=IR2+NP
+9     READ (IU2) (A(I),I=IR1,IR2)
+10    CALL BLCKOT (A,IU1,1,I2,1,193)
+      REWIND IU1
+      CALL FACIO (A,NP,NOP,IX,IU1,IU2,IU3,IU4)
+      CALL LUNSCR (A,NP,NOP,IP,IX,IU2,IU3,IU4)
+      RETURN
+      END

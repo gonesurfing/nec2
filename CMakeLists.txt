@@ -53,9 +53,19 @@ set(SOURCES
     cmset.f
     cmsw.f
     cmww.f
+    cmss.f
+    cmws.f
     solves.f
     solgf.f
     lfactr.f
+    facgf.f
+    factr.f
+    factrs.f
+    fblock.f
+    fbngf.f
+    ltsolv.f
+    lunscr.f
+    facio.f
 
     # Field calculation routines
     fields_utils.f

@@ -1,0 +1,80 @@
+C     LTSOLV.F - Transposed LU solution
+C
+C     This subroutine solves the matrix equation Y(R)*LU(T)=B(R) where
+C     (R) denotes row vector and LU(T) denotes the LU decomposition of
+C     the transpose of the original coefficient matrix for NEC2D.
+C
+      SUBROUTINE LTSOLV (A,NROW,IX,B,NEQ,NRH,IFL1,IFL2)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C
+C     LTSOLV SOLVES THE MATRIX EQ. Y(R)*LU(T)=B(R) WHERE (R) DENOTES ROW
+C     VECTOR AND LU(T) DENOTES THE LU DECOMPOSITION OF THE TRANSPOSE OF
+C     THE ORIGINAL COEFFICIENT MATRIX.  THE LU(T) DECOMPOSITION IS
+C     STORED ON TAPE 5 IN BLOCKS IN ASCENDING ORDER AND ON FILE 3 IN
+C     BLOCKS OF DESCENDING ORDER.
+C
+      COMPLEX*16 A,B,Y,SUM
+      COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,I
+     1CASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
+      COMMON /SCRATM/ Y(2*MAXSEG)
+      DIMENSION A(NROW,NROW), B(NEQ,NRH), IX(NEQ)
+C
+C     FORWARD SUBSTITUTION
+C
+      I2=2*NPSYM*NROW
+      DO 4 IXBLK1=1,NBLSYM
+      CALL BLCKIN (A,IFL1,1,I2,1,121)
+      K2=NPSYM
+      IF (IXBLK1.EQ.NBLSYM) K2=NLSYM
+      JST=(IXBLK1-1)*NPSYM
+      DO 4 IC=1,NRH
+      J=JST
+      DO 3 K=1,K2
+      JM1=J
+      J=J+1
+      SUM=(0.,0.)
+      IF (JM1.LT.1) GO TO 2
+      DO 1 I=1,JM1
+1     SUM=SUM+A(I,K)*B(I,IC)
+2     B(J,IC)=(B(J,IC)-SUM)/A(J,K)
+3     CONTINUE
+4     CONTINUE
+C
+C     BACKWARD SUBSTITUTION
+C
+      JST=NROW+1
+      DO 8 IXBLK1=1,NBLSYM
+      CALL BLCKIN (A,IFL2,1,I2,1,122)
+      K2=NPSYM
+      IF (IXBLK1.EQ.1) K2=NLSYM
+      DO 7 IC=1,NRH
+      KP=K2+1
+      J=JST
+      DO 6 K=1,K2
+      KP=KP-1
+      JP1=J
+      J=J-1
+      SUM=(0.,0.)
+      IF (NROW.LT.JP1) GO TO 6
+      DO 5 I=JP1,NROW
+5     SUM=SUM+A(I,KP)*B(I,IC)
+      B(J,IC)=B(J,IC)-SUM
+6     CONTINUE
+7     CONTINUE
+8     JST=JST-K2
+C
+C     UNSCRAMBLE SOLUTION
+C
+      DO 10 IC=1,NRH
+      DO 9 I=1,NROW
+      IXI=IX(I)
+9     Y(IXI)=B(I,IC)
+      DO 10 I=1,NROW
+10    B(I,IC)=Y(I)
+      RETURN
+      END

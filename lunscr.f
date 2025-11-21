@@ -1,0 +1,71 @@
+C     LUNSCR.F - Unscramble factored matrix
+C
+C     This subroutine unscrambles the scrambled factored matrix
+C     from the LU decomposition in NEC2D.
+C
+      SUBROUTINE LUNSCR (A,NROW,NOP,IX,IP,IU2,IU3,IU4)
+C ***
+C     DOUBLE PRECISION 6/4/85
+C
+      USE NEC2_COMMON
+      IMPLICIT REAL*8(A-H,O-Z)
+C ***
+C
+C     S/R WHICH UNSCRAMBLES, SCRAMBLED FACTORED MATRIX
+C
+      COMPLEX*16 A,TEMP
+      COMMON /MATPAR/ ICASE,NBLOKS,NPBLK,NLAST,NBLSYM,NPSYM,NLSYM,IMAT,I
+     1CASX,NBBX,NPBX,NLBX,NBBL,NPBL,NLBL
+      DIMENSION A(NROW,1), IP(NROW), IX(NROW)
+      I1=1
+      I2=2*NPSYM*NROW
+      NM1=NROW-1
+      REWIND IU2
+      REWIND IU3
+      REWIND IU4
+      DO 9 KK=1,NOP
+      KA=(KK-1)*NROW
+      DO 4 IXBLK1=1,NBLSYM
+      CALL BLCKIN (A,IU2,I1,I2,1,121)
+      K1=(IXBLK1-1)*NPSYM+2
+      IF (NM1.LT.K1) GO TO 3
+      J2=0
+      DO 2 K=K1,NM1
+      IF (J2.LT.NPSYM) J2=J2+1
+      IPK=IP(K+KA)
+      DO 1 J=1,J2
+      TEMP=A(K,J)
+      A(K,J)=A(IPK,J)
+      A(IPK,J)=TEMP
+1     CONTINUE
+2     CONTINUE
+3     CONTINUE
+      CALL BLCKOT (A,IU3,I1,I2,1,122)
+4     CONTINUE
+      DO 5 IXBLK1=1,NBLSYM
+      BACKSPACE IU3
+      IF (IXBLK1.NE.1) BACKSPACE IU3
+      CALL BLCKIN (A,IU3,I1,I2,1,123)
+      CALL BLCKOT (A,IU4,I1,I2,1,124)
+5     CONTINUE
+      DO 6 I=1,NROW
+      IX(I+KA)=I
+6     CONTINUE
+      DO 7 I=1,NROW
+      IPI=IP(I+KA)
+      IXT=IX(I+KA)
+      IX(I+KA)=IX(IPI+KA)
+      IX(IPI+KA)=IXT
+7     CONTINUE
+      IF (NOP.EQ.1) GO TO 9
+      NB1=NBLSYM-1
+C     SKIP NB1 LOGICAL RECORDS FORWARD
+      DO 8 IXBLK1=1,NB1
+      CALL BLCKIN (A,IU3,I1,I2,1,125)
+8     CONTINUE
+9     CONTINUE
+      REWIND IU2
+      REWIND IU3
+      REWIND IU4
+      RETURN
+      END

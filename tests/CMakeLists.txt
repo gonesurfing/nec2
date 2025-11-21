@@ -48,5 +48,10 @@ Test          Status    Fill    Factor    Run
    add_test( testngf2   ${BASH_PROGRAM} ${RUN_NEC} testngf2 )
    add_test( stestdip ${BASH_PROGRAM} ${RUN_NEC} stestdip )
    add_test( testvdip ${BASH_PROGRAM} ${RUN_NEC} testvdip )
+   add_test( testarc ${BASH_PROGRAM} ${RUN_NEC} testarc )
+   add_test( testhelix ${BASH_PROGRAM} ${RUN_NEC} testhelix )
+   add_test( testpatch ${BASH_PROGRAM} ${RUN_NEC} testpatch )
+   add_test( testreflect ${BASH_PROGRAM} ${RUN_NEC} testreflect )
+   add_test( testnear ${BASH_PROGRAM} ${RUN_NEC} testnear )
 
 endif( UNIX )

@@ -1,0 +1,9 @@
+CE TESTNEAR.NEC: Test NE/NH (near field) output cards
+CE Computes near E and H fields for dipole at 300 MHz
+GW 1 11 0.0 0.0 -0.25 0.0 0.0 0.25 0.001
+GE 0
+EX 0 1 6 0 1.0 0.0
+FR 0 1 0 0 300.0 0.0
+NE 0 1 1 5 0.5 0.0 -0.2 0.0 0.0 0.1
+NH 0 1 1 5 0.5 0.0 -0.2 0.0 0.0 0.1
+EN

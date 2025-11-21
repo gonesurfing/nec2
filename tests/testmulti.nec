@@ -1,9 +1,9 @@
 CM TESTMULTI.NEC: Test SM (multiple patches) geometry card
-CE Creates multiple surface patches at 300 MHz
+CE Creates multiple surface patches with plane wave excitation at 300 MHz
 SM 2 2 0.0 0.0 0.0 0.1 0.0 0.0
 SC 0 0 0.0 0.1 0.0
 GE 0
-EX 4 0 1 1 1.0 0.0
+EX 1 0 0 0 0.0 0.0 1.0 0.0 0.0 0.0
 FR 0 1 0 0 300.0 0.0
 RP 0 1 1 1000 90.0 0.0 0.0 0.0
 EN

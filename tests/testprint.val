@@ -1,0 +1,174 @@
+1
+
+
+
+                                 *********************************************
+
+                                    NUMERICAL ELECTROMAGNETICS CODE (NEC-2D)
+
+                                 *********************************************
+
+
+
+
+                                     - - - - COMMENTS - - - -
+
+
+                          TESTPRINT.NEC: Test PT/PQ (print control) cards                            
+                          Tests current and charge print controls at 300 MHz                         
+
+
+
+
+                                 - - - STRUCTURE SPECIFICATION - - -
+
+                                     COORDINATES MUST BE INPUT IN
+                                     METERS OR BE SCALED TO METERS
+                                     BEFORE STRUCTURE INPUT IS ENDED
+
+
+  WIRE                                                                               NO. OF    FIRST  LAST     TAG
+  NO.        X1         Y1         Z1          X2         Y2         Z2      RADIUS   SEG.     SEG.   SEG.     NO.
+     1    0.00000    0.00000   -0.25000     0.00000    0.00000    0.25000    0.00100     11        1    11       1
+
+   TOTAL SEGMENTS USED=   11     NO. SEG. IN A SYMMETRIC CELL=   11     SYMMETRY FLAG=  0
+
+
+         - MULTIPLE WIRE JUNCTIONS -
+ JUNCTION    SEGMENTS  (- FOR END 1, + FOR END 2)
+  NONE
+
+
+
+
+                                 - - - - SEGMENTATION DATA - - - -
+
+                                        COORDINATES IN METERS
+
+                         I+ AND I- INDICATE THE SEGMENTS BEFORE AND AFTER I
+
+
+  SEG.   COORDINATES OF SEG. CENTER     SEG.     ORIENTATION ANGLES    WIRE    CONNECTION DATA   TAG
+  NO.       X         Y         Z       LENGTH     ALPHA     BETA      RADIUS    I-   I    I+    NO.
+     1   0.00000   0.00000  -0.22727   0.04545   90.00000   0.00000   0.00100     0    1    2      1
+     2   0.00000   0.00000  -0.18182   0.04545   90.00000   0.00000   0.00100     1    2    3      1
+     3   0.00000   0.00000  -0.13636   0.04545   90.00000   0.00000   0.00100     2    3    4      1
+     4   0.00000   0.00000  -0.09091   0.04545   90.00000   0.00000   0.00100     3    4    5      1
+     5   0.00000   0.00000  -0.04545   0.04545   90.00000   0.00000   0.00100     4    5    6      1
+     6   0.00000   0.00000   0.00000   0.04545   90.00000   0.00000   0.00100     5    6    7      1
+     7   0.00000   0.00000   0.04545   0.04545   90.00000   0.00000   0.00100     6    7    8      1
+     8   0.00000   0.00000   0.09091   0.04545   90.00000   0.00000   0.00100     7    8    9      1
+     9   0.00000   0.00000   0.13636   0.04545   90.00000   0.00000   0.00100     8    9   10      1
+    10   0.00000   0.00000   0.18182   0.04545   90.00000   0.00000   0.00100     9   10   11      1
+    11   0.00000   0.00000   0.22727   0.04545   90.00000   0.00000   0.00100    10   11    0      1
+
+
+
+
+
+
+ ***** DATA CARD NO.  1   PT   0     1     1    11  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+ ***** DATA CARD NO.  2   PQ   0     1     1    11  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+ ***** DATA CARD NO.  3   EX   0     1     6     0  1.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+ ***** DATA CARD NO.  4   FR   0     1     0     0  3.00000E+02  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+ ***** DATA CARD NO.  5   XQ   0     0     0     0  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+
+
+
+
+                                 - - - - - - FREQUENCY - - - - - -
+
+                                    FREQUENCY= 3.0000E+02 MHZ
+                                    WAVELENGTH= 9.9933E-01 METERS
+
+
+
+
+                    APPROXIMATE INTEGRATION EMPLOYED FOR SEGMENTS MORE THAN   1.000 WAVELENGTHS APART
+
+
+
+                               - - - STRUCTURE IMPEDANCE LOADING - - -
+
+                                   THIS STRUCTURE IS NOT LOADED
+
+
+
+                                  - - - ANTENNA ENVIRONMENT - - -
+
+                                            FREE SPACE
+
+
+
+                                - - - MATRIX TIMING - - -
+
+                        FILL=    0.000 SEC.,  FACTOR=    0.000 SEC.
+
+
+
+                                          - - - ANTENNA INPUT PARAMETERS - - -
+
+   TAG   SEG.    VOLTAGE (VOLTS)         CURRENT (AMPS)         IMPEDANCE (OHMS)        ADMITTANCE (MHOS)      POWER
+   NO.   NO.    REAL        IMAG.       REAL        IMAG.       REAL        IMAG.       REAL        IMAG.     (WATTS)
+     1     6 1.00000E+00 0.00000E+00 9.00525E-03-5.12938E-03 8.38438E+01 4.77574E+01 9.00525E-03-5.12938E-03 4.50262E-03
+
+
+
+                             - - - CURRENTS AND LOCATION - - -
+
+                                 DISTANCES IN WAVELENGTHS
+
+
+  SEG.  TAG    COORD. OF SEG. CENTER     SEG.            - - - CURRENT (AMPS) - - -
+  NO.   NO.     X        Y        Z      LENGTH     REAL        IMAG.       MAG.        PHASE
+     1    1   0.0000   0.0000  -0.2274  0.04548   1.5859E-03 -1.1870E-03  1.9809E-03  -36.813
+     2    1   0.0000   0.0000  -0.1819  0.04548   4.0975E-03 -2.9635E-03  5.0569E-03  -35.876
+     3    1   0.0000   0.0000  -0.1365  0.04548   6.1420E-03 -4.2660E-03  7.4781E-03  -34.782
+     4    1   0.0000   0.0000  -0.0910  0.04548   7.6972E-03 -5.0852E-03  9.2254E-03  -33.451
+     5    1   0.0000   0.0000  -0.0455  0.04548   8.6727E-03 -5.3463E-03  1.0188E-02  -31.652
+     6    1   0.0000   0.0000   0.0000  0.04548   9.0052E-03 -5.1294E-03  1.0364E-02  -29.666
+     7    1   0.0000   0.0000   0.0455  0.04548   8.6727E-03 -5.3463E-03  1.0188E-02  -31.652
+     8    1   0.0000   0.0000   0.0910  0.04548   7.6972E-03 -5.0852E-03  9.2254E-03  -33.451
+     9    1   0.0000   0.0000   0.1365  0.04548   6.1420E-03 -4.2660E-03  7.4781E-03  -34.782
+    10    1   0.0000   0.0000   0.1819  0.04548   4.0975E-03 -2.9635E-03  5.0569E-03  -35.876
+    11    1   0.0000   0.0000   0.2274  0.04548   1.5859E-03 -1.1870E-03  1.9809E-03  -36.813
+
+
+
+                                  - - - CHARGE DENSITIES - - -
+
+                                    DISTANCES IN WAVELENGTHS
+
+
+  SEG.  TAG    COORD. OF SEG. CENTER     SEG.          CHARGE DENSITY (COULOMBS/METER)
+  NO.   NO.     X        Y        Z      LENGTH     REAL        IMAG.       MAG.        PHASE
+     1    1   0.0000   0.0000  -0.2274  0.04548   2.4869E-11  3.3783E-11  4.1949E-11   53.642
+     2    1   0.0000   0.0000  -0.1819  0.04548   1.7806E-11  2.6403E-11  3.1846E-11   56.004
+     3    1   0.0000   0.0000  -0.1365  0.04548   1.2520E-11  2.1216E-11  2.4634E-11   59.455
+     4    1   0.0000   0.0000  -0.0910  0.04548   6.4727E-12  1.4936E-11  1.6278E-11   66.570
+     5    1   0.0000   0.0000  -0.0455  0.04548  -7.4096E-13  7.7233E-12  7.7588E-12   95.480
+     6    1   0.0000   0.0000   0.0000  0.04548   6.8805E-19  1.8355E-19  7.1211E-19   14.937
+     7    1   0.0000   0.0000   0.0455  0.04548   7.4096E-13 -7.7233E-12  7.7588E-12  -84.520
+     8    1   0.0000   0.0000   0.0910  0.04548  -6.4727E-12 -1.4936E-11  1.6278E-11 -113.430
+     9    1   0.0000   0.0000   0.1365  0.04548  -1.2520E-11 -2.1216E-11  2.4634E-11 -120.545
+    10    1   0.0000   0.0000   0.1819  0.04548  -1.7806E-11 -2.6403E-11  3.1846E-11 -123.996
+    11    1   0.0000   0.0000   0.2274  0.04548  -2.4869E-11 -3.3783E-11  4.1949E-11 -126.358
+
+
+
+                                        - - - POWER BUDGET - - -
+
+                                           INPUT POWER   = 4.5026E-03 WATTS
+                                           RADIATED POWER= 4.5026E-03 WATTS
+                                           STRUCTURE LOSS= 0.0000E+00 WATTS
+                                           NETWORK LOSS  = 0.0000E+00 WATTS
+                                           EFFICIENCY    = 100.00 PERCENT
+
+
+
+
+
+
+ ***** DATA CARD NO.  6   EN   0     0     0     0  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00  0.00000E+00
+
+ RUN TIME =     0.000

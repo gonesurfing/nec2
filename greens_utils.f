@@ -3,9 +3,6 @@ C     Collection of utility subroutines for NEC2 Green's function calculations
 C     including Bessel/Hankel functions, numerical integration routines,
 C     and Sommerfeld integral evaluation functions.
 C
-      MODULE NEC2_GREENS
-      END MODULE NEC2_GREENS
-C
       SUBROUTINE BESSEL (Z,J0,J0P)
 C
 C     BESSEL EVALUATES THE ZERO-ORDER BESSEL FUNCTION AND ITS DERIVATIVE

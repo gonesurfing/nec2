@@ -2,9 +2,6 @@ C     EVLUA.F - Sommerfeld integral evaluation subroutine
 C     Controls the integration contour in the complex lambda plane
 C     for evaluation of the Sommerfeld integrals.
 C
-      MODULE NEC2_FIELDS
-      END MODULE NEC2_FIELDS
-C
       SUBROUTINE EVLUA (ERV,EZV,ERH,EPH)
 C
 C     EVALUA CONTROLS THE INTEGRATION CONTOUR IN THE COMPLEX LAMBDA

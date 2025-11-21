@@ -1,9 +1,6 @@
 C     COUPLE.F - Coupling computation for NEC2D
 C     Computes maximum coupling between pairs of segments
 C
-      MODULE NEC2_NETWORK
-      END MODULE NEC2_NETWORK
-C
       SUBROUTINE COUPLE (CUR,WLAM)
 C ***
 C     DOUBLE PRECISION 6/4/85

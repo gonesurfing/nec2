@@ -3,9 +3,6 @@ C     This file contains smaller geometry generation and manipulation routines:
 C     ARC, HELIX, PCINT, WIRE, TRIO, ISEGNO
 C     Larger routines (LOAD, MOVE, PATCH, SBF, TBF, INTRP) are in separate files.
 C
-      MODULE NEC2_GEOMETRY
-      END MODULE NEC2_GEOMETRY
-C
       SUBROUTINE ARC (ITG,NS,RADA,ANG1,ANG2,RAD)
       USE NEC2_COMMON
 C ***

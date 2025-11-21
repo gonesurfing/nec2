@@ -48,7 +48,8 @@ set(SOURCES
     rom2.f
 
     # Solver routines
-    solve_utils.f
+    solve.f
+    reblk.f
     cmngf.f
     cmset.f
     cmsw.f
